@@ -33,7 +33,7 @@ A Haskell library providing a generalized representation of graph elements using
 
 ## Core Concept: Patterns as Sequences
 
-A Pattern is conceptually a **sequence of elements with associated metadata**. For example, the pattern "3 1 4 1 9 5" is a sequence of 6 elements.
+A Pattern is conceptually a **sequence of elements with associated metadata**. For example, the pattern "3 1 4 1 5 9" is a sequence of 6 elements, that could be described as some digits of Pi.
 
 ```haskell
 data Pattern v = Pattern 
