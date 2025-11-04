@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Pattern.Core</title><link href="linuwial.css" rel="stylesheet" type="text/css" title="Linuwial" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400i,700" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { processClass: "mathjax", ignoreClass: ".*" } });</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><span class="caption">pattern-0.1.0.0: A generalized representation of graph elements using category theory</span><ul class="links" id="page-menu"><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>Safe-Inferred</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">Pattern.Core</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>Core Pattern data type and basic operations.</p><p>This module defines the fundamental Pattern type as a recursive structure
+ that can represent graph elements and sequences.</p><h2>Conceptual Model: Patterns as Sequences</h2><p>Conceptually, a Pattern is a sequence of elements with associated metadata.
+ For example, the pattern &quot;3 1 4 1 9 5&quot; is a sequence of 6 elements. The Pattern
+ type represents such sequences where:</p><ul><li><code>value</code> - Metadata or information about the sequence (e.g., sequence name, type, or properties)</li><li><code>elements</code> - The sequence itself, which is a list of Pattern instances</li></ul><p>While implemented using a recursive tree structure, the primary semantic is
+ sequence-based. Each element in the sequence is itself a Pattern, enabling
+ arbitrarily nested and complex sequence structures.</p><h2>Implementation: Recursive Structure</h2><p>The Pattern type is implemented as a recursive tree structure where:</p><ul><li>Each pattern stores a <code>value</code> of type <code>v</code> (the metadata)</li><li>Each pattern contains an <code>elements</code> list of zero or more Pattern instances (the sequence)</li><li>The recursive structure enables patterns to contain patterns containing patterns, etc.</li></ul><p>This recursive implementation enables:</p><ul><li>Leaf patterns: Sequences with no elements (<code>elements == []</code>), representing simple entities</li><li>Patterns with elements: Sequences containing one or more pattern elements, representing
+   relationships, subgraphs, or complex structures</li><li>Arbitrary nesting: Patterns can contain patterns containing patterns, enabling
+   hierarchical and deeply nested sequence structures</li></ul><h2>Values and Pattern Association</h2><p>Each Pattern instance associates a value with a sequence of elements:</p><ul><li>The <code>value</code> field stores metadata about the pattern. This can be any type <code>v</code>,
+   such as a string identifier, an integer, a custom data type, etc.</li><li>The <code>value</code> is associated with the pattern instance itself, not with individual
+   elements in the sequence.</li><li>All patterns in a structure must share the same value type <code>v</code> (enforced by the type system).</li></ul><p>For example, a pattern representing a graph node might have <code>value = <a href="Person.html">Person</a></code>
+ (metadata indicating the node type) and <code>elements = []</code> (empty sequence, indicating a leaf).
+ A pattern representing a relationship might have <code>value = &quot;knows&quot;</code> (the relationship type)
+ and <code>elements = [nodeA, nodeB]</code> (a sequence of two node patterns).</p><h2>Elements and Sequence Structure</h2><p>The <code>elements</code> field forms the sequence structure of the pattern:</p><ul><li>An empty sequence (<code>elements == []</code>) represents a leaf pattern - a pattern with no elements</li><li>A non-empty sequence represents a pattern containing one or more pattern elements</li><li>The elements are ordered and maintain their sequence order</li><li>Each element in the sequence is itself a Pattern, enabling recursive nesting</li></ul><p>The sequence structure enables hierarchical patterns:</p><ul><li>A pattern can contain other patterns as its elements</li><li>Those element patterns can themselves contain patterns</li><li>This enables arbitrary depth nesting while maintaining the sequence semantic</li></ul><p>For example, a graph pattern might have <code>elements = [node1, node2, relationship1]</code>
+ where each element is a Pattern. The relationship pattern itself might have
+ <code>elements = [nodeA, nodeB]</code>, creating a nested structure.</p><h2>Type Safety and Type Parameter <code>v</code></h2><p>The Pattern type is parameterized over value type <code>v</code>:</p><ul><li><code>Pattern v</code> allows patterns to store values of any type <code>v</code></li><li>All patterns in a structure must share the same value type <code>v</code></li><li>This type consistency is enforced by Haskell's type system</li><li>The type parameter ensures type safety when working with patterns</li></ul><p>For example:</p><ul><li><code>Pattern String</code> - patterns storing string values</li><li><code>Pattern Int</code> - patterns storing integer values</li><li><code>Pattern Person</code> - patterns storing custom Person values</li></ul><p>Type consistency means that if you have a <code>Pattern String</code>, all patterns in
+ its <code>elements</code> list must also be <code>Pattern String</code>. This prevents mixing
+ different value types within a single pattern structure.</p><h2>Mathematical Foundation</h2><p>Patterns form the foundation for category-theoretic graph representations.
+ The recursive structure enables functor instances (to be added in future phases)
+ and supports various graph interpretations through categorical views. The sequence
+ semantic aligns with categorical composition and transformation operations.</p><h2>Examples</h2><p>Leaf pattern (node):</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>leaf = Pattern { value = &quot;node1&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value leaf
+</code></strong>&quot;node1&quot;
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>elements leaf
+</code></strong>[]
+</pre><p>Pattern with children:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>child1 = Pattern { value = &quot;child1&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>child2 = Pattern { value = &quot;child2&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>parent = Pattern { value = &quot;parent&quot;, elements = [child1, child2] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value parent
+</code></strong>&quot;parent&quot;
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>length (elements parent)
+</code></strong>2
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>map value (elements parent)
+</code></strong>[&quot;child1&quot;,&quot;child2&quot;]
+</pre><p>Nested patterns (arbitrary depth):</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>level3 = Pattern { value = &quot;level3&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>level2 = Pattern { value = &quot;level2&quot;, elements = [level3] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>level1 = Pattern { value = &quot;level1&quot;, elements = [level2] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>nested = Pattern { value = &quot;root&quot;, elements = [level1] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value nested
+</code></strong>&quot;root&quot;
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value (head (elements nested))
+</code></strong>&quot;level1&quot;
+</pre><p>Leaf patterns with different value types:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>leafString = Pattern { value = &quot;text&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>leafInt = Pattern { value = 42, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value leafString
+</code></strong>&quot;text&quot;
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value leafInt
+</code></strong>42
+</pre><p>Patterns with varying numbers of children:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>zeroChildren = Pattern { value = &quot;zero&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>oneChild = Pattern { value = &quot;one&quot;, elements = [Pattern { value = &quot;child&quot;, elements = [] }] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>manyChildren = Pattern { value = &quot;many&quot;, elements = [Pattern { value = &quot;c1&quot;, elements = [] }, Pattern { value = &quot;c2&quot;, elements = [] }] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>length (elements zeroChildren)
+</code></strong>0
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>length (elements oneChild)
+</code></strong>1
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>length (elements manyChildren)
+</code></strong>2
+</pre></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><span class="keyword">data</span> <a href="#t:Pattern">Pattern</a> v = <a href="#v:Pattern">Pattern</a> {<ul class="subs"><li><a href="#v:value">value</a> :: v</li><li><a href="#v:elements">elements</a> :: [<a href="Pattern-Core.html#t:Pattern" title="Pattern.Core">Pattern</a> v]</li></ul>}</li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><span class="keyword">data</span> <a id="t:Pattern" class="def">Pattern</a> v <a href="#t:Pattern" class="selflink">#</a></p><div class="doc"><p>A recursive structure representing a sequence of pattern elements with
+ associated metadata.</p><p>Conceptually, a Pattern is a sequence of elements with a value (metadata)
+ associated with the sequence. For example, the pattern &quot;3 1 4 1 9 5&quot; is a
+ sequence of 6 elements. The Pattern type represents such sequences where
+ each element is itself a Pattern, enabling recursive nesting.</p><p>Patterns form the foundation for representing graph elements and sequences.
+ Each pattern associates a value (metadata) of any type with a sequence of
+ pattern elements. The recursive structure enables hierarchical and nested
+ sequences while maintaining the sequence semantic.</p><p>The Pattern type is intentionally minimal - it provides just the structure
+ needed for recursive sequence representation. Classification functions
+ (identifying nodes, relationships, subgraphs) will be added in future phases.</p><h3>Type Parameter <code>v</code></h3><p>The <code>v</code> type parameter allows patterns to store values of any type as metadata.
+ All patterns in a structure must share the same value type <code>v</code>. This type
+ consistency is enforced by Haskell's type system, ensuring type safety when
+ working with patterns.</p><p>For example, <code>Pattern String</code> represents patterns storing string values,
+ <code>Pattern Int</code> represents patterns storing integer values, and <code>Pattern Person</code>
+ represents patterns storing custom Person values. All elements in a pattern's
+ sequence must have the same value type as the pattern itself.</p><h3>Pattern Variants</h3><ul><li>Leaf pattern: <code>elements == []</code> - a sequence with no elements, representing
+   a simple entity or atomic pattern</li><li>Pattern with elements: <code>elements</code> contains one or more pattern elements -
+   represents relationships, subgraphs, or complex sequence structures</li></ul><h3>Examples</h3><p>Creating a leaf pattern (node):</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>nodeA = Pattern { value = &quot;A&quot;, elements = [] }
+</code></strong></pre><p>Creating a relationship pattern:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>nodeB = Pattern { value = &quot;B&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>relationship = Pattern { value = &quot;knows&quot;, elements = [nodeA, nodeB] }
+</code></strong></pre><p>Creating a graph pattern:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>graph = Pattern { value = &quot;myGraph&quot;, elements = [nodeA, nodeB, relationship] }
+</code></strong></pre></div><div class="subs constructors"><p class="caption">Constructors</p><table><tr><td class="src"><a id="v:Pattern" class="def">Pattern</a></td><td class="doc empty">&nbsp;</td></tr><tr><td colspan="2"><div class="subs fields"><p class="caption">Fields</p><ul><li><dfn class="src"><a id="v:value" class="def">value</a> :: v</dfn><div class="doc"><p>The metadata or value associated with this pattern sequence.</p><p>The <code>value</code> field stores metadata about the pattern sequence. This can be
+ any type <code>v</code>, such as a string identifier, an integer, or a custom data type.
+ The value is associated with the pattern instance itself, not with individual
+ elements in the sequence.</p><p>Type parameter <code>v</code> allows for different value types. All patterns in a
+ structure must share the same value type (enforced by the type system).</p><h3>Examples</h3><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value (Pattern { value = &quot;test&quot;, elements = [] })
+</code></strong>&quot;test&quot;
+</pre><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value (Pattern { value = 42, elements = [] })
+</code></strong>42
+</pre><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>value (Pattern { value = &quot;graph&quot;, elements = [Pattern { value = &quot;node&quot;, elements = [] }] })
+</code></strong>&quot;graph&quot;
+</pre></div></li><li><dfn class="src"><a id="v:elements" class="def">elements</a> :: [<a href="Pattern-Core.html#t:Pattern" title="Pattern.Core">Pattern</a> v]</dfn><div class="doc"><p>The sequence of pattern elements.</p><p>The <code>elements</code> field contains the sequence of pattern elements. An empty
+ list <code>[]</code> represents a leaf pattern (a sequence with no elements). A
+ non-empty list represents a pattern containing one or more pattern elements
+ in sequence.</p><p>The elements maintain their sequence order and are accessible in that order.
+ Each element in the sequence is itself a Pattern, enabling recursive nesting
+ where patterns can contain patterns containing patterns, etc., enabling
+ arbitrary nesting depth while maintaining the sequence semantic.</p><h3>Examples</h3><p>Leaf pattern (empty children):</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>elements (Pattern { value = &quot;leaf&quot;, elements = [] })
+</code></strong>[]
+</pre><p>Pattern with children:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>leaf = Pattern { value = &quot;child&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>elements (Pattern { value = &quot;parent&quot;, elements = [leaf] })
+</code></strong>[Pattern {value = &quot;child&quot;, elements = []}]
+</pre><p>Pattern with multiple children:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>child1 = Pattern { value = &quot;child1&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>child2 = Pattern { value = &quot;child2&quot;, elements = [] }
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>elements (Pattern { value = &quot;parent&quot;, elements = [child1, child2] })
+</code></strong>[Pattern {value = &quot;child1&quot;, elements = []},Pattern {value = &quot;child2&quot;, elements = []}]
+</pre></div></li></ul></div></td></tr></table></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.30.0</p></div></body></html>

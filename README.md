@@ -190,10 +190,55 @@ cabal haddock
 open dist-newstyle/build/*/ghc-9.8.4/pattern-0.1.0.0/doc/html/pattern/index.html
 ```
 
-**Clean build artifacts**:
+**Generate with additional options** (recommended for GitHub Pages):
 ```bash
-cabal clean
+cabal haddock --haddock-html --haddock-quickjump --haddock-hyperlink-source
 ```
+
+## Publishing Documentation to GitHub Pages
+
+The project includes a GitHub Actions workflow (`.github/workflows/haddock.yml`) that automatically builds and deploys Haddock documentation to GitHub Pages.
+
+### Automatic Deployment
+
+The workflow runs automatically on pushes to `main` branch when source files or `pattern.cabal` change. To enable:
+
+1. **Enable GitHub Pages** in repository settings:
+   - Go to Settings → Pages
+   - Source: "GitHub Actions"
+
+2. **Push to trigger workflow**:
+   ```bash
+   git add .github/workflows/haddock.yml
+   git commit -m "Add Haddock documentation deployment"
+   git push
+   ```
+
+3. **Documentation will be available at**:
+   `https://<username>.github.io/pattern-hs/` (or your repository's Pages URL)
+
+### Manual Deployment
+
+To manually deploy documentation:
+
+```bash
+# Generate documentation
+cabal haddock --haddock-html --haddock-quickjump --haddock-hyperlink-source
+
+# Find the output directory
+DOC_DIR=$(find dist-newstyle -name "index.html" -path "*/doc/html/pattern/*" | head -1 | xargs dirname)
+
+# Create/update gh-pages branch
+git checkout --orphan gh-pages
+git rm -rf .
+cp -r "$DOC_DIR"/* .
+git add .
+git commit -m "Update Haddock documentation"
+git push origin gh-pages
+git checkout main
+```
+
+**Note**: The GitHub Actions workflow is recommended as it handles path variations and updates automatically.
 
 **Format code** (if using `ormolu` or `brittany`):
 ```bash

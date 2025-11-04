@@ -29,7 +29,7 @@ library
     -- other-extensions:
 
     build-depends:
-        base ^>=4.17.0.0,
+        base >=4.17.0.0 && <5,
         containers ^>=0.6
 
     hs-source-dirs:   src
@@ -45,7 +45,7 @@ test-suite pattern-test
         Spec.Pattern.Properties
 
     build-depends:
-        base ^>=4.17.0.0,
+        base >=4.17.0.0 && <5,
         pattern,
         QuickCheck ^>=2.14,
         hspec ^>=2.10,

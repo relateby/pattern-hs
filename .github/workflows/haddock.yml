@@ -1,0 +1,69 @@
+name: Deploy Haddock Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'pattern.cabal'
+      - '.github/workflows/haddock.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Haskell
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: '9.8.4'
+          cabal-version: 'latest'
+
+      - name: Update Cabal package index
+        run: cabal update
+
+      - name: Install dependencies
+        run: cabal build --only-dependencies --enable-tests
+
+      - name: Build Haddock documentation
+        run: |
+          cabal haddock --haddock-html --haddock-quickjump --haddock-hyperlink-source
+          
+      - name: Find Haddock output directory
+        id: haddock-dir
+        run: |
+          # Find the Haddock documentation directory
+          HADDOCK_DIR=$(find dist-newstyle -name "index.html" -path "*/doc/html/pattern/*" | head -1 | xargs dirname)
+          if [ -z "$HADDOCK_DIR" ]; then
+            # Fallback: find any doc/html directory
+            HADDOCK_DIR=$(find dist-newstyle -name "index.html" -path "*/doc/html/*" | head -1 | xargs dirname)
+          fi
+          echo "dir=$HADDOCK_DIR" >> $GITHUB_OUTPUT
+          echo "Found Haddock documentation at: $HADDOCK_DIR"
+          ls -la "$HADDOCK_DIR" || echo "Warning: Directory not found"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.haddock-dir.outputs.dir }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
