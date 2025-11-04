@@ -1,0 +1,297 @@
+# TODO: Pattern Implementation
+
+**Approach**: Incremental, careful progression. Build solid foundations before advanced features.
+
+---
+
+## Phase 1: Core Data Type (Foundation)
+
+### 1.1 Basic Pattern Type
+- [ ] Define `Pattern v` data type with `value :: v` and `elements :: [Pattern v]` in `src/Pattern/Core.hs`
+- [ ] Add basic Haddock documentation explaining the recursive tree structure
+- [ ] Write simple test: create a leaf pattern and verify structure
+- [ ] Write simple test: create a pattern with children and verify structure
+
+**Goal**: Have a working Pattern type that can be constructed and inspected.
+
+---
+
+## Phase 2: Basic Typeclasses
+
+### 2.1 Show Instance
+- [ ] Implement `Show` instance for `Pattern v` (requires `Show v`)
+- [ ] Write test: `show` of a pattern produces readable output
+- [ ] Write test: nested patterns display correctly
+
+### 2.2 Eq Instance
+- [ ] Implement `Eq` instance for `Pattern v` (requires `Eq v`)
+- [ ] Write test: two identical patterns are equal
+- [ ] Write test: two different patterns are not equal
+- [ ] Write test: patterns with different structures are not equal
+
+**Goal**: Patterns can be compared and displayed.
+
+---
+
+## Phase 3: Construction Functions
+
+### 3.1 Basic Constructors
+- [ ] Implement `pattern :: v -> Pattern v` (creates leaf node)
+- [ ] Implement `patternWith :: v -> [Pattern v] -> Pattern v` (creates pattern with children)
+- [ ] Write tests: construct various patterns and verify structure
+- [ ] Write tests: edge cases (empty list, single child, many children)
+
+**Goal**: Convenient ways to create patterns.
+
+---
+
+## Phase 4: Functor Instance
+
+### 4.1 Functor Implementation
+- [ ] Implement `Functor` instance for `Pattern`
+- [ ] Write property test: `fmap id = id` (functor identity law)
+- [ ] Write property test: `fmap (f . g) = fmap f . fmap g` (functor composition law)
+- [ ] Write unit tests: transform values in simple patterns
+- [ ] Write unit tests: transform values in nested patterns
+
+**Goal**: Patterns can have their values transformed while preserving structure.
+
+---
+
+## Phase 5: Foldable Instance
+
+### 5.1 Foldable Implementation
+- [ ] Implement `Foldable` instance for `Pattern`
+- [ ] Write test: `foldr` collects all values
+- [ ] Write test: `foldl` collects all values (verify order)
+- [ ] Write test: `foldMap` works correctly
+- [ ] Write test: `toList` produces all values
+
+**Goal**: Patterns can be folded/traversed for aggregation.
+
+---
+
+## Phase 6: Traversable Instance
+
+### 6.1 Traversable Implementation
+- [ ] Implement `Traversable` instance for `Pattern`
+- [ ] Write test: `traverse` with `Identity` preserves structure
+- [ ] Write test: `traverse` with `Maybe` handles failures
+- [ ] Write test: `sequenceA` works correctly
+
+**Goal**: Patterns can be traversed with effects.
+
+---
+
+## Phase 7: Basic Query Functions
+
+### 7.1 Size and Depth
+- [ ] Implement `size :: Pattern v -> Int` (total number of nodes)
+- [ ] Implement `depth :: Pattern v -> Int` (maximum nesting depth)
+- [ ] Write tests: size and depth for various patterns
+- [ ] Write tests: edge cases (empty, single node, deep nesting)
+
+### 7.2 Value Access
+- [ ] Verify `value` field accessor works (already from data type)
+- [ ] Implement `values :: Pattern v -> [v]` (all values in pattern)
+- [ ] Write tests: extract all values from patterns
+
+**Goal**: Basic introspection of pattern structure.
+
+---
+
+## Phase 8: Simple Classification (Node Only)
+
+### 8.1 Node Detection
+- [ ] Implement `isNode :: Pattern v -> Bool` (pattern has no children)
+- [ ] Write test: leaf pattern is a node
+- [ ] Write test: pattern with children is not a node
+- [ ] Write test: nested patterns correctly identify nodes
+
+**Goal**: Can identify the simplest graph element (node).
+
+---
+
+## Phase 9: Relationship Classification
+
+### 9.1 Relationship Detection
+- [ ] Implement `isRelationship :: Pattern v -> Bool` (exactly 2 child nodes)
+- [ ] Write test: pattern with 2 child nodes is a relationship
+- [ ] Write test: pattern with 1 child is not a relationship
+- [ ] Write test: pattern with 3+ children is not a relationship
+- [ ] Write test: pattern with 2 children that aren't nodes is not a relationship
+
+### 9.2 Relationship Navigation
+- [ ] Implement `source :: Pattern v -> Pattern v` (first child of relationship)
+- [ ] Implement `target :: Pattern v -> Pattern v` (second child of relationship)
+- [ ] Write tests: extract source and target from relationships
+- [ ] Write tests: error handling for non-relationship patterns (consider `Maybe` return type)
+
+**Goal**: Can identify and navigate relationships.
+
+---
+
+## Phase 10: Graph Element Classification
+
+### 10.1 Graph Element Detection
+- [ ] Implement `isGraphElement :: Pattern v -> Bool` (is node, relationship, subgraph, or path)
+- [ ] Write test: node is a graph element
+- [ ] Write test: relationship is a graph element
+- [ ] Write test: simple non-graph structure is not a graph element
+
+### 10.2 Subgraph Detection
+- [ ] Implement `isSubgraph :: Pattern v -> Bool` (all children are graph elements)
+- [ ] Write test: pattern with graph element children is subgraph
+- [ ] Write test: pattern with mixed children is not subgraph
+- [ ] Write test: nested subgraphs work correctly
+
+**Goal**: Can classify patterns as graph elements.
+
+---
+
+## Phase 11: Path Detection
+
+### 11.1 Path Classification
+- [ ] Implement helper `chainsCorrectly :: [Pattern v] -> Bool`
+- [ ] Implement `isPath :: Pattern v -> Bool` (subgraph where relationships chain)
+- [ ] Write test: simple path of 2 relationships
+- [ ] Write test: longer path chains correctly
+- [ ] Write test: broken chain is not a path
+- [ ] Write test: path with branching is not a path (or is it? clarify semantics)
+
+**Goal**: Can identify paths in patterns.
+
+---
+
+## Phase 12: Pattern Navigation and Extraction
+
+### 12.1 Node Extraction
+- [ ] Implement `nodes :: Pattern v -> [Pattern v]` (all nodes in pattern)
+- [ ] Write test: extract all nodes from simple pattern
+- [ ] Write test: extract all nodes from nested pattern
+- [ ] Write test: nodes appear in correct order (or specify order semantics)
+
+### 12.2 Relationship Extraction
+- [ ] Implement `relationships :: Pattern v -> [Pattern v]` (all relationships in pattern)
+- [ ] Write test: extract all relationships from pattern
+- [ ] Write test: nested relationships are included
+
+**Goal**: Can extract graph elements from patterns.
+
+---
+
+## Phase 13: Additional Typeclasses (As Needed)
+
+### 13.1 Ord Instance (If Needed)
+- [ ] Consider if `Ord` instance is needed
+- [ ] If yes, implement `Ord` instance with clear ordering semantics
+- [ ] Write tests: ordering of patterns
+
+### 13.2 Other Instances
+- [ ] Evaluate if other standard typeclasses are needed (e.g., `Semigroup`, `Monoid`)
+- [ ] Implement only if clearly needed for core functionality
+
+**Goal**: Complete basic typeclass coverage.
+
+---
+
+## Phase 14: Graph Representation (Underspecified)
+
+### 14.1 Graph Type Design
+- [ ] **STOP and REVIEW**: Is Graph representation needed yet?
+- [ ] Define `Graph dir v` type (if proceeding)
+- [ ] Define `Edge dir v` type (if proceeding)
+- [ ] Keep this minimal - defer complex graph operations
+
+### 14.2 Basic Graph Operations (If Needed)
+- [ ] Implement `emptyGraph :: Graph dir v`
+- [ ] Implement basic graph construction from patterns
+- [ ] Write minimal tests
+
+**Goal**: Basic graph representation if needed for core functionality.
+
+**Note**: Advanced graph operations deferred until core is solid.
+
+---
+
+## Phase 15: Graph Views (Underspecified)
+
+### 15.1 GraphView Typeclass Design
+- [ ] **STOP and REVIEW**: Is GraphView needed yet?
+- [ ] Design `GraphView` typeclass interface (minimal)
+- [ ] Consider: can we defer this entirely?
+
+### 15.2 DirectedView (If Proceeding)
+- [ ] Implement minimal `DirectedView` if needed
+- [ ] Keep implementation simple
+
+**Goal**: Basic view support if needed.
+
+**Note**: Advanced views and view composition deferred until core is solid.
+
+---
+
+## Phase 16: Pattern Morphisms (Underspecified)
+
+### 16.1 Morphism Design
+- [ ] **STOP and REVIEW**: Are morphisms needed yet?
+- [ ] Define `PatternMorphism` type synonym
+- [ ] Implement `homomorphism` if clearly needed
+- [ ] Implement `forget` if clearly needed
+
+**Goal**: Basic morphisms if needed for core.
+
+**Note**: Advanced morphism theory deferred until core is solid.
+
+---
+
+## Phase 17: Integration and Polish
+
+### 17.1 Module Exports
+- [ ] Review and finalize exports from `Pattern.Core`
+- [ ] Update `Pattern.hs` main module exports
+- [ ] Ensure clean public API
+
+### 17.2 Documentation
+- [ ] Add comprehensive Haddock documentation
+- [ ] Include usage examples
+- [ ] Document mathematical properties where applicable
+
+### 17.3 Testing
+- [ ] Review test coverage
+- [ ] Add property-based tests for laws (functor, etc.)
+- [ ] Add edge case tests
+
+**Goal**: Polished, well-documented core implementation.
+
+---
+
+## Principles
+
+1. **Incremental**: Each phase builds on previous phases
+2. **Testable**: Every feature has tests before moving on
+3. **Review Points**: Stop and review before advanced features (Phases 14-16)
+4. **Underspecified**: Advanced features (graphs, views, morphisms) are minimal until core is solid
+5. **Solid Core First**: Ensure core Pattern type is well-understood before adding complexity
+
+---
+
+## Current Status
+
+**Current Phase**: Phase 1 (Core Data Type)
+
+**Next Steps**: 
+1. Implement basic Pattern type
+2. Write tests
+3. Verify it works
+4. Move to Phase 2
+
+---
+
+## Notes
+
+- Don't rush ahead to advanced features
+- Each phase should feel complete and tested
+- If something feels unclear, stop and clarify before proceeding
+- The core Pattern type is the foundation - get it right first
+
