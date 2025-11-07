@@ -36,12 +36,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Update Pattern definition in src/Pattern/Core.hs to use sequence-based conceptual model as primary, tree as implementation detail
-- [ ] T006 [P] [US1] Update Pattern definition in DESIGN.md to align with sequence-based conceptual model
-- [ ] T007 [P] [US1] Update Pattern definition in README.md to verify consistency with sequence-based model
-- [ ] T008 [P] [US1] Update Pattern definition in specs/001-pattern-data-structure/data-model.md to match authoritative definition
-- [ ] T009 [P] [US1] Update Pattern definition in specs/002-basic-pattern-type/data-model.md to match authoritative definition
-- [ ] T010 [US1] Verify all Pattern definitions are consistent by reviewing all updated files
+- [x] T005 [P] [US1] Update Pattern definition in src/Pattern/Core.hs to use sequence-based conceptual model as primary, tree as implementation detail
+- [x] T006 [P] [US1] Update Pattern definition in DESIGN.md to align with sequence-based conceptual model
+- [x] T007 [P] [US1] Update Pattern definition in README.md to verify consistency with sequence-based model
+- [x] T008 [P] [US1] Update Pattern definition in specs/001-pattern-data-structure/data-model.md to match authoritative definition
+- [x] T009 [P] [US1] Update Pattern definition in specs/002-basic-pattern-type/data-model.md to match authoritative definition
+- [x] T010 [US1] Verify all Pattern definitions are consistent by reviewing all updated files
 
 **Checkpoint**: At this point, all Pattern definitions should be consistent and use the sequence-based conceptual model. User Story 1 should be fully complete and independently verifiable.
 
@@ -71,7 +71,7 @@
 
 ## Phase 4: User Story 3 - Clarify Pattern Variant Classifications (Priority: P2)
 
-**Goal**: Provide clear and consistent definitions of pattern variants (leaf patterns, nodes, relationships, subgraphs, paths) with explicit implementation status
+**Goal**: Provide clear and consistent definitions of pattern variants (empty patterns, nodes, relationships, subgraphs, paths) with explicit implementation status
 
 **Independent Test**: Review all references to pattern variants. Verify that each variant has a clear, unambiguous definition with explicit implementation status (implemented vs planned), and that the hierarchy and classification rules are clearly explained.
 

@@ -137,10 +137,10 @@
 ### 4. Pattern Variant Definitions
 
 **Variants Identified**:
-- Leaf patterns (elements == [])
-- Nodes (interpretation of leaf patterns)
-- Relationships (exactly 2 child elements that are nodes)
-- Subgraphs (all child elements are graph elements)
+- Empty patterns (elements == [])
+- Nodes (interpretation of empty patterns)
+- Relationships (exactly 2 elements that are nodes)
+- Subgraphs (all elements are graph elements)
 - Paths (subgraphs with chained relationships)
 
 **Inconsistencies Found**:

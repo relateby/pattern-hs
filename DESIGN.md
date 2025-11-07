@@ -8,17 +8,22 @@ Patterns form a recursive data structure representing decorated sequences that c
 data Pattern v = Pattern 
   { value    :: v              -- Decoration about what kind of pattern it is
   , elements :: [Pattern v]    -- The pattern itself, as a sequence of elements
-  } deriving (Functor, Foldable, Traversable)
+  }
+  deriving (Eq)
 ```
+
+**Note**: `Show` is implemented as a manual instance. `Functor`, `Foldable`, and `Traversable` are planned but not yet implemented.
 
 **Key Insight**: The `elements` field IS the pattern - it contains the sequence that defines the pattern. The `value` field provides decoration about what kind of pattern it is. For example, the pattern "A B B A" with decoration "Enclosed rhyme" represents a specific sequence pattern (A B B A) that is classified as an "Enclosed rhyme".
 
+While implemented using a recursive tree structure, the primary semantic is that elements form the pattern sequence itself, not that they are children of a node. The tree structure is an implementation detail that supports the sequence representation.
+
 ## Graph Elements
 
-A Pattern can be interpreted as different graph elements based on its structure:
+Pattern variants are structural classifications based on their element structure that can be interpreted through different graph views. The following classification functions are planned but not yet implemented:
 
 ```haskell
--- Simple graph element classification
+-- Simple graph element classification (planned)
 isNode :: Pattern v -> Bool
 isNode p = all (not . isGraphElement) (elements p)
 
@@ -37,6 +42,8 @@ isPath p = isSubgraph p && chainsCorrectly (elements p)
       isRelationship r1 && isRelationship r2 &&
       target r1 == source r2 && chainsCorrectly (r2:rs)
 ```
+
+**Status**: ⏳ Planned (classification functions not yet implemented)
 
 ## Category Theoretic Perspective
 
@@ -66,9 +73,11 @@ class GraphView view where
   toGraph :: view -> Pattern v -> Graph (Direction view) v
 ```
 
-## Standard Views
+## Standard Views (Planned)
 
-### Directed Graph View
+Graph views provide different semantic interpretations of pattern structures. Views are planned but not yet implemented.
+
+### Directed Graph View (Planned)
 
 ```haskell
 data DirectedView = DirectedView
@@ -80,7 +89,9 @@ instance GraphView DirectedView where
   canChain _ r1 r2 = target r1 == source r2
 ```
 
-### Undirected Graph View  
+**Status**: ⏳ Planned (not yet implemented)
+
+### Undirected Graph View (Planned)
 
 ```haskell
 data UndirectedView = UndirectedView
@@ -92,6 +103,8 @@ instance GraphView UndirectedView where
   canChain _ r1 r2 = not $ Set.null $ 
     Set.intersection (nodes r1) (nodes r2)
 ```
+
+**Status**: ⏳ Planned (not yet implemented)
 
 ## Forgetful Pattern Matching
 
@@ -133,7 +146,9 @@ data Context v = Context
   }
 ```
 
-### Pattern Morphisms
+**Status**: ⏳ Planned (future work)
+
+### Pattern Morphisms (Planned)
 
 Morphisms between patterns respect structure while potentially forgetting decorations:
 
@@ -148,6 +163,8 @@ homomorphism f = fmap f
 forget :: PatternMorphism v ()
 forget = forgetValues
 ```
+
+**Status**: ⏳ Planned (not yet implemented)
 
 ## Key Properties
 

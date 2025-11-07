@@ -49,60 +49,60 @@
 
 ---
 
-## Phase 3: User Story 1 - Create Leaf Patterns (Priority: P1) 🎯 MVP ✅
+## Phase 3: User Story 1 - Create Empty Patterns (Priority: P1) 🎯 MVP ✅
 
-**Goal**: Enable creation of leaf patterns (patterns with no children) that store values and can be inspected.
+**Goal**: Enable creation of empty patterns (patterns with no elements) that store values and can be inspected.
 
-**Independent Test**: Can be fully tested by creating a pattern with a single value and no child elements, then verifying that the pattern stores the value correctly and reports having no child elements.
+**Independent Test**: Can be fully tested by creating a pattern with a single value and no elements, then verifying that the pattern stores the value correctly and reports having no elements.
 
 ### Tests for User Story 1
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T011 [P] [US1] Add test for creating leaf pattern with string value in tests/Spec/Pattern/CoreSpec.hs
-- [x] T012 [P] [US1] Add test for creating leaf pattern with integer value in tests/Spec/Pattern/CoreSpec.hs
-- [x] T013 [P] [US1] Add test for creating leaf pattern with custom type value in tests/Spec/Pattern/CoreSpec.hs
+- [x] T011 [P] [US1] Add test for creating empty pattern with string value in tests/Spec/Pattern/CoreSpec.hs
+- [x] T012 [P] [US1] Add test for creating empty pattern with integer value in tests/Spec/Pattern/CoreSpec.hs
+- [x] T013 [P] [US1] Add test for creating empty pattern with custom type value in tests/Spec/Pattern/CoreSpec.hs
 - [x] T014 [P] [US1] Add test for verifying value field accessor returns correct value in tests/Spec/Pattern/CoreSpec.hs
-- [x] T015 [P] [US1] Add test for verifying elements field accessor returns empty list for leaf pattern in tests/Spec/Pattern/CoreSpec.hs
-- [x] T016 [P] [US1] Add test for edge case: leaf pattern with empty list of children in tests/Spec/Pattern/CoreSpec.hs
+- [x] T015 [P] [US1] Add test for verifying elements field accessor returns empty list for empty pattern in tests/Spec/Pattern/CoreSpec.hs
+- [x] T016 [P] [US1] Add test for edge case: empty pattern with empty list of elements in tests/Spec/Pattern/CoreSpec.hs
 
 ### Implementation for User Story 1
 
-- [x] T017 [US1] Verify Pattern constructor works for leaf patterns (no implementation needed - uses Phase 2 definition)
-- [x] T018 [US1] Run tests and verify all leaf pattern tests pass (tests written, syntax verified - full cabal test requires dependency resolution)
-- [x] T019 [US1] Add example usage in Haddock comments showing leaf pattern creation in src/Pattern/Core.hs
+- [x] T017 [US1] Verify Pattern constructor works for empty patterns (no implementation needed - uses Phase 2 definition)
+- [x] T018 [US1] Run tests and verify all empty pattern tests pass (tests written, syntax verified - full cabal test requires dependency resolution)
+- [x] T019 [US1] Add example usage in Haddock comments showing empty pattern creation in src/Pattern/Core.hs
 
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - developers can create and inspect leaf patterns
+**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - developers can create and inspect empty patterns
 
 ---
 
-## Phase 4: User Story 2 - Create Patterns with Children (Priority: P1) ✅
+## Phase 4: User Story 2 - Create Patterns with Elements (Priority: P1) ✅
 
-**Goal**: Enable creation of patterns that contain child patterns, enabling recursive tree structure for representing hierarchical relationships.
+**Goal**: Enable creation of patterns that contain pattern elements, enabling recursive structure for representing sequences and complex graph structures.
 
-**Independent Test**: Can be fully tested by creating a pattern with a value and a list of child patterns, then verifying that the pattern stores both the value and correctly references all child patterns.
+**Independent Test**: Can be fully tested by creating a pattern with a value and a list of pattern elements, then verifying that the pattern stores both the value and correctly references all elements.
 
 ### Tests for User Story 2
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T020 [P] [US2] Add test for creating pattern with single child in tests/Spec/Pattern/CoreSpec.hs
-- [x] T021 [P] [US2] Add test for creating pattern with multiple children in tests/Spec/Pattern/CoreSpec.hs
-- [x] T022 [P] [US2] Add test for verifying value field accessor returns correct value for pattern with children in tests/Spec/Pattern/CoreSpec.hs
-- [x] T023 [P] [US2] Add test for verifying elements field accessor returns correct child list in tests/Spec/Pattern/CoreSpec.hs
-- [x] T024 [P] [US2] Add test for verifying child elements are accessible in correct order in tests/Spec/Pattern/CoreSpec.hs
-- [x] T025 [P] [US2] Add test for edge case: pattern with zero children (should behave like leaf) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T020 [P] [US2] Add test for creating pattern with single element in tests/Spec/Pattern/CoreSpec.hs
+- [x] T021 [P] [US2] Add test for creating pattern with multiple elements in tests/Spec/Pattern/CoreSpec.hs
+- [x] T022 [P] [US2] Add test for verifying value field accessor returns correct value for pattern with elements in tests/Spec/Pattern/CoreSpec.hs
+- [x] T023 [P] [US2] Add test for verifying elements field accessor returns correct element list in tests/Spec/Pattern/CoreSpec.hs
+- [x] T024 [P] [US2] Add test for verifying elements are accessible in correct order in tests/Spec/Pattern/CoreSpec.hs
+- [x] T025 [P] [US2] Add test for edge case: pattern with zero elements (should behave like empty pattern) in tests/Spec/Pattern/CoreSpec.hs
 - [x] T026 [P] [US2] Add test for edge case: deeply nested patterns (multiple levels) in tests/Spec/Pattern/CoreSpec.hs
 - [x] T027 [P] [US2] Add test for edge case: pattern containing pattern containing pattern (arbitrary depth) in tests/Spec/Pattern/CoreSpec.hs
 
 ### Implementation for User Story 2
 
-- [x] T028 [US2] Verify Pattern constructor works for patterns with children (no implementation needed - uses Phase 2 definition)
-- [x] T029 [US2] Run tests and verify all pattern-with-children tests pass (tests written, syntax verified - full cabal test requires dependency resolution)
-- [x] T030 [US2] Add example usage in Haddock comments showing pattern with children creation in src/Pattern/Core.hs
+- [x] T028 [US2] Verify Pattern constructor works for patterns with elements (no implementation needed - uses Phase 2 definition)
+- [x] T029 [US2] Run tests and verify all pattern-with-elements tests pass (tests written, syntax verified - full cabal test requires dependency resolution)
+- [x] T030 [US2] Add example usage in Haddock comments showing pattern with elements creation in src/Pattern/Core.hs
 - [x] T031 [US2] Add example usage showing nested pattern structure in Haddock comments in src/Pattern/Core.hs
 
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - developers can create leaf patterns and patterns with children
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - developers can create empty patterns and patterns with elements
 
 ---
 
@@ -117,7 +117,7 @@
 - [x] T032 [US3] Enhance module-level Haddock documentation with detailed recursive structure explanation in src/Pattern/Core.hs
 - [x] T033 [US3] Add comprehensive Haddock documentation explaining how values are associated with patterns in src/Pattern/Core.hs
 - [x] T034 [US3] Add comprehensive Haddock documentation explaining how elements form sequence structure in src/Pattern/Core.hs
-- [x] T035 [US3] Add Haddock examples showing leaf pattern construction in src/Pattern/Core.hs (already in Phase 3)
+- [x] T035 [US3] Add Haddock examples showing empty pattern construction in src/Pattern/Core.hs (already in Phase 3)
 - [x] T036 [US3] Add Haddock examples showing pattern with elements construction in src/Pattern/Core.hs (already in Phase 4)
 - [x] T037 [US3] Add Haddock examples showing nested pattern structure in src/Pattern/Core.hs (already in Phase 4)
 - [x] T038 [US3] Add Haddock documentation explaining type parameter v and type consistency in src/Pattern/Core.hs
@@ -185,12 +185,12 @@
 
 ```bash
 # Launch all tests for User Story 1 together:
-Task: "Add test for creating leaf pattern with string value in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for creating leaf pattern with integer value in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for creating leaf pattern with custom type value in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for creating empty pattern with string value in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for creating empty pattern with integer value in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for creating empty pattern with custom type value in tests/Spec/Pattern/CoreSpec.hs"
 Task: "Add test for verifying value field accessor returns correct value in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for verifying elements field accessor returns empty list for leaf pattern in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for edge case: leaf pattern with empty list of children in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for verifying elements field accessor returns empty list for empty pattern in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for edge case: empty pattern with empty list of elements in tests/Spec/Pattern/CoreSpec.hs"
 ```
 
 ---
@@ -199,12 +199,12 @@ Task: "Add test for edge case: leaf pattern with empty list of children in tests
 
 ```bash
 # Launch all tests for User Story 2 together:
-Task: "Add test for creating pattern with single child in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for creating pattern with multiple children in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for verifying value field accessor returns correct value for pattern with children in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for verifying elements field accessor returns correct child list in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for verifying child elements are accessible in correct order in tests/Spec/Pattern/CoreSpec.hs"
-Task: "Add test for edge case: pattern with zero children (should behave like leaf) in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for creating pattern with single element in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for creating pattern with multiple elements in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for verifying value field accessor returns correct value for pattern with elements in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for verifying elements field accessor returns correct element list in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for verifying elements are accessible in correct order in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for edge case: pattern with zero elements (should behave like empty pattern) in tests/Spec/Pattern/CoreSpec.hs"
 Task: "Add test for edge case: deeply nested patterns (multiple levels) in tests/Spec/Pattern/CoreSpec.hs"
 Task: "Add test for edge case: pattern containing pattern containing pattern (arbitrary depth) in tests/Spec/Pattern/CoreSpec.hs"
 ```
@@ -217,8 +217,8 @@ Task: "Add test for edge case: pattern containing pattern containing pattern (ar
 
 1. Complete Phase 1: Setup (verification)
 2. Complete Phase 2: Foundational (Pattern type definition) - **CRITICAL - blocks all stories**
-3. Complete Phase 3: User Story 1 (leaf patterns)
-4. **STOP and VALIDATE**: Test User Story 1 independently - verify leaf pattern creation and inspection
+3. Complete Phase 3: User Story 1 (empty patterns)
+4. **STOP and VALIDATE**: Test User Story 1 independently - verify empty pattern creation and inspection
 5. Deploy/demo if ready
 
 ### Incremental Delivery
@@ -235,8 +235,8 @@ With multiple developers:
 
 1. Team completes Setup + Foundational together
 2. Once Foundational is done:
-   - Developer A: User Story 1 (leaf patterns)
-   - Developer B: User Story 2 (patterns with children)
+   - Developer A: User Story 1 (empty patterns)
+   - Developer B: User Story 2 (patterns with elements)
    - Developer C: User Story 3 (documentation) - can start after Foundational
 3. Stories complete and integrate independently
 

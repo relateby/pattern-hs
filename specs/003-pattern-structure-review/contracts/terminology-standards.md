@@ -108,17 +108,17 @@ This document establishes the standard terminology for the Pattern library. All 
 
 ## Pattern Variant Terms
 
-### Leaf Pattern
+### Empty Pattern
 
-**Primary Term**: **leaf pattern**
+**Primary Term**: **empty pattern**
 
 **Definition**: A pattern with no elements (`elements == []`).
 
-**Usage**: Use "leaf pattern" to describe the structure.
+**Usage**: Use "empty pattern" to describe the structure.
 
 **Examples**:
-- ✅ "A leaf pattern has no elements"
-- ✅ "Create a leaf pattern with `Pattern { value = "x", elements = [] }`"
+- ✅ "An empty pattern has no elements"
+- ✅ "Create an empty pattern with `Pattern { value = "x", elements = [] }`"
 
 ---
 
@@ -126,15 +126,15 @@ This document establishes the standard terminology for the Pattern library. All 
 
 **Primary Term**: **node**
 
-**Definition**: A pattern interpreted as a node (typically a leaf pattern).
+**Definition**: A pattern interpreted as a node (typically an empty pattern).
 
 **Usage**: Use "node" when describing graph interpretation.
 
 **Examples**:
 - ✅ "A node is a pattern with no elements"
-- ✅ "Leaf patterns are interpreted as nodes"
+- ✅ "Empty patterns are interpreted as nodes"
 
-**Note**: "Node" is a graph interpretation term. The structural term is "leaf pattern".
+**Note**: "Node" is a graph interpretation term. The structural term is "empty pattern".
 
 ---
 
@@ -212,7 +212,7 @@ These terms should not be used in new documentation:
 
 In some contexts, alternative terms may be acceptable if clearly explained:
 
-- "Graph node" vs "leaf pattern": Both acceptable, but clarify that "node" is the graph interpretation
+- "Graph node" vs "empty pattern": Both acceptable, but clarify that "node" is the graph interpretation
 - "Tree node" vs "pattern": Use "pattern" to avoid confusion with graph nodes
 
 ---

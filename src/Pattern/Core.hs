@@ -30,7 +30,7 @@
 --
 -- This recursive implementation enables:
 --
--- * Leaf patterns: Patterns with no elements (@elements == []@), representing empty sequences
+-- * Empty patterns: Patterns with no elements (@elements == []@), representing empty sequences
 -- * Patterns with elements: Patterns containing one or more pattern elements in sequence
 -- * Arbitrary nesting: Patterns can contain patterns containing patterns, enabling
 --   deeply nested pattern structures
@@ -96,7 +96,7 @@
 --
 -- == Examples
 --
--- Leaf pattern (node):
+-- Empty pattern (node):
 --
 -- >>> leaf = Pattern { value = "node1", elements = [] }
 -- >>> value leaf
@@ -127,7 +127,7 @@
 -- >>> value (head (elements nested))
 -- "level1"
 --
--- Leaf patterns with different value types:
+-- Empty patterns with different value types:
 --
 -- >>> leafString = Pattern { value = "text", elements = [] }
 -- >>> leafInt = Pattern { value = 42, elements = [] }
@@ -181,14 +181,14 @@ module Pattern.Core where
 --
 -- === Pattern Variants
 --
--- * Leaf pattern: @elements == []@ - a sequence with no elements, representing
+-- * Empty pattern: @elements == []@ - a sequence with no elements, representing
 --   a simple entity or atomic pattern
 -- * Pattern with elements: @elements@ contains one or more pattern elements -
 --   represents relationships, subgraphs, or complex sequence structures
 --
 -- === Examples
 --
--- Creating a leaf pattern (node):
+-- Creating an empty pattern (node):
 --
 -- >>> nodeA = Pattern { value = "A", elements = [] }
 --
@@ -241,7 +241,7 @@ data Pattern v = Pattern
     --
     -- Pattern with no elements (empty sequence):
     --
-    -- >>> elements (Pattern { value = "leaf", elements = [] })
+    -- >>> elements (Pattern { value = "empty", elements = [] })
     -- []
     --
     -- Pattern with one element:

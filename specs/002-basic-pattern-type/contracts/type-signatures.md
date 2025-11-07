@@ -14,12 +14,12 @@ This document defines the public API type signatures for the basic Pattern type.
 ### Pattern Data Type
 
 ```haskell
--- | A recursive tree structure that stores a value and contains zero or more
--- child Pattern instances.
+-- | A decorated sequence that stores a value and contains zero or more
+-- Pattern elements.
 --
 -- Patterns form the foundation for representing graph elements. Each pattern
--- node can have an associated value of any type, and child patterns form a
--- hierarchical tree structure.
+-- can have an associated value of any type, and elements form the pattern
+-- sequence itself.
 --
 -- Examples:
 --
@@ -34,13 +34,13 @@ data Pattern v = Pattern
 ### Field Accessors
 
 ```haskell
--- | Extract the value stored in a pattern node.
+-- | Extract the value stored in a pattern.
 --
 -- >>> value (Pattern { value = "test", elements = [] })
 -- "test"
 value :: Pattern v -> v
 
--- | Extract the list of child patterns.
+-- | Extract the list of pattern elements.
 --
 -- >>> elements (Pattern { value = "parent", elements = [] })
 -- []
@@ -54,7 +54,7 @@ elements :: Pattern v -> [Pattern v]
 Patterns can be constructed directly using the `Pattern` constructor:
 
 ```haskell
--- | Construct a leaf pattern (pattern with no children).
+-- | Construct an empty pattern (pattern with no elements).
 --
 -- Example:
 -- >>> leaf = Pattern { value = "node1", elements = [] }
@@ -85,7 +85,7 @@ The `Pattern.Core` module exports:
 
 ## Usage Examples
 
-### Creating Leaf Patterns
+### Creating Empty Patterns
 
 ```haskell
 -- String pattern
@@ -102,15 +102,15 @@ personPattern :: Pattern Person
 personPattern = Pattern { value = Person "Alice" 30, elements = [] }
 ```
 
-### Creating Patterns with Children
+### Creating Patterns with Elements
 
 ```haskell
--- Pattern with two child patterns
+-- Pattern with two elements
 parent :: Pattern String
 parent = Pattern 
   { value = "parent"
-  , elements = [ Pattern { value = "child1", elements = [] }
-               , Pattern { value = "child2", elements = [] }
+  , elements = [ Pattern { value = "elem1", elements = [] }
+               , Pattern { value = "elem2", elements = [] }
                ]
   }
 
@@ -132,9 +132,9 @@ nested = Pattern
 getValue :: Pattern String -> String
 getValue p = value p
 
--- Extract children
-getChildren :: Pattern String -> [Pattern String]
-getChildren p = elements p
+-- Extract elements
+getElements :: Pattern String -> [Pattern String]
+getElements p = elements p
 
 -- Check if leaf
 isLeaf :: Pattern v -> Bool

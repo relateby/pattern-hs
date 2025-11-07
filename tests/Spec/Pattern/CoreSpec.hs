@@ -12,21 +12,21 @@ spec :: Spec
 spec = do
   describe "Pattern.Core" $ do
     
-    describe "Leaf Patterns (User Story 1)" $ do
+    describe "Empty Patterns (User Story 1)" $ do
       
-      describe "Creating leaf patterns with different value types" $ do
+      describe "Creating empty patterns with different value types" $ do
         
-        it "creates a leaf pattern with string value" $ do
+        it "creates an empty pattern with string value" $ do
           let leaf = Pattern { value = "node1", elements = [] }
           value leaf `shouldBe` "node1"
           elements leaf `shouldBe` ([] :: [Pattern String])
         
-        it "creates a leaf pattern with integer value" $ do
+        it "creates an empty pattern with integer value" $ do
           let leaf = Pattern { value = 42, elements = [] }
           value leaf `shouldBe` (42 :: Int)
           elements leaf `shouldBe` ([] :: [Pattern Int])
         
-        it "creates a leaf pattern with custom type value" $ do
+        it "creates an empty pattern with custom type value" $ do
           let person = Person "Alice" 30
           let leaf = Pattern { value = person, elements = [] }
           value leaf `shouldBe` person
@@ -34,26 +34,26 @@ spec = do
       
       describe "Value field accessor" $ do
         
-        it "returns the correct value for a leaf pattern with string" $ do
+        it "returns the correct value for an empty pattern with string" $ do
           let leaf = Pattern { value = "test", elements = [] }
           value leaf `shouldBe` "test"
         
-        it "returns the correct value for a leaf pattern with integer" $ do
+        it "returns the correct value for an empty pattern with integer" $ do
           let leaf = Pattern { value = 100, elements = [] }
           value leaf `shouldBe` (100 :: Int)
         
-        it "returns the correct value for a leaf pattern with custom type" $ do
+        it "returns the correct value for an empty pattern with custom type" $ do
           let person = Person "Bob" 25
           let leaf = Pattern { value = person, elements = [] }
           value leaf `shouldBe` person
       
       describe "Elements field accessor" $ do
         
-        it "returns empty list for leaf pattern" $ do
+        it "returns empty list for empty pattern" $ do
           let leaf = Pattern { value = "leaf", elements = [] }
           elements leaf `shouldBe` ([] :: [Pattern String])
         
-        it "returns empty list for leaf pattern with different value types" $ do
+        it "returns empty list for empty pattern with different value types" $ do
           let leafInt = Pattern { value = 42, elements = [] }
           let leafString = Pattern { value = "test", elements = [] }
           elements leafInt `shouldBe` ([] :: [Pattern Int])
@@ -61,13 +61,13 @@ spec = do
       
       describe "Edge cases" $ do
         
-        it "leaf pattern with explicitly empty list of children behaves correctly" $ do
+        it "empty pattern with explicitly empty list of elements behaves correctly" $ do
           let leaf = Pattern { value = "node", elements = [] }
           value leaf `shouldBe` "node"
           elements leaf `shouldBe` ([] :: [Pattern String])
           null (elements leaf) `shouldBe` True
         
-        it "multiple leaf patterns with same value type can be created independently" $ do
+        it "multiple empty patterns with same value type can be created independently" $ do
           let leaf1 = Pattern { value = "node1", elements = [] }
           let leaf2 = Pattern { value = "node2", elements = [] }
           value leaf1 `shouldBe` "node1"
@@ -75,7 +75,7 @@ spec = do
           elements leaf1 `shouldBe` ([] :: [Pattern String])
           elements leaf2 `shouldBe` ([] :: [Pattern String])
         
-        it "leaf patterns with different value types are type-safe" $ do
+        it "empty patterns with different value types are type-safe" $ do
           let leafString = Pattern { value = "text", elements = [] }
           let leafInt = Pattern { value = 123, elements = [] }
           value leafString `shouldBe` "text"
@@ -144,9 +144,9 @@ spec = do
           value (children !! 1) `shouldBe` "second"
           value (children !! 2) `shouldBe` "third"
       
-      describe "Child elements accessibility and order" $ do
+      describe "Elements accessibility and order" $ do
         
-        it "child elements are accessible in correct order" $ do
+        it "elements are accessible in correct order" $ do
           let child1 = Pattern { value = "a", elements = [] }
           let child2 = Pattern { value = "b", elements = [] }
           let child3 = Pattern { value = "c", elements = [] }
@@ -165,7 +165,7 @@ spec = do
       
       describe "Edge cases" $ do
         
-        it "pattern with zero children behaves like leaf pattern" $ do
+        it "pattern with zero elements behaves like empty pattern" $ do
           let pattern = Pattern { value = "node", elements = [] }
           value pattern `shouldBe` "node"
           elements pattern `shouldBe` ([] :: [Pattern String])
@@ -207,17 +207,17 @@ spec = do
     
     describe "Show Instance (Phase 2.1)" $ do
       
-      describe "Show instance for leaf patterns" $ do
+      describe "Show instance for empty patterns" $ do
         
-        it "shows leaf pattern with string value correctly" $ do
+        it "shows empty pattern with string value correctly" $ do
           let leaf = Pattern { value = "test", elements = [] }
           show leaf `shouldBe` "Pattern {value = \"test\", elements = []}"
         
-        it "shows leaf pattern with integer value correctly" $ do
+        it "shows empty pattern with integer value correctly" $ do
           let leaf = Pattern { value = 42, elements = [] }
           show leaf `shouldBe` "Pattern {value = 42, elements = []}"
         
-        it "shows leaf pattern with custom type value correctly" $ do
+        it "shows empty pattern with custom type value correctly" $ do
           let person = Person "Alice" 30
           let leaf = Pattern { value = person, elements = [] }
           show leaf `shouldBe` "Pattern {value = Person {personName = \"Alice\", personAge = 30}, elements = []}"
@@ -247,26 +247,26 @@ spec = do
     
     describe "Eq Instance (Phase 2.2)" $ do
       
-      describe "Equality for leaf patterns" $ do
+      describe "Equality for empty patterns" $ do
         
-        it "two identical leaf patterns are equal" $ do
+        it "two identical empty patterns are equal" $ do
           let leaf1 = Pattern { value = "node", elements = [] }
           let leaf2 = Pattern { value = "node", elements = [] }
           leaf1 `shouldBe` leaf2
           (leaf1 == leaf2) `shouldBe` True
         
-        it "two leaf patterns with different values are not equal" $ do
+        it "two empty patterns with different values are not equal" $ do
           let leaf1 = Pattern { value = "node1", elements = [] }
           let leaf2 = Pattern { value = "node2", elements = [] }
           leaf1 `shouldNotBe` leaf2
           (leaf1 == leaf2) `shouldBe` False
         
-        it "two leaf patterns with same integer value are equal" $ do
+        it "two empty patterns with same integer value are equal" $ do
           let leaf1 = Pattern { value = 42, elements = [] }
           let leaf2 = Pattern { value = 42, elements = [] }
           leaf1 `shouldBe` leaf2
         
-        it "two leaf patterns with different integer values are not equal" $ do
+        it "two empty patterns with different integer values are not equal" $ do
           let leaf1 = Pattern { value = 42, elements = [] }
           let leaf2 = Pattern { value = 100, elements = [] }
           leaf1 `shouldNotBe` leaf2

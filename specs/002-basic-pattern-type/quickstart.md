@@ -5,7 +5,7 @@
 
 ## Overview
 
-This quickstart guide shows how to create and use the basic Pattern type. The Pattern type is a recursive tree structure that stores a value and contains zero or more child Pattern instances.
+This quickstart guide shows how to create and use the basic Pattern type. The Pattern type is a decorated sequence that stores a value and contains zero or more Pattern elements.
 
 ## Prerequisites
 
@@ -23,20 +23,20 @@ import Pattern.Core (Pattern(..))
 
 The `Pattern(..)` import brings in the data type, constructor, and field accessors.
 
-### Creating Leaf Patterns
+### Creating Empty Patterns
 
-A leaf pattern is a pattern with no child elements:
+An empty pattern is a pattern with no elements:
 
 ```haskell
--- String leaf pattern
+-- String empty pattern
 node1 :: Pattern String
 node1 = Pattern { value = "node1", elements = [] }
 
--- Integer leaf pattern
+-- Integer empty pattern
 node2 :: Pattern Int
 node2 = Pattern { value = 42, elements = [] }
 
--- Custom type leaf pattern
+-- Custom type empty pattern
 data Person = Person { name :: String, age :: Int }
   deriving Show
 
@@ -44,17 +44,17 @@ alice :: Pattern Person
 alice = Pattern { value = Person "Alice" 30, elements = [] }
 ```
 
-### Creating Patterns with Children
+### Creating Patterns with Elements
 
-A pattern can contain child patterns:
+A pattern can contain pattern elements:
 
 ```haskell
--- Pattern with two children
+-- Pattern with two elements
 parent :: Pattern String
 parent = Pattern 
   { value = "parent"
-  , elements = [ Pattern { value = "child1", elements = [] }
-               , Pattern { value = "child2", elements = [] }
+  , elements = [ Pattern { value = "elem1", elements = [] }
+               , Pattern { value = "elem2", elements = [] }
                ]
   }
 
@@ -78,11 +78,11 @@ Use field accessors to inspect patterns:
 getValue :: Pattern String -> String
 getValue p = value p
 
--- Extract the children
-getChildren :: Pattern String -> [Pattern String]
-getChildren p = elements p
+-- Extract the elements
+getElements :: Pattern String -> [Pattern String]
+getElements p = elements p
 
--- Check if a pattern is a leaf (no children)
+-- Check if a pattern is empty (no elements)
 isLeaf :: Pattern v -> Bool
 isLeaf p = null (elements p)
 
@@ -92,9 +92,9 @@ example = do
   let leaf = Pattern { value = "test", elements = [] }
   let parent = Pattern { value = "parent", elements = [leaf] }
   
-  putStrLn $ "Leaf value: " ++ value leaf
-  putStrLn $ "Leaf has children: " ++ show (not $ null $ elements leaf)
-  putStrLn $ "Parent has " ++ show (length $ elements parent) ++ " children"
+  putStrLn $ "Empty pattern value: " ++ value leaf
+  putStrLn $ "Empty pattern has elements: " ++ show (not $ null $ elements leaf)
+  putStrLn $ "Pattern has " ++ show (length $ elements parent) ++ " elements"
 ```
 
 ## Common Patterns
@@ -112,23 +112,23 @@ tree = Pattern
   }
 ```
 
-### Pattern with Single Child
+### Pattern with Single Element
 
 ```haskell
--- Pattern with exactly one child
-singleChild :: Pattern String
-singleChild = Pattern 
+-- Pattern with exactly one element
+singleElement :: Pattern String
+singleElement = Pattern 
   { value = "parent"
-  , elements = [ Pattern { value = "only child", elements = [] } ]
+  , elements = [ Pattern { value = "only element", elements = [] } ]
   }
 ```
 
-### Empty Children List
+### Empty Elements List
 
-A pattern with an empty children list is a leaf pattern:
+A pattern with an empty elements list is an empty pattern:
 
 ```haskell
--- These are equivalent (both are leaf patterns)
+-- These are equivalent (both are empty patterns)
 leaf1 :: Pattern String
 leaf1 = Pattern { value = "leaf", elements = [] }
 
@@ -145,7 +145,7 @@ The type system ensures type consistency:
 valid :: Pattern String
 valid = Pattern 
   { value = "root"
-  , elements = [ Pattern { value = "child", elements = [] } ]
+  , elements = [ Pattern { value = "element", elements = [] } ]
   }
 
 -- ❌ This won't compile - type mismatch
@@ -176,11 +176,11 @@ import Pattern.Core (Pattern(..))
 
 main :: IO ()
 main = do
-  -- Create leaf patterns
+  -- Create empty patterns
   let node1 = Pattern { value = "Alice", elements = [] }
   let node2 = Pattern { value = "Bob", elements = [] }
   
-  -- Create pattern with children
+  -- Create pattern with elements
   let relationship = Pattern 
         { value = "knows"
         , elements = [node1, node2]
@@ -188,14 +188,14 @@ main = do
   
   -- Inspect structure
   putStrLn $ "Relationship value: " ++ value relationship
-  putStrLn $ "Number of children: " ++ show (length $ elements relationship)
+  putStrLn $ "Number of elements: " ++ show (length $ elements relationship)
   
-  -- Access child values
-  let children = elements relationship
-  case children of
+  -- Access element values
+  let elems = elements relationship
+  case elems of
     [p1, p2] -> do
-      putStrLn $ "First child: " ++ value p1
-      putStrLn $ "Second child: " ++ value p2
+      putStrLn $ "First element: " ++ value p1
+      putStrLn $ "Second element: " ++ value p2
     _ -> putStrLn "Unexpected structure"
 ```
 
@@ -204,7 +204,7 @@ main = do
 ### Common Issues
 
 1. **Type mismatch errors**: Ensure all patterns in a structure use the same value type
-2. **Empty list vs leaf**: An empty `elements` list creates a leaf pattern - this is correct
+2. **Empty list**: An empty `elements` list creates an empty pattern - this is correct
 3. **Deep nesting**: Patterns can be arbitrarily nested - the type system allows this
 
 ### Getting Help

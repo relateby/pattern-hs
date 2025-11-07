@@ -256,7 +256,7 @@ sumValues = foldr (+) 0 . fmap id
 ### Common Issues
 
 **Issue**: "Pattern is not a relationship" error
-- **Solution**: Ensure the pattern has exactly 2 child elements, and both are nodes
+- **Solution**: Ensure the pattern has exactly 2 elements, and both are nodes
 
 **Issue**: "Cannot chain relationships"
 - **Solution**: Verify that `target r1 == source r2` for directed views, or that relationships share nodes for undirected views

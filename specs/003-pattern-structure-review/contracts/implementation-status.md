@@ -40,7 +40,7 @@ This document tracks the implementation status of Pattern library features. All 
 
 | Function | Status | Reference | Notes |
 |----------|--------|-----------|-------|
-| `pattern :: v -> Pattern v` | ⏳ Planned | TODO.md Feature 3 | Creates leaf pattern |
+| `pattern :: v -> Pattern v` | ⏳ Planned | TODO.md Feature 3 | Creates empty pattern |
 | `patternWith :: v -> [Pattern v] -> Pattern v` | ⏳ Planned | TODO.md Feature 3 | Creates pattern with elements |
 
 ---

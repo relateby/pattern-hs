@@ -7,7 +7,7 @@
 
 ## Summary
 
-Implement the foundational Pattern data type as a recursive tree structure that stores a value and contains zero or more child Pattern instances. This basic type definition enables all subsequent pattern operations and serves as the core building block for representing graph elements. The implementation will include the data type definition, field accessors, and comprehensive Haddock documentation explaining the recursive tree structure. Testing will verify pattern construction and structure inspection for both leaf patterns and patterns with children.
+Implement the foundational Pattern data type as a decorated sequence that stores a value and contains zero or more Pattern elements. This basic type definition enables all subsequent pattern operations and serves as the core building block for representing graph elements. The implementation will include the data type definition, field accessors, and comprehensive Haddock documentation explaining the sequence-based conceptual model. Testing will verify pattern construction and structure inspection for both empty patterns and patterns with elements.
 
 ## Technical Context
 
@@ -29,13 +29,13 @@ Implement the foundational Pattern data type as a recursive tree structure that 
 
 - **Code Quality (NON-NEGOTIABLE)**: ✅ The design provides clear structure for a basic data type. The Pattern type will be self-documenting through clear naming (`value`, `elements`). Public data type and field accessors will be documented with Haddock including examples. Code organization follows the existing module structure (`Pattern.Core`).
 
-- **Testing Standards (NON-NEGOTIABLE)**: ✅ Testing strategy includes unit tests for pattern construction (leaf patterns and patterns with children) and structure inspection. Tests will verify field accessors work correctly. Property-based tests for category-theoretic properties (Functor, Foldable, Traversable laws) will be added in future phases when those typeclass instances are implemented.
+- **Testing Standards (NON-NEGOTIABLE)**: ✅ Testing strategy includes unit tests for pattern construction (empty patterns and patterns with elements) and structure inspection. Tests will verify field accessors work correctly. Property-based tests for category-theoretic properties (Functor, Foldable, Traversable laws) will be added in future phases when those typeclass instances are implemented.
 
 - **Conceptual Consistency**: ✅ The Pattern type aligns with category theory - it is a recursive structure that will form the foundation for functor instances. The recursive tree structure is a standard categorical pattern. Formal definitions will be provided in documentation.
 
 - **Mathematical Clarity**: ✅ Formal definition of Pattern as a recursive tree structure will be provided in Haddock documentation. Documentation will explain the mathematical structure and how it relates to graph representation. Notation will be consistent with standard mathematical conventions.
 
-- **Multi-Language Reference Alignment**: ✅ The core Pattern type is language-agnostic - it's a simple recursive data structure with a value and list of children. This structure can be translated to any language with recursive types. Haskell-specific features (type parameters, field accessors) are standard and well-documented, making translation straightforward.
+- **Multi-Language Reference Alignment**: ✅ The core Pattern type is language-agnostic - it's a simple recursive data structure with a value and list of elements. This structure can be translated to any language with recursive types. Haskell-specific features (type parameters, field accessors) are standard and well-documented, making translation straightforward.
 
 **Violations must be documented in Complexity Tracking section below.**
 

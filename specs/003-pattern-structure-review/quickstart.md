@@ -32,10 +32,10 @@ data Pattern v = Pattern
 
 ### Creating Patterns
 
-**Leaf Pattern** (sequence with no elements):
+**Empty Pattern** (sequence with no elements):
 
 ```haskell
--- Create a leaf pattern
+-- Create an empty pattern
 nodeA :: Pattern String
 nodeA = Pattern { value = "A", elements = [] }
 
@@ -99,7 +99,7 @@ length (elements parent)  -- Returns: 2
 
 Pattern variants are structural classifications based on element structure.
 
-### Leaf Pattern
+### Empty Pattern
 
 A pattern with no elements.
 
@@ -112,7 +112,7 @@ leaf = Pattern { value = "leaf", elements = [] }
 
 ### Node
 
-A pattern interpreted as a node (typically a leaf pattern).
+A pattern interpreted as a node (typically an empty pattern).
 
 **Status**: ⏳ Planned (classification function `isNode` not yet implemented)
 
@@ -167,7 +167,7 @@ A subgraph with chained relationships.
 ### Creating a Simple Graph
 
 ```haskell
--- Nodes (leaf patterns)
+-- Nodes (empty patterns)
 alice = Pattern { value = "Alice", elements = [] }
 bob = Pattern { value = "Bob", elements = [] }
 

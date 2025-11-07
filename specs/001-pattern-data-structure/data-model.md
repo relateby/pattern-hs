@@ -7,7 +7,9 @@
 
 ### Definition
 
-The `Pattern` type is a recursive tree structure that serves as a generalized representation of graph elements.
+A **Pattern** is a **decorated sequence**: the elements form the pattern itself, and the value provides decoration (metadata) about that pattern. For example, the pattern "A B B A" with decoration "Enclosed rhyme" represents a specific sequence pattern (A B B A) that is classified as an "Enclosed rhyme". The elements ARE the pattern; the value describes what kind of pattern it is.
+
+While implemented using a recursive tree structure, the primary semantic is that elements form the pattern sequence itself, not that they are children of a node. The tree structure is an implementation detail that supports the sequence representation.
 
 ### Structure
 
@@ -15,68 +17,126 @@ The `Pattern` type is a recursive tree structure that serves as a generalized re
 data Pattern v = Pattern 
   { value    :: v
   , elements :: [Pattern v]
-  } deriving (Functor, Foldable, Traversable)
+  }
+  deriving (Eq)
 ```
+
+**Note**: `Show` is implemented as a manual instance. `Functor`, `Foldable`, and `Traversable` are planned but not yet implemented (see Implementation Status section).
 
 ### Fields
 
-- **value** (`v`): The value associated with this pattern node. Type parameter `v` allows for different value types.
-- **elements** (`[Pattern v]`): A list of child patterns, forming the recursive tree structure.
+- **value** (`v`): The decoration or metadata associated with the pattern. The value field stores data of any type that describes or classifies the pattern sequence. For example, "Enclosed rhyme" describes the pattern "A B B A". The value is decoration about the pattern, not part of the pattern itself. Type parameter `v` allows for different value types.
+
+- **elements** (`[Pattern v]`): The pattern itself, represented as a sequence of elements. The elements ARE the pattern; they are not children or subordinate to the value. Each element in the sequence is itself a Pattern, enabling recursive nesting. An empty list `[]` represents a pattern with no elements (an empty sequence). A non-empty list represents a pattern containing one or more pattern elements in sequence.
+
+### Conceptual Model: Decorated Sequences
+
+**Primary Semantic**: Patterns are decorated sequences where the elements form the pattern itself.
+
+- The `elements` field IS the pattern - it contains the sequence that defines the pattern
+- The `value` field provides decoration/metadata about what kind of pattern it is
+- Elements maintain their sequence order - this order is essential to the pattern
+- Each element in the sequence is itself a Pattern, enabling nested patterns
+
+**Example**: The pattern "A B B A" with decoration "Enclosed rhyme" represents:
+- Pattern: the sequence `[A, B, B, A]` (the elements)
+- Decoration: "Enclosed rhyme" (the value describing what kind of pattern this is)
+
+The pattern itself is the sequence; the value is metadata about that pattern.
+
+### Implementation Model: Recursive Tree
+
+**Implementation Detail**: Patterns are implemented as recursive trees, but this is purely an implementation detail.
+
+- The tree structure is how sequences are represented in memory
+- Each tree node stores a decoration (value) and contains the pattern elements
+- The recursive structure enables arbitrary nesting depth
+- Tree traversal provides access to sequence elements
+
+**Relationship**: The tree implementation is how decorated sequences are represented in memory. Conceptually, developers should think of patterns as decorated sequences where elements form the pattern itself. The tree structure is an implementation detail that supports sequence operations (ordering, length, access by position).
 
 ### Type Constraints
 
 - `Pattern` is parameterized over value type `v`
-- `Pattern` must be an instance of `Functor`, `Foldable`, and `Traversable` (standard typeclass instances)
-- These instances enable structural transformations while preserving the tree shape
+- All patterns in a structure must share the same value type `v` (enforced by type system)
+- Pattern structures must be finite (no infinite recursion)
+- Type consistency is enforced by Haskell's type system
 
 ### Relationships
 
-- **Self-referential**: Each `Pattern` contains zero or more child `Pattern` values
+- **Self-referential**: Each `Pattern` contains zero or more Pattern elements that form the pattern sequence
+- **Recursive**: Pattern elements can themselves be patterns, enabling arbitrarily deep nesting (patterns containing patterns containing patterns, etc.)
+- **Compositional**: Patterns can be composed by including other patterns as elements in the sequence
 - **Graph interpretation**: A `Pattern` can be interpreted as different graph elements (node, relationship, subgraph, path) based on its structure
 
 ---
 
 ## Graph Element Classifications
 
+### Empty Pattern
+
+A pattern with no elements (`elements == []`).
+
+**Structure**: Empty sequence
+**Status**: ✅ Implemented (this is the basic Pattern structure)
+
+**Example**:
+```haskell
+emptyPattern :: Pattern String
+emptyPattern = Pattern { value = "node1", elements = [] }
+```
+
 ### Node
 
-A `Pattern` is interpreted as a **node** when:
-- It has no child elements that are graph elements themselves
-- Typically: `elements p == []` or all elements are leaf nodes
+A pattern interpreted as a **node** when it has no elements that are graph elements themselves. Typically, this means `elements == []` (an empty pattern).
 
-**Validation**: `isNode :: Pattern v -> Bool`
+**Structure**: Empty sequence (empty pattern)
+**Status**: ⏳ Planned (classification function `isNode` not yet implemented)
+
+**Validation** (planned): `isNode :: Pattern v -> Bool`
 
 ### Relationship
 
-A `Pattern` is interpreted as a **relationship** when:
-- It has exactly 2 child elements
-- Both child elements are nodes (leaf patterns)
+A pattern interpreted as a **relationship** when it has exactly 2 elements, and both elements are nodes (empty patterns).
 
-**Validation**: `isRelationship :: Pattern v -> Bool`
+**Structure**: Exactly 2 elements, both are empty patterns
+**Status**: ⏳ Planned (classification function `isRelationship` not yet implemented)
 
-**Constraints**:
+**Validation** (planned): `isRelationship :: Pattern v -> Bool`
+
+**Constraints** (planned):
 - `length (elements p) == 2`
 - `all isNode (elements p)`
 
+**Example** (structure exists, classification function planned):
+```haskell
+nodeA = Pattern { value = "A", elements = [] }
+nodeB = Pattern { value = "B", elements = [] }
+relationship = Pattern { value = "knows", elements = [nodeA, nodeB] }
+```
+
 ### Subgraph
 
-A `Pattern` is interpreted as a **subgraph** when:
-- All child elements are graph elements (nodes, relationships, or other subgraphs)
+A pattern interpreted as a **subgraph** when all elements are graph elements (nodes, relationships, or other subgraphs).
 
-**Validation**: `isSubgraph :: Pattern v -> Bool`
+**Structure**: All elements are graph elements
+**Status**: ⏳ Planned (classification function `isSubgraph` not yet implemented)
 
-**Constraints**:
+**Validation** (planned): `isSubgraph :: Pattern v -> Bool`
+
+**Constraints** (planned):
 - `all isGraphElement (elements p)`
 
 ### Path
 
-A `Pattern` is interpreted as a **path** when:
-- It is a subgraph
-- All relationships in the path chain correctly (target of one equals source of next)
+A pattern interpreted as a **path** when it is a subgraph and all relationships in the path chain correctly (target of one equals source of next).
 
-**Validation**: `isPath :: Pattern v -> Bool`
+**Structure**: Subgraph with chained relationships
+**Status**: ⏳ Planned (classification function `isPath` not yet implemented)
 
-**Constraints**:
+**Validation** (planned): `isPath :: Pattern v -> Bool`
+
+**Constraints** (planned):
 - `isSubgraph p`
 - `chainsCorrectly (elements p)`
 
@@ -84,9 +144,9 @@ A `Pattern` is interpreted as a **path** when:
 
 ## Graph Views
 
-### GraphView Typeclass
+Graph views provide different semantic interpretations of pattern structures. Views are planned but not yet implemented.
 
-A `GraphView` defines how to interpret a `Pattern` as a graph element in a specific graph category.
+### GraphView Typeclass (Planned)
 
 ```haskell
 class GraphView view where
@@ -101,19 +161,14 @@ class GraphView view where
   toGraph :: view -> Pattern v -> Graph (Direction view) v
 ```
 
-### Standard Views
+**Status**: ⏳ Planned (not yet implemented)
 
-#### DirectedView
+### Standard Views (Planned)
 
-- **Direction type**: `Ordered` (source → target)
-- **Interpretation**: Relationships have explicit direction
-- **Chaining**: `target r1 == source r2`
+- **DirectedView**: Relationships have explicit direction (source → target)
+- **UndirectedView**: Relationships are undirected (edge set)
 
-#### UndirectedView
-
-- **Direction type**: `Unordered` (edge set)
-- **Interpretation**: Relationships are undirected
-- **Chaining**: Relationships share common nodes
+**Status**: ⏳ Planned (not yet implemented)
 
 ---
 
@@ -175,13 +230,14 @@ data Edge dir v where
 ### Pattern Structure
 
 1. **Well-formed**: All `Pattern` values must be finite (no infinite recursion)
-2. **Type consistency**: All elements in a `Pattern` must have the same value type `v`
+2. **Type consistency**: All elements in a `Pattern` must have the same value type `v` (enforced by type system)
+3. **Structure integrity**: Field accessors must always return valid values
 
-### Graph Element Classification
+### Pattern Variant Classification (Planned)
 
-1. **Mutual exclusivity**: A pattern can be classified as node, relationship, subgraph, or path, but not multiple simultaneously
-2. **Hierarchical**: Classification depends on child element structure
-3. **Recursive**: Classification applies recursively to child elements
+1. **Mutual exclusivity**: A pattern can be classified as node, relationship, subgraph, or path, but not multiple simultaneously (when classification functions are implemented)
+2. **Structure-dependent**: Classification depends on the structure of the pattern's elements
+3. **Recursive**: Classification applies recursively to pattern elements
 
 ### Category-Theoretic Laws
 
@@ -195,23 +251,21 @@ data Edge dir v where
 
 ### Pattern Construction
 
-- **Empty pattern**: `Pattern v []` - represents a node with value `v`
-- **Node creation**: `Pattern v []`
-- **Relationship creation**: `Pattern v [node1, node2]` where `node1` and `node2` are leaf patterns
-- **Subgraph creation**: `Pattern v [elem1, elem2, ...]` where all elements are graph elements
+- **Empty pattern creation**: `Pattern v []` - creates a pattern with value `v` and empty element list
+- **Pattern with elements creation**: `Pattern v [p1, p2, ...]` - creates a pattern with value `v` and element patterns `p1, p2, ...`
 
-### Pattern Transformation
+### Pattern Inspection
 
-- **Value transformation**: `fmap f pattern` - applies function to all values
-- **Structure transformation**: Pattern morphisms that preserve or modify structure
-- **View transformation**: Applying different `GraphView` instances to the same pattern
+- **Value access**: `value pattern` - retrieves the value stored in the pattern
+- **Elements access**: `elements pattern` - retrieves the list of element patterns
 
 ---
 
 ## Design Principles
 
-1. **Schema-lazy**: Patterns don't commit to specific graph semantics; interpretation happens in the view
-2. **Compositional**: Views can be composed, stacked, or swapped without changing underlying patterns
-3. **Open-ended**: New views can be defined for any graph-like interpretation
-4. **Categorical**: Each view defines a functor; forgetful pattern matching uses functor composition
+1. **Decorated Sequence Semantics**: Patterns are conceptually decorated sequences where elements form the pattern itself; tree structure is implementation detail
+2. **Schema-Lazy**: Patterns don't commit to specific graph semantics; interpretation happens in views (when implemented)
+3. **Compositional**: Views can be composed, stacked, or swapped without changing underlying patterns (when implemented)
+4. **Open-ended**: New views can be defined for any graph-like interpretation (when implemented)
+5. **Categorical**: Each view defines a functor; forgetful pattern matching uses functor composition (when implemented)
 

@@ -79,7 +79,7 @@ The pattern itself is the sequence; the value is metadata about that pattern.
 
 Pattern variants are **structural classifications** based on their element structure that can be **interpreted through different graph views**. Variants are determined by the structure of elements, and views provide different semantic interpretations of those structures.
 
-### Leaf Pattern
+### Empty Pattern
 
 A pattern with no elements (`elements == []`).
 
@@ -88,24 +88,24 @@ A pattern with no elements (`elements == []`).
 
 **Example**:
 ```haskell
-leafPattern :: Pattern String
-leafPattern = Pattern { value = "node1", elements = [] }
+emptyPattern :: Pattern String
+emptyPattern = Pattern { value = "node1", elements = [] }
 ```
 
 ### Node
 
-A pattern interpreted as a **node** when it has no elements that are graph elements themselves. Typically, this means `elements == []` (a leaf pattern).
+A pattern interpreted as a **node** when it has no elements that are graph elements themselves. Typically, this means `elements == []` (an empty pattern).
 
-**Structure**: Empty sequence (leaf pattern)
+**Structure**: Empty sequence (empty pattern)
 **Status**: ⏳ Planned (classification function `isNode` not yet implemented)
 
 **Validation** (planned): `isNode :: Pattern v -> Bool`
 
 ### Relationship
 
-A pattern interpreted as a **relationship** when it has exactly 2 elements, and both elements are nodes (leaf patterns).
+A pattern interpreted as a **relationship** when it has exactly 2 elements, and both elements are nodes (empty patterns).
 
-**Structure**: Exactly 2 elements, both are leaf patterns
+**Structure**: Exactly 2 elements, both are empty patterns
 **Status**: ⏳ Planned (classification function `isRelationship` not yet implemented)
 
 **Validation** (planned): `isRelationship :: Pattern v -> Bool`
@@ -233,7 +233,7 @@ class GraphView view where
 
 ### Pattern Construction
 
-- **Leaf pattern creation**: `Pattern v []` - creates a pattern with value `v` and empty element list
+- **Empty pattern creation**: `Pattern v []` - creates a pattern with value `v` and empty element list
 - **Pattern with elements creation**: `Pattern v [p1, p2, ...]` - creates a pattern with value `v` and element patterns `p1, p2, ...`
 
 ### Pattern Inspection

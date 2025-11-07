@@ -41,7 +41,7 @@ As a developer reading Pattern documentation, I need consistent terminology for 
 
 ### User Story 3 - Clarify Pattern Variant Classifications (Priority: P2)
 
-As a developer using Pattern, I need clear and consistent definitions of pattern variants (leaf patterns, nodes, relationships, subgraphs, paths) so that I understand when and how to use each variant.
+As a developer using Pattern, I need clear and consistent definitions of pattern variants (empty patterns, nodes, relationships, subgraphs, paths) so that I understand when and how to use each variant.
 
 **Why this priority**: Pattern variants are central to using the library effectively. Currently, different documents define these variants differently, and some variants are described but not yet implemented. Clarifying these definitions ensures developers understand what's available now versus what's planned, and how variants relate to each other.
 
@@ -101,7 +101,7 @@ As a developer understanding the Pattern design, I need clarity on how the seque
 - **FR-001**: System MUST establish a single, authoritative definition of Pattern that is used consistently across all documentation and code
 - **FR-002**: System MUST define and consistently use terminology for Pattern components (value field, elements field, pattern variants)
 - **FR-003**: System MUST clarify the relationship between sequence-based conceptual model and tree-based implementation
-- **FR-004**: System MUST provide clear definitions for all pattern variants (leaf patterns, nodes, relationships, subgraphs, paths) with explicit implementation status
+- **FR-004**: System MUST provide clear definitions for all pattern variants (empty patterns, nodes, relationships, subgraphs, paths) with explicit implementation status
 - **FR-005**: System MUST align documentation with actual implementation status (what's implemented vs what's planned)
 - **FR-006**: System MUST resolve all conflicting definitions found across documentation files (Core.hs, DESIGN.md, data-model.md, README.md, spec files)
 - **FR-007**: System MUST establish consistent terminology for the "value" field (whether called "value", "metadata", or other terms)
@@ -116,7 +116,7 @@ As a developer understanding the Pattern design, I need clarity on how the seque
 - **Pattern**: A sequence of elements with associated metadata. While implemented using a recursive tree structure, the primary semantic is sequence-based. The structure stores a value and contains zero or more Pattern elements. The tree implementation supports the sequence semantics, but the conceptual model emphasizes sequences.
 - **Pattern Value**: The value associated with a pattern instance. The value field stores data of any type and is associated with the pattern sequence itself, not with individual elements in the sequence.
 - **Pattern Elements**: The elements contained within a pattern, forming the sequence structure. Each element in the sequence is itself a Pattern, enabling recursive nesting while maintaining the sequence semantic.
-- **Pattern Variants**: Structural classifications of patterns based on their element structure (leaf patterns, nodes, relationships, subgraphs, paths) that can be interpreted through different graph views. Variants are determined by the structure of elements, and views provide different semantic interpretations of those structures.
+- **Pattern Variants**: Structural classifications of patterns based on their element structure (empty patterns, nodes, relationships, subgraphs, paths) that can be interpreted through different graph views. Variants are determined by the structure of elements, and views provide different semantic interpretations of those structures.
 
 ## Assumptions
 

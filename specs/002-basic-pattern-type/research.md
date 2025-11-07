@@ -50,8 +50,8 @@ data Pattern v = Pattern
 **Decision**: Use `value` and `elements` as field names.
 
 **Rationale**:
-- `value` clearly indicates the value stored in the pattern node
-- `elements` clearly indicates the child patterns (more descriptive than `children`)
+- `value` clearly indicates the value stored in the pattern
+- `elements` clearly indicates the pattern elements (more descriptive than `children`)
 - Consistent with existing design documents (data-model.md from feature 001)
 - Generic enough to work for all pattern interpretations
 
@@ -80,10 +80,10 @@ data Pattern v = Pattern
 - Minimal comments: Insufficient for reference implementation
 
 **Action**: Provide comprehensive Haddock documentation explaining:
-- The recursive tree structure
+- The sequence-based conceptual model
 - How values are stored
-- How child elements form the hierarchy
-- Examples of leaf patterns and patterns with children
+- How elements form the pattern sequence
+- Examples of empty patterns and patterns with elements
 
 ---
 
@@ -103,10 +103,10 @@ data Pattern v = Pattern
 - No tests: Violates Constitution testing standards
 
 **Action**: Write unit tests for:
-- Creating leaf patterns (patterns with no children)
-- Creating patterns with children
+- Creating empty patterns (patterns with no elements)
+- Creating patterns with elements
 - Verifying field accessors return correct values
-- Testing edge cases (empty children, single child, many children)
+- Testing edge cases (empty elements, single element, many elements)
 
 ---
 
