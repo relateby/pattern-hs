@@ -81,6 +81,44 @@ pattern-hs/
 
 ## Developer Section
 
+### Development Workflow
+
+**IMPORTANT**: All development work MUST be done in feature branches, following the Speckit workflow that adheres to the [Constitution](.specify/memory/constitution.md). **Never commit directly to the `main` branch.**
+
+#### Speckit Workflow
+
+This project uses the Speckit workflow for feature development:
+
+1. **Create Feature Branch**: Use `/speckit.specify` to create a new feature branch and specification
+   - Branches follow the pattern: `NNN-feature-name` (e.g., `002-basic-pattern-type`)
+   - Creates a feature specification in `specs/NNN-feature-name/spec.md`
+
+2. **Plan Implementation**: Use `/speckit.plan` to generate implementation plan
+   - Creates `plan.md` with technical context and constitution checks
+   - Generates design artifacts: `data-model.md`, `contracts/`, `quickstart.md`
+
+3. **Generate Tasks**: Use `/speckit.tasks` to create actionable task list
+   - Creates `tasks.md` with dependency-ordered implementation tasks
+
+4. **Implement**: Follow the tasks, ensuring all code adheres to:
+   - [Constitution principles](.specify/memory/constitution.md) (Code Quality, Testing Standards, etc.)
+   - Comprehensive Haddock documentation
+   - Test coverage for all public APIs
+
+5. **Merge**: After all tests pass and code review, merge the feature branch to `main`
+
+#### Constitution Compliance
+
+All code MUST comply with the [Pattern HS Constitution](.specify/memory/constitution.md):
+
+- **Code Quality (NON-NEGOTIABLE)**: Clear, maintainable, well-documented code
+- **Testing Standards (NON-NEGOTIABLE)**: Comprehensive tests as executable specifications
+- **Conceptual Consistency**: Align with category theory formalisms
+- **Mathematical Clarity**: Explicit formal definitions
+- **Multi-Language Reference Alignment**: Structure for translation to other languages
+
+See `.specify/memory/constitution.md` for complete requirements.
+
 ### Prerequisites
 
 - **GHC**: 9.10.3 (specified in `cabal.project`)
@@ -126,6 +164,13 @@ cabal --version  # Should show 3.6.2.0 or later
    ```bash
    ls -la src/Pattern/Core.hs    # Should exist
    ls -la tests/Spec/Pattern/CoreSpec.hs  # Should exist
+   ```
+
+4. **Create a feature branch for your work**:
+   ```bash
+   # Use /speckit.specify command in Cursor to create a feature branch
+   # Or manually: git checkout -b NNN-feature-name
+   # Never commit directly to main!
    ```
 
 ### Build
@@ -324,7 +369,12 @@ See `TODO.md` for the complete implementation roadmap.
 
 This is a reference implementation with strict quality standards. See `.specify/memory/constitution.md` for development principles and requirements.
 
-**Key Requirements**:
+**Workflow Requirements**:
+- **ALWAYS work in a feature branch** - Never commit directly to `main`
+- Use the Speckit workflow (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`)
+- Follow the [Constitution](.specify/memory/constitution.md) principles
+
+**Code Quality Requirements**:
 - All code must be well-documented with Haddock
 - All public APIs must have tests
 - Category-theoretic properties must be verified

@@ -2,6 +2,19 @@
 
 **Approach**: Incremental, careful progression. Build solid foundations before advanced features.
 
+**⚠️ IMPORTANT: Development Workflow**
+
+**All work MUST be done in feature branches using the Speckit workflow. Never commit directly to `main`.**
+
+1. **Create Feature Branch**: Use `/speckit.specify` to create a numbered feature branch (e.g., `003-construction-functions`)
+2. **Plan**: Use `/speckit.plan` to generate implementation plan with constitution checks
+3. **Tasks**: Use `/speckit.tasks` to generate dependency-ordered task list
+4. **Implement**: Follow tasks, ensuring compliance with [Constitution](.specify/memory/constitution.md)
+5. **Test**: All code must have comprehensive tests
+6. **Merge**: After review and all tests pass, merge to `main`
+
+See [README.md](README.md#development-workflow) for complete workflow details.
+
 ---
 
 ## Phase 1: Core Data Type (Foundation) ✅
@@ -269,11 +282,13 @@
 
 ## Principles
 
-1. **Incremental**: Each phase builds on previous phases
-2. **Testable**: Every feature has tests before moving on
-3. **Review Points**: Stop and review before advanced features (Phases 14-16)
-4. **Underspecified**: Advanced features (graphs, views, morphisms) are minimal until core is solid
-5. **Solid Core First**: Ensure core Pattern type is well-understood before adding complexity
+1. **Branch-Based Development**: All work done in feature branches following Speckit workflow
+2. **Constitution Compliance**: All code must adhere to [Constitution](.specify/memory/constitution.md) principles
+3. **Incremental**: Each phase builds on previous phases
+4. **Testable**: Every feature has tests before moving on
+5. **Review Points**: Stop and review before advanced features (Phases 14-16)
+6. **Underspecified**: Advanced features (graphs, views, morphisms) are minimal until core is solid
+7. **Solid Core First**: Ensure core Pattern type is well-understood before adding complexity
 
 ---
 
@@ -294,6 +309,8 @@
 
 ## Notes
 
+- **Workflow**: Always use feature branches and Speckit commands (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`)
+- **Constitution**: Review [Constitution](.specify/memory/constitution.md) before starting any work
 - Don't rush ahead to advanced features
 - Each phase should feel complete and tested
 - If something feels unclear, stop and clarify before proceeding
