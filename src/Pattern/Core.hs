@@ -59,10 +59,10 @@
 -- * The @value@ is decoration about the pattern sequence itself, not part of the pattern.
 -- * All patterns in a structure must share the same value type @v@ (enforced by the type system).
 --
--- For example, a pattern representing a graph node might have @value = "Person"@
--- (decoration indicating the node type) and @elements = []@ (empty sequence pattern).
--- A pattern representing a relationship might have @value = "knows"@ (the relationship type decoration)
--- and @elements = [nodeA, nodeB]@ (the pattern itself - a sequence of two node patterns).
+-- For example, an atomic pattern might have @value = "Person"@
+-- (decoration indicating the pattern type) and @elements = []@ (empty sequence pattern).
+-- A pattern with two elements might have @value = "knows"@ (the pattern type decoration)
+-- and @elements = [atomA, atomB]@ (the pattern itself - a sequence of two atomic patterns).
 --
 -- == Elements and Pattern Structure
 --
@@ -79,9 +79,9 @@
 -- * Those element patterns can themselves include patterns
 -- * This enables arbitrary depth nesting while maintaining the pattern sequence semantic
 --
--- For example, a graph pattern might have @elements = [node1, node2, relationship1]@
--- where each element is a Pattern. The relationship pattern itself might have
--- @elements = [nodeA, nodeB]@, creating a nested pattern structure.
+-- For example, a pattern might have @elements = [atom1, atom2, pair1]@
+-- where each element is a Pattern. A pair pattern itself might have
+-- @elements = [atomA, atomB]@, creating a nested pattern structure.
 --
 -- == Type Safety and Type Parameter @v@
 --
@@ -111,12 +111,12 @@
 --
 -- == Examples
 --
--- Atomic pattern (can be interpreted as a node):
+-- Atomic pattern:
 --
--- >>> leaf = Pattern { value = "node1", elements = [] }
--- >>> value leaf
--- "node1"
--- >>> elements leaf
+-- >>> atom = Pattern { value = "atom1", elements = [] }
+-- >>> value atom
+-- "atom1"
+-- >>> elements atom
 -- []
 --
 -- Pattern with elements:
@@ -250,8 +250,8 @@ data Pattern v = Pattern
     -- >>> value (Pattern { value = 42, elements = [] })
     -- 42
     --
-    -- >>> value (Pattern { value = "graph", elements = [Pattern { value = "node", elements = [] }] })
-    -- "graph"
+    -- >>> value (Pattern { value = "group", elements = [Pattern { value = "atom", elements = [] }] })
+    -- "group"
     value    :: v
     
     -- | The pattern itself, represented as a sequence of elements.

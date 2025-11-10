@@ -114,12 +114,12 @@ This document tracks the implementation status of Pattern library features. All 
 
 | Document | Status | Notes |
 |----------|--------|-------|
-| Core.hs Haddock | ⚠️ Needs Update | Uses "metadata" instead of "value" in some places |
-| DESIGN.md | ⚠️ Needs Update | Should align with sequence-based model |
-| README.md | ✅ Mostly Aligned | Already emphasizes sequence model |
-| data-model.md (001) | ⚠️ Needs Update | Should use consistent terminology |
-| data-model.md (002) | ⚠️ Needs Update | Should use consistent terminology |
-| contracts/type-signatures.md | ⚠️ Needs Update | Should mark planned features clearly |
+| Core.hs Haddock | ✅ Aligned | Uses "value" consistently, sequence-based model as primary |
+| DESIGN.md | ✅ Aligned | Aligned with sequence-based model, all planned features marked |
+| README.md | ✅ Aligned | Emphasizes sequence model, consistent terminology |
+| data-model.md (001) | ✅ Aligned | Uses consistent terminology, sequence-based model |
+| data-model.md (002) | ✅ Aligned | Uses consistent terminology, sequence-based model |
+| contracts/type-signatures.md | ✅ Aligned | All planned features clearly marked |
 
 ---
 

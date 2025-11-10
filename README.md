@@ -327,17 +327,17 @@ find src tests -name "*.hs" -exec ormolu -m inplace {} \;
 import Pattern.Core (Pattern(..))
 
 -- Create an atomic pattern (sequence with no elements)
-nodeA :: Pattern String
-nodeA = Pattern { value = "A", elements = [] }
+atomA :: Pattern String
+atomA = Pattern { value = "A", elements = [] }
 
 -- Create a pattern with elements
-nodeB = Pattern { value = "B", elements = [] }
-relationship = Pattern { value = "knows", elements = [nodeA, nodeB] }
+atomB = Pattern { value = "B", elements = [] }
+pair = Pattern { value = "knows", elements = [atomA, atomB] }
 
 -- Inspect pattern structure
 main = do
-  putStrLn $ "Node value: " ++ value nodeA
-  putStrLn $ "Elements count: " ++ show (length (elements relationship))
+  putStrLn $ "Pattern value: " ++ value atomA
+  putStrLn $ "Elements count: " ++ show (length (elements pair))
 ```
 
 ### More Examples

@@ -9,7 +9,7 @@ This guide helps you understand the Pattern structure with consistent definition
 
 ## Core Concept
 
-A **Pattern** is a sequence of elements with associated metadata. While implemented as a recursive tree, the primary semantic is sequence-based.
+A **Pattern** is a sequence of elements with an associated value. While implemented as a recursive tree, the primary semantic is sequence-based.
 
 **Key Points**:
 - Patterns are conceptually **sequences** (primary)
@@ -25,7 +25,7 @@ A **Pattern** is a sequence of elements with associated metadata. While implemen
 
 ```haskell
 data Pattern v = Pattern 
-  { value    :: v              -- Metadata about the sequence
+  { value    :: v              -- Value (decoration) about the sequence
   , elements :: [Pattern v]    -- The sequence of elements
   }
 ```
@@ -73,8 +73,8 @@ length (elements parent)  -- Returns: 2
 
 | Term | Definition | Usage |
 |------|------------|-------|
-| **Pattern** | Sequence of elements with metadata | The data type |
-| **value** | Metadata about the sequence | Field name: `value` |
+| **Pattern** | Sequence of elements with an associated value | The data type |
+| **value** | Value (decoration) about the sequence | Field name: `value` |
 | **elements** | The sequence of pattern elements | Field name: `elements` |
 | **sequence** | Conceptual model (primary) | How to think about patterns |
 | **tree** | Implementation model | How patterns are stored |
@@ -220,7 +220,7 @@ personPattern = Pattern
 Think of patterns as **sequences**:
 
 - Each pattern represents a sequence
-- The `value` is metadata about the sequence
+- The `value` is decoration about the sequence
 - The `elements` are the items in the sequence
 - Elements maintain their order
 
@@ -231,7 +231,7 @@ Think of patterns as **sequences**:
 Patterns are **implemented** as trees:
 
 - Tree structure supports sequence semantics
-- Each node stores a value and contains child nodes
+- Each level stores a value and contains pattern elements
 - Recursive structure enables nesting
 
 **Key Point**: The tree is how sequences are stored. The sequence is what you should think about.
@@ -264,7 +264,7 @@ Check [implementation-status.md](./contracts/implementation-status.md). Many fun
 
 ### "What's the difference between value and elements?"
 
-- **value**: Metadata about the pattern sequence
+- **value**: Value (decoration) about the pattern sequence
 - **elements**: The sequence of pattern elements themselves
 
 ### "Should I think of patterns as sequences or trees?"
