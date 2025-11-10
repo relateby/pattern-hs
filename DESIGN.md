@@ -16,7 +16,40 @@ data Pattern v = Pattern
 
 **Key Insight**: The `elements` field IS the pattern - it contains the sequence that defines the pattern. The `value` field provides decoration about what kind of pattern it is. For example, the pattern "A B B A" with decoration "Enclosed rhyme" represents a specific sequence pattern (A B B A) that is classified as an "Enclosed rhyme".
 
-While implemented using a recursive tree structure, the primary semantic is that elements form the pattern sequence itself. The tree structure is an implementation detail that supports the sequence representation.
+## Sequence vs Tree: Conceptual Model and Implementation
+
+Patterns have two complementary views: the **conceptual model** (decorated sequences) and the **implementation model** (recursive trees). Understanding their relationship is essential:
+
+### Primary Semantic: Decorated Sequences
+
+**Conceptually**, patterns are decorated sequences where:
+- The `elements` field IS the pattern - it contains the sequence that defines the pattern
+- The `value` field provides decoration about what kind of pattern it is
+- Elements maintain their sequence order - this order is essential to the pattern
+- Each element in the sequence is itself a Pattern, enabling nested patterns
+
+The sequence semantic is primary because:
+- Patterns are fundamentally about ordered sequences (e.g., "A B B A")
+- The order of elements matters for pattern matching
+- Sequence operations (length, indexing, concatenation) are natural operations on patterns
+
+### Implementation Detail: Recursive Tree Structure
+
+**Implementation-wise**, patterns are represented as recursive trees:
+- The tree structure is how sequences are represented in memory
+- Each tree node stores a decoration (value) and contains the pattern elements as a list
+- The recursive structure enables arbitrary nesting depth
+- Tree traversal provides access to sequence elements in order
+
+### Relationship Between Models
+
+The tree implementation **supports** the sequence semantic:
+- Tree nodes store sequences (lists) of pattern elements
+- Tree traversal preserves sequence order
+- The recursive structure enables nested sequences (patterns containing patterns)
+- Sequence operations (ordering, length, access by position) are implemented via tree operations
+
+**Key Principle**: Conceptually, developers should think of patterns as decorated sequences where elements form the pattern itself. The tree structure is an implementation detail that supports sequence operations. There is no contradiction between these views - the tree is simply how sequences are represented in memory.
 
 ## Pattern Structural Classifications
 

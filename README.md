@@ -44,11 +44,22 @@ data Pattern v = Pattern
 
 **Key Insight**: The `elements` field IS the pattern - it contains the sequence that defines the pattern. The `value` field provides decoration about what kind of pattern it is. Each element in the sequence is itself a Pattern, enabling recursive nesting while maintaining the decorated sequence semantic.
 
-While implemented using a recursive tree structure, the primary semantic is that elements form the pattern sequence itself. This enables:
+### Sequence vs Tree: Two Complementary Views
+
+Patterns have two complementary views that work together:
+
+**Primary Semantic (Conceptual)**: Patterns are decorated sequences where elements form the pattern itself. The sequence order is essential - patterns like "A B B A" depend on element order.
+
+**Implementation Detail**: Patterns are implemented as recursive trees in memory. Each tree node stores a decoration (value) and contains the pattern elements as a list. The tree structure supports sequence operations.
+
+**Relationship**: The tree implementation supports the sequence semantic. Tree nodes store sequences (lists), tree traversal preserves order, and the recursive structure enables nested sequences. There's no contradiction - the tree is simply how sequences are represented in memory.
+
+This dual view enables:
 - Intuitive pattern matching (the pattern is the sequence)
 - Clear length semantics (number of elements in the pattern)
 - Natural composition operations
 - Graph element interpretation through views
+- Efficient recursive operations via tree structure
 
 ## Project Structure
 

@@ -122,11 +122,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T035 [P] [US5] Update sequence vs tree relationship explanation in src/Pattern/Core.hs: clarify that sequence is primary semantic, tree is implementation detail
-- [ ] T036 [P] [US5] Update sequence vs tree relationship explanation in DESIGN.md: add clear explanation of relationship between sequence and tree models
-- [ ] T037 [P] [US5] Update sequence vs tree relationship explanation in README.md: verify and enhance explanation if needed
-- [ ] T038 [P] [US5] Update sequence vs tree relationship explanation in specs/001-pattern-data-structure/data-model.md: ensure relationship is clearly explained
-- [ ] T039 [US5] Verify sequence vs tree relationship is clearly explained in at least one primary documentation file
+- [x] T035 [P] [US5] Update sequence vs tree relationship explanation in src/Pattern/Core.hs: clarify that sequence is primary semantic, tree is implementation detail
+- [x] T036 [P] [US5] Update sequence vs tree relationship explanation in DESIGN.md: add clear explanation of relationship between sequence and tree models
+- [x] T037 [P] [US5] Update sequence vs tree relationship explanation in README.md: verify and enhance explanation if needed
+- [x] T038 [P] [US5] Update sequence vs tree relationship explanation in specs/001-pattern-data-structure/data-model.md: ensure relationship is clearly explained
+- [x] T039 [US5] Verify sequence vs tree relationship is clearly explained in at least one primary documentation file
 
 **Checkpoint**: At this point, the relationship between sequence-based conceptual model and tree-based implementation should be clearly explained. User Story 5 should be fully complete and independently verifiable.
 

@@ -19,14 +19,29 @@
 -- elements form the pattern sequence itself. Each element in the sequence is itself
 -- a Pattern, enabling arbitrarily nested and complex pattern structures.
 --
--- == Implementation: Recursive Structure
+-- == Implementation: Recursive Tree Structure
 --
 -- The Pattern type is implemented as a recursive tree structure, but this is purely
--- an implementation detail. Conceptually:
+-- an implementation detail. The relationship between the sequence conceptual model
+-- and tree implementation is:
 --
--- * Each pattern's @elements@ field IS the pattern - it contains the sequence that defines the pattern
--- * Each pattern's @value@ field provides decoration about what kind of pattern it is
+-- **Primary Semantic (Conceptual)**: Patterns are decorated sequences where elements
+-- form the pattern itself. The sequence order is essential to the pattern.
+--
+-- **Implementation Detail**: The tree structure is how sequences are represented in
+-- memory. Each tree node stores a decoration (value) and contains the pattern elements
+-- as a list, enabling recursive nesting.
+--
+-- **Relationship**: The tree implementation supports sequence semantics:
+--
+-- * The @elements@ field IS the pattern - it contains the sequence that defines the pattern
+-- * The @value@ field provides decoration about what kind of pattern it is
+-- * Tree traversal provides access to sequence elements in order
 -- * The recursive structure enables patterns to contain patterns containing patterns, etc.
+--
+-- Conceptually, developers should think of patterns as decorated sequences where elements
+-- form the pattern itself. The tree structure is an implementation detail that supports
+-- sequence operations (ordering, length, access by position).
 --
 -- This recursive implementation enables:
 --

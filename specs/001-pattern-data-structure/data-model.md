@@ -49,11 +49,25 @@ The pattern itself is the sequence; the value is decoration about that pattern.
 **Implementation Detail**: Patterns are implemented as recursive trees, but this is purely an implementation detail.
 
 - The tree structure is how sequences are represented in memory
-- Each tree node stores a decoration (value) and contains the pattern elements
+- Each tree node stores a decoration (value) and contains the pattern elements as a list
 - The recursive structure enables arbitrary nesting depth
-- Tree traversal provides access to sequence elements
+- Tree traversal provides access to sequence elements in order
 
-**Relationship**: The tree implementation is how decorated sequences are represented in memory. Conceptually, developers should think of patterns as decorated sequences where elements form the pattern itself. The tree structure is an implementation detail that supports sequence operations (ordering, length, access by position).
+### Relationship: Sequence Conceptual Model and Tree Implementation
+
+The relationship between the sequence conceptual model and tree implementation is:
+
+**Primary Semantic (Conceptual)**: Patterns are decorated sequences where elements form the pattern itself. The sequence order is essential to the pattern.
+
+**Implementation Detail**: The tree structure is how sequences are represented in memory. Each tree node stores a decoration (value) and contains the pattern elements as a list, enabling recursive nesting.
+
+**How They Relate**: The tree implementation supports sequence semantics:
+- Tree nodes store sequences (lists) of pattern elements
+- Tree traversal preserves sequence order
+- The recursive structure enables nested sequences (patterns containing patterns)
+- Sequence operations (ordering, length, access by position) are implemented via tree operations
+
+**Key Principle**: Conceptually, developers should think of patterns as decorated sequences where elements form the pattern itself. The tree structure is an implementation detail that supports sequence operations. There is no contradiction between these views - the tree is simply how sequences are represented in memory.
 
 ### Type Constraints
 
