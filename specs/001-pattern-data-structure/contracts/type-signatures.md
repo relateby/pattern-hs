@@ -17,51 +17,52 @@ This document defines the public API type signatures for the Pattern library. Fo
 data Pattern v = Pattern 
   { value    :: v
   , elements :: [Pattern v]
-  } deriving (Functor, Foldable, Traversable, Show, Eq, Ord)
+  } deriving (Show, Eq)
+  -- ⏳ Planned: Functor, Foldable, Traversable, Ord instances
 ```
 
 ### Pattern Construction
 
 ```haskell
--- Construct an empty pattern (node)
+-- ⏳ Planned: Construct an empty pattern (node)
 pattern :: v -> Pattern v
 
--- Construct a pattern with elements
+-- ⏳ Planned: Construct a pattern with elements
 patternWith :: v -> [Pattern v] -> Pattern v
 ```
 
 ### Pattern Classification
 
 ```haskell
--- Check if pattern is a graph element (node, relationship, subgraph, or path)
+-- ⏳ Planned: Check if pattern is a graph element (node, relationship, subgraph, or path)
 isGraphElement :: Pattern v -> Bool
 
--- Check if pattern is a node
+-- ⏳ Planned: Check if pattern is a node
 isNode :: Pattern v -> Bool
 
--- Check if pattern is a relationship
+-- ⏳ Planned: Check if pattern is a relationship
 isRelationship :: Pattern v -> Bool
 
--- Check if pattern is a subgraph
+-- ⏳ Planned: Check if pattern is a subgraph
 isSubgraph :: Pattern v -> Bool
 
--- Check if pattern is a path
+-- ⏳ Planned: Check if pattern is a path
 isPath :: Pattern v -> Bool
 ```
 
 ### Pattern Navigation
 
 ```haskell
--- Get source node from a relationship pattern
+-- ⏳ Planned: Get source node from a relationship pattern
 source :: Pattern v -> Pattern v
 
--- Get target node from a relationship pattern
+-- ⏳ Planned: Get target node from a relationship pattern
 target :: Pattern v -> Pattern v
 
--- Get all nodes in a pattern
+-- ⏳ Planned: Get all nodes in a pattern
 nodes :: Pattern v -> [Pattern v]
 
--- Get all relationships in a pattern
+-- ⏳ Planned: Get all relationships in a pattern
 relationships :: Pattern v -> [Pattern v]
 ```
 
@@ -71,7 +72,10 @@ relationships :: Pattern v -> [Pattern v]
 
 ### GraphView Typeclass
 
+⏳ **Planned**: GraphView typeclass and views are not yet implemented.
+
 ```haskell
+-- ⏳ Planned: GraphView typeclass for graph interpretations
 class GraphView view where
   -- Associated type for direction representation
   type Direction view :: *
@@ -95,7 +99,7 @@ class GraphView view where
 ### Standard Views
 
 ```haskell
--- Directed graph view
+-- ⏳ Planned: Directed graph view
 data DirectedView = DirectedView
 
 instance GraphView DirectedView where
@@ -103,7 +107,7 @@ instance GraphView DirectedView where
   
   -- ... implementation
 
--- Undirected graph view
+-- ⏳ Planned: Undirected graph view
 data UndirectedView = UndirectedView
 
 instance GraphView UndirectedView where
@@ -230,9 +234,11 @@ module Pattern
 
 ### Required Instances
 
-- `Pattern v` must be instances of: `Functor`, `Foldable`, `Traversable`, `Show`, `Eq`, `Ord`
-- `Graph dir v` must be instances of: `Show`, `Eq`
-- `Edge dir v` must be instances of: `Show`, `Eq`
+- `Pattern v` instances:
+  - ✅ Implemented: `Show`, `Eq`
+  - ⏳ Planned: `Functor`, `Foldable`, `Traversable`, `Ord` (required for `Set (Pattern v)` in Graph structures)
+- `Graph dir v` must be instances of: `Show`, `Eq` (⏳ Planned)
+- `Edge dir v` must be instances of: `Show`, `Eq` (⏳ Planned)
 
 ### Type Families
 

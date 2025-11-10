@@ -12,7 +12,7 @@ data Pattern v = Pattern
   deriving (Eq)
 ```
 
-**Note**: `Show` is implemented as a manual instance. `Functor`, `Foldable`, and `Traversable` are planned but not yet implemented.
+**Note**: `Show` is implemented as a manual instance. `Functor`, `Foldable`, and `Traversable` are ⏳ Planned but not yet implemented.
 
 **Key Insight**: The `elements` field IS the pattern - it contains the sequence that defines the pattern. The `value` field provides decoration about what kind of pattern it is. For example, the pattern "A B B A" with decoration "Enclosed rhyme" represents a specific sequence pattern (A B B A) that is classified as an "Enclosed rhyme".
 
@@ -50,22 +50,25 @@ A pattern containing patterns that themselves contain patterns, enabling arbitra
 Patterns can be **interpreted** as graph elements through different views. These are interpretations/views of pattern structures, not pattern variants themselves. The following interpretation functions are planned but not yet implemented:
 
 ```haskell
--- Graph interpretation functions (planned)
+-- ⏳ Planned: Graph interpretation functions
 -- These interpret pattern structures as graph elements through views
 
--- Interpret pattern as a node (typically empty pattern)
+-- ⏳ Planned: Check if pattern is a graph element (node, relationship, subgraph, or path)
+isGraphElement :: Pattern v -> Bool
+
+-- ⏳ Planned: Interpret pattern as a node (typically empty pattern)
 isNode :: Pattern v -> Bool
 isNode p = all (not . isGraphElement) (elements p)
 
--- Interpret pattern as a relationship (typically 2 elements that are nodes)
+-- ⏳ Planned: Interpret pattern as a relationship (typically 2 elements that are nodes)
 isRelationship :: Pattern v -> Bool
 isRelationship p = length (elements p) == 2 && all isNode (elements p)
 
--- Interpret pattern as a subgraph (all elements are graph elements)
+-- ⏳ Planned: Interpret pattern as a subgraph (all elements are graph elements)
 isSubgraph :: Pattern v -> Bool
 isSubgraph p = all isGraphElement (elements p)
 
--- Interpret pattern as a path (subgraph with chained relationships)
+-- ⏳ Planned: Interpret pattern as a path (subgraph with chained relationships)
 isPath :: Pattern v -> Bool
 isPath p = isSubgraph p && chainsCorrectly (elements p)
   where
@@ -79,6 +82,26 @@ isPath p = isSubgraph p && chainsCorrectly (elements p)
 **Status**: ⏳ Planned (graph interpretation functions not yet implemented)
 
 **Note**: These functions interpret pattern structures as graph elements. Patterns themselves are decorated sequences; graph interpretations (nodes, relationships, subgraphs, paths) are views of those structures, not pattern variants.
+
+## Pattern Navigation Functions
+
+Navigation functions extract graph elements from patterns. These functions are planned but not yet implemented:
+
+```haskell
+-- ⏳ Planned: Get source node from a relationship pattern
+source :: Pattern v -> Pattern v
+
+-- ⏳ Planned: Get target node from a relationship pattern
+target :: Pattern v -> Pattern v
+
+-- ⏳ Planned: Get all nodes in a pattern
+nodes :: Pattern v -> [Pattern v]
+
+-- ⏳ Planned: Get all relationships in a pattern
+relationships :: Pattern v -> [Pattern v]
+```
+
+**Status**: ⏳ Planned (navigation functions not yet implemented)
 
 ## Category Theoretic Perspective
 

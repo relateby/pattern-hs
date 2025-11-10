@@ -21,7 +21,7 @@ data Pattern v = Pattern
   deriving (Eq)
 ```
 
-**Note**: `Show` is implemented as a manual instance. `Functor`, `Foldable`, and `Traversable` are planned but not yet implemented (see Implementation Status section).
+**Note**: `Show` is implemented as a manual instance. `Functor`, `Foldable`, and `Traversable` are ⏳ Planned but not yet implemented (see Implementation Status section).
 
 ### Fields
 

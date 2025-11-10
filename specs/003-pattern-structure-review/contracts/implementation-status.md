@@ -32,7 +32,7 @@ This document tracks the implementation status of Pattern library features. All 
 | Functor | ⏳ Planned | TODO.md Feature 4 | Enables value transformation |
 | Foldable | ⏳ Planned | TODO.md Feature 5 | Enables aggregation |
 | Traversable | ⏳ Planned | TODO.md Feature 6 | Enables effectful traversal |
-| Ord | ❌ Not Planned | - | Not mentioned in TODO.md |
+| Ord | ⏳ Planned | TODO.md Feature 8.1, Graph type | Required for Set (Pattern v) in Graph structures |
 
 ---
 

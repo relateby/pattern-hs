@@ -99,16 +99,16 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [P] [US4] Update typeclass instance status in specs/001-pattern-data-structure/data-model.md: mark Functor, Foldable, Traversable as planned (not implemented)
-- [ ] T026 [P] [US4] Update typeclass instance status in specs/001-pattern-data-structure/contracts/type-signatures.md: mark Functor, Foldable, Traversable as planned, remove Ord if not planned
-- [ ] T027 [P] [US4] Update classification function status in DESIGN.md: mark isNode, isRelationship, isSubgraph, isPath as planned
-- [ ] T028 [P] [US4] Update classification function status in specs/001-pattern-data-structure/data-model.md: mark all classification functions as planned
-- [ ] T029 [P] [US4] Update classification function status in specs/001-pattern-data-structure/contracts/type-signatures.md: mark all classification functions as planned
-- [ ] T030 [P] [US4] Update navigation function status in DESIGN.md: mark source, target, nodes, relationships as planned
-- [ ] T031 [P] [US4] Update navigation function status in specs/001-pattern-data-structure/contracts/type-signatures.md: mark all navigation functions as planned
-- [ ] T032 [P] [US4] Update GraphView status in DESIGN.md: mark GraphView typeclass and views as planned
-- [ ] T033 [P] [US4] Update GraphView status in specs/001-pattern-data-structure/data-model.md: mark GraphView as planned
-- [ ] T034 [US4] Verify all documented features have correct implementation status by cross-referencing with implementation-status.md
+- [x] T025 [P] [US4] Update typeclass instance status in specs/001-pattern-data-structure/data-model.md: mark Functor, Foldable, Traversable as planned (not implemented)
+- [x] T026 [P] [US4] Update typeclass instance status in specs/001-pattern-data-structure/contracts/type-signatures.md: mark Functor, Foldable, Traversable as planned, remove Ord if not planned
+- [x] T027 [P] [US4] Update classification function status in DESIGN.md: mark isNode, isRelationship, isSubgraph, isPath as planned
+- [x] T028 [P] [US4] Update classification function status in specs/001-pattern-data-structure/data-model.md: mark all classification functions as planned
+- [x] T029 [P] [US4] Update classification function status in specs/001-pattern-data-structure/contracts/type-signatures.md: mark all classification functions as planned
+- [x] T030 [P] [US4] Update navigation function status in DESIGN.md: mark source, target, nodes, relationships as planned
+- [x] T031 [P] [US4] Update navigation function status in specs/001-pattern-data-structure/contracts/type-signatures.md: mark all navigation functions as planned
+- [x] T032 [P] [US4] Update GraphView status in DESIGN.md: mark GraphView typeclass and views as planned
+- [x] T033 [P] [US4] Update GraphView status in specs/001-pattern-data-structure/data-model.md: mark GraphView as planned
+- [x] T034 [US4] Verify all documented features have correct implementation status by cross-referencing with implementation-status.md
 
 **Checkpoint**: At this point, all documented features should have accurate implementation status. User Story 4 should be fully complete and independently verifiable.
 

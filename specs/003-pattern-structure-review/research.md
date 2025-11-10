@@ -95,9 +95,9 @@
 | `Traversable` | data-model.md (001), contracts | ❌ No | Planned (TODO.md Feature 6) |
 | `Ord` | contracts/type-signatures.md | ❌ No | Not documented as planned |
 
-**Decision**: Documentation must clearly mark Functor, Foldable, and Traversable as **planned** (not implemented). Remove Ord from contracts if not planned.
+**Decision**: Documentation must clearly mark Functor, Foldable, and Traversable as **planned** (not implemented). ~~Remove Ord from contracts if not planned.~~ **REVISED**: Ord is now marked as **planned** because it's required for `Set (Pattern v)` in Graph structures (see Graph type definition).
 
-**Rationale**: Prevents developers from trying to use non-existent instances. Aligns documentation with actual implementation status.
+**Rationale**: Prevents developers from trying to use non-existent instances. Aligns documentation with actual implementation status. **REVISED**: Ord is required for Graph functionality using Sets, so it must be planned.
 
 #### 3.2 Classification Functions
 
@@ -188,7 +188,7 @@
 2. `DESIGN.md` - Align with sequence-based model, mark planned features
 3. `README.md` - Already emphasizes sequence model, but verify consistency
 4. `specs/001-pattern-data-structure/data-model.md` - Update definition, terminology, implementation status
-5. `specs/001-pattern-data-structure/contracts/type-signatures.md` - Mark planned features, remove Ord if not planned
+5. `specs/001-pattern-data-structure/contracts/type-signatures.md` - Mark planned features, mark Ord as planned (required for Graph/Set)
 6. `specs/002-basic-pattern-type/data-model.md` - Update definition, terminology
 7. `specs/002-basic-pattern-type/contracts/type-signatures.md` - Verify consistency
 
