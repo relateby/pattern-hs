@@ -24,7 +24,7 @@ import Pattern.Core (pattern, patternWith, fromList)
 Or import from the main Pattern module:
 
 ```haskell
-import Pattern (pattern, patternWith)
+import Pattern (pattern, patternWith, fromList)
 ```
 
 ## Creating Atomic Patterns
