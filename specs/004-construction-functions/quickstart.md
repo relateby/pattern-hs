@@ -18,7 +18,7 @@ This quickstart guide shows how to use the pattern constructor functions `patter
 ### Import the Functions
 
 ```haskell
-import Pattern.Core (pattern, patternWith)
+import Pattern.Core (pattern, patternWith, fromList)
 ```
 
 Or import from the main Pattern module:
