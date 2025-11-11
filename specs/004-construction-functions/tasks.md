@@ -134,14 +134,14 @@
 
 **Purpose**: Final documentation, examples, and validation
 
-- [ ] T044 [P] Verify all Haddock documentation examples compile and run correctly
-- [ ] T045 [P] Update examples/examples.md with constructor function examples if needed
-- [ ] T046 [P] Run quickstart.md validation - verify all examples work correctly
-- [ ] T047 Verify all tests pass: `cabal test`
-- [ ] T048 Verify code builds without warnings: `cabal build`
-- [ ] T049 Generate and review Haddock documentation: `cabal haddock`
-- [ ] T050 Review all function exports are correct in src/Pattern.hs
-- [ ] T051 [P] Re-check terminology in codebase: search for tree-like terms (leaf, node, parent, child, children) in values, variables, and documentation; verify they are either acceptable (e.g., string values like `"node"`, implementation detail comments) or replace with appropriate terminology (e.g., use definition-style examples for singular patterns instead of parent/child)
+- [x] T044 [P] Verify all Haddock documentation examples compile and run correctly
+- [x] T045 [P] Update examples/examples.md with constructor function examples if needed
+- [x] T046 [P] Run quickstart.md validation - verify all examples work correctly
+- [x] T047 Verify all tests pass: `cabal test`
+- [x] T048 Verify code builds without warnings: `cabal build`
+- [x] T049 Generate and review Haddock documentation: `cabal haddock`
+- [x] T050 Review all function exports are correct in src/Pattern.hs
+- [x] T051 [P] Re-check terminology in codebase: search for tree-like terms (leaf, node, parent, child, children) in values, variables, and documentation; verify they are either acceptable (e.g., string values like `"node"`, implementation detail comments) or replace with appropriate terminology (e.g., use definition-style examples for singular patterns instead of parent/child)
 
 ---
 

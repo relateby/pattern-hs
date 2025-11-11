@@ -11,10 +11,11 @@ This document provides idiomatic examples demonstrating correct usage of the Pat
 ## Table of Contents
 
 1. [Creating Atomic Patterns](#creating-atomic-patterns)
-2. [Creating Patterns with Elements](#creating-patterns-with-elements)
-3. [Accessing Pattern Values and Elements](#accessing-pattern-values-and-elements)
-4. [Nested Patterns and Sequences](#nested-patterns-and-sequences)
-5. [Sequence-Based Conceptual Model](#sequence-based-conceptual-model)
+2. [Creating Patterns with Constructor Functions](#creating-patterns-with-constructor-functions)
+3. [Creating Patterns with Elements](#creating-patterns-with-elements)
+4. [Accessing Pattern Values and Elements](#accessing-pattern-values-and-elements)
+5. [Nested Patterns and Sequences](#nested-patterns-and-sequences)
+6. [Sequence-Based Conceptual Model](#sequence-based-conceptual-model)
 
 ---
 
@@ -63,14 +64,14 @@ elements atomicInt  -- []
 
 ```haskell
 -- Define a custom type
-data Person = Person { name :: String, age :: Int }
+data Person = Person { name :: String, age :: Maybe Int }
   deriving (Eq, Show)
 
 -- Create an atomic pattern with custom type value
 atomicPerson :: Pattern Person
-atomicPerson = Pattern { value = Person "Alice" 30, elements = [] }
+atomicPerson = Pattern { value = Person "Alice" (Just 30), elements = [] }
 
-value atomicPerson  -- Person {name = "Alice", age = 30}
+value atomicPerson  -- Person {name = "Alice", age = Just 30}
 elements atomicPerson  -- []
 ```
 
@@ -121,6 +122,99 @@ intPattern = Pattern { value = 123, elements = [] }
 ```gram
 ["text"]
 [123]
+```
+
+---
+
+## Creating Patterns with Constructor Functions
+
+The Pattern library provides convenient constructor functions that make it easier to create patterns without verbose record syntax.
+
+### Using `pattern` for Atomic Patterns
+
+```haskell
+import Pattern.Core (pattern)
+
+-- Create atomic patterns using the pattern function
+atom1 :: Pattern String
+atom1 = pattern "atom1"
+
+atom2 :: Pattern Int
+atom2 = pattern 42
+
+-- Custom types
+data Person = Person { name :: String, age :: Maybe Int }
+  deriving (Eq, Show)
+
+personAtom :: Pattern Person
+personAtom = pattern (Person "Alice" (Just 30))
+
+-- Equivalent to: Pattern { value = "atom1", elements = [] }
+-- Equivalent to: Pattern { value = 42, elements = [] }
+-- Equivalent to: Pattern { value = Person "Alice" (Just 30), elements = [] }
+```
+
+### Using `patternWith` for Patterns with Elements
+
+```haskell
+import Pattern.Core (pattern, patternWith)
+
+-- Create singular pattern (one element)
+singular :: Pattern String
+singular = patternWith "soccer" [pattern "a team sport involving kicking a ball"]
+
+-- Create pair pattern (two elements)
+pair :: Pattern String
+pair = patternWith "knows" [pattern "Alice", pattern "Bob"]
+
+-- Create extended pattern (many elements)
+extended :: Pattern String
+extended = patternWith "graph" 
+  [ pattern "elem1"
+  , pattern "elem2"
+  , pattern "elem3"
+  ]
+
+-- Role-based singular pattern with custom type
+data Person = Person { name :: String, age :: Maybe Int }
+  deriving (Eq, Show)
+
+-- "The goalie" is "Hans"
+goalie :: Pattern Person
+goalie = patternWith (Person "Goalie" Nothing) 
+  [ pattern (Person "Hans" (Just 25)) ]
+
+-- "The bus driver" is "Alice"
+busDriver :: Pattern Person
+busDriver = patternWith (Person "Bus Driver" Nothing) 
+  [ pattern (Person "Alice" (Just 30)) ]
+```
+
+### Using `fromList` for Patterns from Lists
+
+```haskell
+import Pattern.Core (fromList)
+
+-- Create pattern from list of strings
+wordsPattern :: Pattern String
+wordsPattern = fromList "words" ["hello", "world", "haskell"]
+
+-- Create pattern from list of integers
+numbersPattern :: Pattern Int
+numbersPattern = fromList (0 :: Int) [1, 2, 3, 4, 5]
+
+-- Create pattern from list of custom types
+data Person = Person { name :: String, age :: Maybe Int }
+  deriving (Eq, Show)
+
+teamPattern :: Pattern Person
+teamPattern = fromList (Person "Team" Nothing) 
+  [ Person "Alice" (Just 30)
+  , Person "Bob" (Just 25)
+  , Person "Charlie" (Just 35)
+  ]
+
+-- Equivalent to: patternWith "words" (map pattern ["hello", "world", "haskell"])
 ```
 
 ---
