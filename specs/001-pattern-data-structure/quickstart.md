@@ -223,7 +223,7 @@ prop_nodeHasNoRelationships p =
 -- Pattern match on Pattern structure
 case somePattern of
   Pattern v [] -> -- This is an atomic pattern
-  Pattern v [elem] -> -- Single element
+  Pattern v [elem] -> -- Singular pattern (one element)
   Pattern v [left, right] -> -- Possibly a relationship
   Pattern v elems -> -- Multiple elements (subgraph)
 ```

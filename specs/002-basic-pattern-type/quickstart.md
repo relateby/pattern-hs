@@ -112,12 +112,12 @@ tree = Pattern
   }
 ```
 
-### Pattern with Single Element
+### Singular Pattern
 
 ```haskell
--- Pattern with exactly one element
-singleElement :: Pattern String
-singleElement = Pattern 
+-- A singular pattern has exactly one element
+singularPattern :: Pattern String
+singularPattern = Pattern 
   { value = "parent"
   , elements = [ Pattern { value = "only element", elements = [] } ]
   }

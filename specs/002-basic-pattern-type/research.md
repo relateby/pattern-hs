@@ -106,7 +106,7 @@ data Pattern v = Pattern
 - Creating atomic patterns (patterns with no elements)
 - Creating patterns with elements
 - Verifying field accessors return correct values
-- Testing edge cases (empty elements, single element, many elements)
+- Testing edge cases (empty elements, singular pattern, many elements)
 
 ---
 

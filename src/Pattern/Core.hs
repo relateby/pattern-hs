@@ -199,6 +199,7 @@ module Pattern.Core where
 -- Patterns have structural classifications based on their element structure:
 --
 -- * Atomic pattern: @elements == []@ - a sequence with no elements. Atomic patterns are the fundamental building blocks from which all other patterns are constructed.
+-- * Singular pattern: @length (elements p) == 1@ - a sequence with exactly one element
 -- * Pattern with elements: @elements@ contains one or more pattern elements
 -- * Nested pattern: patterns containing patterns containing patterns, enabling arbitrary nesting
 --
@@ -274,7 +275,7 @@ data Pattern v = Pattern
     -- >>> elements (Pattern { value = "empty", elements = [] })
     -- []
     --
-    -- Pattern with one element:
+    -- Singular pattern (one element):
     --
     -- >>> elem = Pattern { value = "elem", elements = [] }
     -- >>> elements (Pattern { value = "pattern", elements = [elem] })
@@ -308,3 +309,150 @@ data Pattern v = Pattern
 instance Show v => Show (Pattern v) where
   show (Pattern v els) = 
     "Pattern {value = " ++ show v ++ ", elements = " ++ show els ++ "}"
+
+-- | Create an atomic pattern (pattern with no elements) from a value.
+--
+-- This function provides a convenient way to create atomic patterns without
+-- using verbose record syntax. The resulting pattern is functionally identical
+-- to one created with @Pattern { value = x, elements = [] }@.
+--
+-- === Examples
+--
+-- Create an atomic pattern with a string value:
+--
+-- >>> atom = pattern "atom1"
+-- >>> value atom
+-- "atom1"
+-- >>> elements atom
+-- []
+--
+-- Create an atomic pattern with an integer value:
+--
+-- >>> num = pattern 42
+-- >>> value num
+-- 42
+--
+-- Create an atomic pattern with a custom type:
+--
+-- >>> data Person = Person { name :: String, age :: Maybe Int }
+-- >>> person = pattern (Person "Alice" (Just 30))
+-- >>> value person
+-- Person {name = "Alice", age = Just 30}
+--
+-- === Functional Equivalence
+--
+-- The following are equivalent:
+--
+-- >>> pattern "test" == Pattern { value = "test", elements = [] }
+-- True
+pattern :: v -> Pattern v
+pattern v = Pattern { value = v, elements = [] }
+
+-- | Create a pattern with elements from a value and a list of pattern elements.
+--
+-- This function provides a convenient way to create patterns with elements
+-- without using verbose record syntax. The resulting pattern is functionally
+-- identical to one created with @Pattern { value = x, elements = ps }@.
+--
+-- The function preserves the order of elements in the input list and handles
+-- all element counts: 0 (atomic pattern), 1 (singular pattern), 2 (pair),
+-- or many (extended pattern).
+--
+-- === Examples
+--
+-- Create a singular pattern (one element):
+--
+-- >>> singular = patternWith "soccer" [pattern "a team sport involving kicking a ball"]
+-- >>> length (elements singular)
+-- 1
+--
+-- Create a pair pattern (two elements):
+--
+-- >>> pair = patternWith "knows" [pattern "Alice", pattern "Bob"]
+-- >>> length (elements pair)
+-- 2
+--
+-- Create an extended pattern (many elements):
+--
+-- >>> extended = patternWith "graph" [pattern "elem1", pattern "elem2", pattern "elem3"]
+-- >>> length (elements extended)
+-- 3
+--
+-- Empty list produces atomic pattern:
+--
+-- >>> atomic = patternWith "empty" []
+-- >>> elements atomic
+-- []
+-- >>> atomic == pattern "empty"
+-- True
+--
+-- === Functional Equivalence
+--
+-- The following are equivalent:
+--
+-- >>> patternWith "test" [pattern "elem"] == Pattern { value = "test", elements = [Pattern { value = "elem", elements = [] }] }
+-- True
+--
+-- === Element Order
+--
+-- Element order is preserved:
+--
+-- >>> p1 = patternWith "seq" [pattern "a", pattern "b"]
+-- >>> p2 = patternWith "seq" [pattern "b", pattern "a"]
+-- >>> p1 == p2
+-- False
+patternWith :: v -> [Pattern v] -> Pattern v
+patternWith v ps = Pattern { value = v, elements = ps }
+
+-- | Create a pattern from a list of values by converting each value to an atomic pattern.
+--
+-- This function provides a convenient way to create patterns from lists of raw values.
+-- Each value in the list is automatically converted to an atomic pattern, then all
+-- atomic patterns are combined into a single pattern with the given decoration.
+--
+-- The function preserves the order of values in the input list and handles all
+-- element counts: 0 (atomic pattern), 1 (singular pattern), 2 (pair), or many
+-- (extended pattern).
+--
+-- === Examples
+--
+-- Create a pattern from a list of strings:
+--
+-- >>> p = fromList "graph" ["Alice", "Bob", "Charlie"]
+-- >>> value p
+-- "graph"
+-- >>> length (elements p)
+-- 3
+-- >>> map value (elements p)
+-- ["Alice","Bob","Charlie"]
+--
+-- Create a pattern from a list of integers:
+--
+-- >>> nums = fromList "numbers" [1, 2, 3, 4, 5]
+-- >>> length (elements nums)
+-- 5
+--
+-- Empty list produces atomic pattern:
+--
+-- >>> atomic = fromList "empty" []
+-- >>> elements atomic
+-- []
+-- >>> atomic == pattern "empty"
+-- True
+--
+-- === Functional Equivalence
+--
+-- The following are equivalent:
+--
+-- >>> fromList "test" ["a", "b"] == patternWith "test" [pattern "a", pattern "b"]
+-- True
+--
+-- === Implementation
+--
+-- This function is implemented as:
+--
+-- @
+-- fromList decoration values = patternWith decoration (map pattern values)
+-- @
+fromList :: v -> [v] -> Pattern v
+fromList decoration values = patternWith decoration (map pattern values)

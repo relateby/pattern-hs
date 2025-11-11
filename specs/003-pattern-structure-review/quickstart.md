@@ -110,6 +110,20 @@ leaf = Pattern { value = "leaf", elements = [] }
 
 **Status**: ✅ Implemented (this is the basic structure)
 
+### Singular Pattern
+
+A pattern with exactly one element (`length (elements p) == 1`). Singular patterns contain a single element in their sequence.
+
+```haskell
+singular :: Pattern String
+singular = Pattern 
+  { value = "parent"
+  , elements = [ Pattern { value = "child", elements = [] } ]
+  }
+```
+
+**Status**: ✅ Implemented (this is the basic structure)
+
 ### Node
 
 A pattern interpreted as a node (typically an atomic pattern).

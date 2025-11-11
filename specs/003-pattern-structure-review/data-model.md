@@ -92,6 +92,22 @@ atomicPattern :: Pattern String
 atomicPattern = Pattern { value = "node1", elements = [] }
 ```
 
+### Singular Pattern
+
+A pattern with exactly one element (`length (elements p) == 1`). Singular patterns contain a single element in their sequence.
+
+**Structure**: Sequence with exactly one element  
+**Status**: ✅ Implemented (this is the basic Pattern structure)
+
+**Example**:
+```haskell
+singularPattern :: Pattern String
+singularPattern = Pattern 
+  { value = "parent"
+  , elements = [ Pattern { value = "child", elements = [] } ]
+  }
+```
+
 ### Pattern with Elements
 
 A pattern containing one or more pattern elements in sequence.

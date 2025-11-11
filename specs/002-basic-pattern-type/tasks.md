@@ -86,7 +86,7 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T020 [P] [US2] Add test for creating pattern with single element in tests/Spec/Pattern/CoreSpec.hs
+- [x] T020 [P] [US2] Add test for creating singular pattern in tests/Spec/Pattern/CoreSpec.hs
 - [x] T021 [P] [US2] Add test for creating pattern with multiple elements in tests/Spec/Pattern/CoreSpec.hs
 - [x] T022 [P] [US2] Add test for verifying value field accessor returns correct value for pattern with elements in tests/Spec/Pattern/CoreSpec.hs
 - [x] T023 [P] [US2] Add test for verifying elements field accessor returns correct element list in tests/Spec/Pattern/CoreSpec.hs
@@ -199,7 +199,7 @@ Task: "Add test for edge case: atomic pattern with empty list of elements in tes
 
 ```bash
 # Launch all tests for User Story 2 together:
-Task: "Add test for creating pattern with single element in tests/Spec/Pattern/CoreSpec.hs"
+Task: "Add test for creating singular pattern in tests/Spec/Pattern/CoreSpec.hs"
 Task: "Add test for creating pattern with multiple elements in tests/Spec/Pattern/CoreSpec.hs"
 Task: "Add test for verifying value field accessor returns correct value for pattern with elements in tests/Spec/Pattern/CoreSpec.hs"
 Task: "Add test for verifying elements field accessor returns correct element list in tests/Spec/Pattern/CoreSpec.hs"

@@ -49,10 +49,10 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 ## Feaure 3: Construction Functions
 
 ### 3.1 Basic Constructors
-- [ ] Implement `pattern :: v -> Pattern v` (creates leaf node)
+- [ ] Implement `pattern :: v -> Pattern v` (creates atomic pattern)
 - [ ] Implement `patternWith :: v -> [Pattern v] -> Pattern v` (creates pattern with member elements)
 - [ ] Write tests: construct various patterns and verify structure
-- [ ] Write tests: edge cases -- empty elements (an atomic node), single element (an annotation), two elements (a relationship), many elements (an extended pattern)
+- [ ] Write tests: edge cases -- empty sequence (atomic pattern), one element (singular pattern), two elements (a pair), many elements (an extended pattern)
 
 **Goal**: Convenient ways to create patterns.
 

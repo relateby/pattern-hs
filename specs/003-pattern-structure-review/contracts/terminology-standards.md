@@ -123,6 +123,21 @@ This document establishes the standard terminology for the Pattern library. All 
 
 ---
 
+### Singular Pattern
+
+**Primary Term**: **singular pattern**
+
+**Definition**: A pattern with exactly one element (`length (elements p) == 1`). Singular patterns contain a single element in their sequence.
+
+**Usage**: Use "singular pattern" to describe the structure.
+
+**Examples**:
+- ✅ "A singular pattern has exactly one element"
+- ✅ "Create a singular pattern with `Pattern { value = "x", elements = [elem] }`"
+- ✅ "Singular patterns contain one element in their sequence"
+
+---
+
 ### Node
 
 **Primary Term**: **node**

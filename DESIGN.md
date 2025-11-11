@@ -62,6 +62,13 @@ A pattern with no elements (`elements == []`). Atomic patterns are the fundament
 **Structure**: Empty sequence  
 **Status**: ✅ Implemented (this is the basic Pattern structure)
 
+### Singular Pattern
+
+A pattern with exactly one element (`length (elements p) == 1`). Singular patterns contain a single element in their sequence.
+
+**Structure**: Sequence with exactly one element  
+**Status**: ✅ Implemented (this is the basic Pattern structure)
+
 ### Pattern with Elements
 
 A pattern containing one or more pattern elements in sequence.
