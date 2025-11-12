@@ -30,19 +30,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T001 [P] [US1] Write unit test for folding atomic pattern with integer value using foldr in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T002 [P] [US1] Write unit test for folding pattern with multiple integer values using foldr in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T003 [P] [US1] Write unit test for folding pattern with string values using foldr in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T004 [P] [US1] Write unit test for folding nested pattern structure using foldr in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T005 [P] [US1] Write unit test for folding pattern with custom type values using foldr in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T006 [P] [US1] Write unit test verifying foldr processes pattern's own value in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T007 [P] [US1] Write unit test verifying foldr processes all element values recursively in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T001 [P] [US1] Write unit test for folding atomic pattern with integer value using foldr in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T002 [P] [US1] Write unit test for folding pattern with multiple integer values using foldr in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T003 [P] [US1] Write unit test for folding pattern with string values using foldr in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T004 [P] [US1] Write unit test for folding nested pattern structure using foldr in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T005 [P] [US1] Write unit test for folding pattern with custom type values using foldr in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T006 [P] [US1] Write unit test verifying foldr processes pattern's own value in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T007 [P] [US1] Write unit test verifying foldr processes all element values recursively in `tests/Spec/Pattern/CoreSpec.hs`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement Foldable instance for Pattern with foldr as primary method in `src/Pattern/Core.hs`
-- [ ] T009 [US1] Add Haddock documentation for Foldable instance in `src/Pattern/Core.hs` explaining value aggregation
-- [ ] T010 [US1] Add Haddock examples for foldr usage in `src/Pattern/Core.hs` demonstrating value aggregation
+- [x] T008 [US1] Implement Foldable instance for Pattern with foldr as primary method in `src/Pattern/Core.hs`
+- [x] T009 [US1] Add Haddock documentation for Foldable instance in `src/Pattern/Core.hs` explaining value aggregation
+- [x] T010 [US1] Add Haddock examples for foldr usage in `src/Pattern/Core.hs` demonstrating value aggregation
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. All tests should pass, demonstrating value aggregation with foldr.
 

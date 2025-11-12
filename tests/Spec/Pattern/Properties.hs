@@ -5,12 +5,14 @@
 -- - Naturality conditions
 -- - Other category-theoretic properties
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Spec.Pattern.Properties where
 
 import Data.Char (toUpper)
-import Pattern.Core (Pattern(..))
+import Pattern.Core (Pattern(..), pattern, patternWith, fromList)
 import Test.Hspec
 import Test.QuickCheck hiding (elements)
+import qualified Test.QuickCheck as QC
 import Test.QuickCheck.Property (Property)
 
 -- | Arbitrary instance for Pattern with String values.

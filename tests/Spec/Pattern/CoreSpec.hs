@@ -713,15 +713,15 @@ spec = do
       describe "Transforming patterns with custom type values" $ do
         
         it "transforms pattern with custom type values" $ do
-          let person1 = Person "Alice" 30
-          let person2 = Person "Bob" 25
+          let person1 = Person "Alice" (Just 30)
+          let person2 = Person "Bob" (Just 25)
           let elem1 = Pattern { value = person1, elements = [] }
           let elem2 = Pattern { value = person2, elements = [] }
           let pattern = Pattern { value = person1, elements = [elem1, elem2] }
-          let transformed = fmap (\p -> Person (name p) (age p + 1)) pattern
-          age (value transformed) `shouldBe` 31
-          age (value (head (elements transformed))) `shouldBe` 31
-          age (value (last (elements transformed))) `shouldBe` 26
+          let transformed = fmap (\p -> Person (name p) (fmap (+ 1) (age p))) pattern
+          age (value transformed) `shouldBe` Just 31
+          age (value (head (elements transformed))) `shouldBe` Just 31
+          age (value (last (elements transformed))) `shouldBe` Just 26
       
       describe "Structure preservation" $ do
         
@@ -969,15 +969,15 @@ spec = do
           value transformed `shouldBe` (84 :: Int)
         
         it "transforms patterns with custom type values" $ do
-          let person = Person "Alice" 30
+          let person = Person "Alice" (Just 30)
           let pattern = Pattern { value = person, elements = [] }
-          let transformed = fmap (\p -> Person (name p) (age p + 5)) pattern
-          age (value transformed) `shouldBe` 35
+          let transformed = fmap (\p -> Person (name p) (fmap (+ 5) (age p))) pattern
+          age (value transformed) `shouldBe` Just 35
           name (value transformed) `shouldBe` "Alice"
         
         it "transforms patterns with nested custom types" $ do
-          let person1 = Person "Alice" 30
-          let person2 = Person "Bob" 25
+          let person1 = Person "Alice" (Just 30)
+          let person2 = Person "Bob" (Just 25)
           let elem1 = Pattern { value = person1, elements = [] }
           let elem2 = Pattern { value = person2, elements = [] }
           let pattern = Pattern { value = person1, elements = [elem1, elem2] }
@@ -1019,3 +1019,102 @@ spec = do
           transformed `shouldBe` pattern
           value transformed `shouldBe` value pattern
           length (elements transformed) `shouldBe` length (elements pattern)
+    
+    describe "Foldable Instance (User Story 1)" $ do
+      
+      describe "Folding atomic patterns with foldr" $ do
+        
+        it "folds atomic pattern with integer value using foldr" $ do
+          let atom = Pattern { value = 5, elements = [] }
+          foldr (+) 0 atom `shouldBe` (5 :: Int)
+        
+        it "folds atomic pattern with string value using foldr" $ do
+          let atom = Pattern { value = "test", elements = [] }
+          foldr (++) "" atom `shouldBe` "test"
+      
+      describe "Folding patterns with multiple values using foldr" $ do
+        
+        it "folds pattern with multiple integer values using foldr" $ do
+          let elem1 = Pattern { value = 10, elements = [] }
+          let elem2 = Pattern { value = 20, elements = [] }
+          let elem3 = Pattern { value = 30, elements = [] }
+          let pattern = Pattern { value = 100, elements = [elem1, elem2, elem3] }
+          -- Should sum: 100 (pattern's value) + 10 + 20 + 30 = 160
+          foldr (+) 0 pattern `shouldBe` (160 :: Int)
+        
+        it "folds pattern with string values using foldr" $ do
+          let elem1 = Pattern { value = "hello", elements = [] }
+          let elem2 = Pattern { value = "world", elements = [] }
+          let pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+          -- Should concatenate: "greeting" ++ "hello" ++ "world" = "greetinghelloworld"
+          foldr (++) "" pattern `shouldBe` "greetinghelloworld"
+      
+      describe "Folding nested pattern structures using foldr" $ do
+        
+        it "folds nested pattern structure using foldr" $ do
+          let inner = Pattern { value = 1, elements = [] }
+          let middle = Pattern { value = 2, elements = [inner] }
+          let outer = Pattern { value = 3, elements = [middle] }
+          let pattern = Pattern { value = 4, elements = [outer] }
+          -- Should sum: 4 + 3 + 2 + 1 = 10
+          foldr (+) 0 pattern `shouldBe` (10 :: Int)
+        
+        it "folds deeply nested pattern structure using foldr" $ do
+          let level4 = Pattern { value = 1, elements = [] }
+          let level3 = Pattern { value = 2, elements = [level4] }
+          let level2 = Pattern { value = 3, elements = [level3] }
+          let level1 = Pattern { value = 4, elements = [level2] }
+          let pattern = Pattern { value = 5, elements = [level1] }
+          -- Should sum: 5 + 4 + 3 + 2 + 1 = 15
+          foldr (+) 0 pattern `shouldBe` (15 :: Int)
+      
+      describe "Folding patterns with custom type values using foldr" $ do
+        
+        it "folds pattern with custom type values using foldr" $ do
+          let person1 = Person "Alice" (Just 30)
+          let person2 = Person "Bob" (Just 25)
+          let elem1 = Pattern { value = person1, elements = [] }
+          let elem2 = Pattern { value = person2, elements = [] }
+          let pattern = Pattern { value = person1, elements = [elem1, elem2] }
+          -- Count all Person values (pattern's value + 2 elements = 3)
+          foldr (\_ acc -> acc + 1) 0 pattern `shouldBe` (3 :: Int)
+      
+      describe "Verifying foldr processes pattern's own value" $ do
+        
+        it "foldr processes pattern's own value" $ do
+          let pattern = Pattern { value = 42, elements = [] }
+          -- Should include the pattern's own value (42)
+          foldr (+) 0 pattern `shouldBe` (42 :: Int)
+        
+        it "foldr processes pattern's own value even when elements exist" $ do
+          let elem1 = Pattern { value = 10, elements = [] }
+          let pattern = Pattern { value = 5, elements = [elem1] }
+          -- Should sum: 5 (pattern's value) + 10 (element) = 15
+          foldr (+) 0 pattern `shouldBe` (15 :: Int)
+      
+      describe "Verifying foldr processes all element values recursively" $ do
+        
+        it "foldr processes all element values recursively" $ do
+          let elem1 = Pattern { value = 1, elements = [] }
+          let elem2 = Pattern { value = 2, elements = [] }
+          let elem3 = Pattern { value = 3, elements = [] }
+          let pattern = Pattern { value = 0, elements = [elem1, elem2, elem3] }
+          -- Should sum: 0 + 1 + 2 + 3 = 6
+          foldr (+) 0 pattern `shouldBe` (6 :: Int)
+        
+        it "foldr processes nested element values recursively" $ do
+          let inner1 = Pattern { value = 1, elements = [] }
+          let inner2 = Pattern { value = 2, elements = [] }
+          let middle = Pattern { value = 10, elements = [inner1, inner2] }
+          let pattern = Pattern { value = 100, elements = [middle] }
+          -- Should sum: 100 + 10 + 1 + 2 = 113
+          foldr (+) 0 pattern `shouldBe` (113 :: Int)
+        
+        it "foldr processes all values from multiple nested elements" $ do
+          let inner1 = Pattern { value = 1, elements = [] }
+          let inner2 = Pattern { value = 2, elements = [] }
+          let middle1 = Pattern { value = 10, elements = [inner1] }
+          let middle2 = Pattern { value = 20, elements = [inner2] }
+          let pattern = Pattern { value = 100, elements = [middle1, middle2] }
+          -- Should sum: 100 + 10 + 1 + 20 + 2 = 133
+          foldr (+) 0 pattern `shouldBe` (133 :: Int)

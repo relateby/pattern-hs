@@ -114,6 +114,11 @@
 -- conversions essential for pattern manipulation. See the Functor instance documentation
 -- below for details on structure preservation and functor laws.
 --
+-- The Pattern type has a Foldable instance that enables value aggregation over pattern
+-- structures. This supports operations like summing values, concatenating strings, counting
+-- elements, and computing statistics without manually traversing the pattern tree. See the
+-- Foldable instance documentation below for details on value aggregation and folding operations.
+--
 -- == Examples
 --
 -- Atomic pattern:
@@ -467,6 +472,146 @@ instance Show v => Show (Pattern v) where
 --
 instance Functor Pattern where
   fmap f (Pattern v els) = Pattern (f v) (map (fmap f) els)
+
+-- | Foldable instance for Pattern.
+--
+-- Enables folding over all values in a pattern structure, including the pattern's
+-- own value and all element values at all nesting levels. The Foldable instance
+-- provides value aggregation capabilities, allowing developers to compute statistics,
+-- combine values, and perform calculations over pattern structures without manually
+-- traversing the pattern tree.
+--
+-- === Value Aggregation
+--
+-- The Foldable instance processes all values in the pattern structure:
+--
+-- * The pattern's own value is included in folding operations
+-- * All element values are processed recursively
+-- * Values from all nesting levels are included
+--
+-- This enables efficient aggregation operations like summing integers, concatenating
+-- strings, counting elements, or computing custom statistics over pattern values.
+--
+-- === Folding Order
+--
+-- The @foldr@ operation processes values in right-to-left order:
+--
+-- * Element values are processed first (right-to-left through the elements list)
+-- * The pattern's own value is processed last
+--
+-- This order ensures that when building data structures or applying operations that
+-- depend on processing order, the pattern's own value is combined with the already
+-- processed element values.
+--
+-- === Foldable Laws
+--
+-- The Foldable instance satisfies standard foldable laws and properties:
+--
+-- * All values in the pattern structure are processed exactly once
+-- * Folding operations work correctly for all pattern structures (atomic, with elements, nested)
+-- * The implementation follows standard Foldable semantics for recursive data structures
+--
+-- === Examples
+--
+-- Summing integer values from an atomic pattern:
+--
+-- >>> atom = Pattern { value = 5, elements = [] }
+-- >>> foldr (+) 0 atom
+-- 5
+--
+-- Summing integer values from a pattern with multiple elements:
+--
+-- >>> elem1 = Pattern { value = 10, elements = [] }
+-- >>> elem2 = Pattern { value = 20, elements = [] }
+-- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+-- >>> foldr (+) 0 pattern
+-- 130
+--
+-- Concatenating string values from a pattern:
+--
+-- >>> elem1 = Pattern { value = "hello", elements = [] }
+-- >>> elem2 = Pattern { value = "world", elements = [] }
+-- >>> pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+-- >>> foldr (++) "" pattern
+-- "greetinghelloworld"
+--
+-- Summing values from a nested pattern structure:
+--
+-- >>> inner = Pattern { value = 1, elements = [] }
+-- >>> middle = Pattern { value = 2, elements = [inner] }
+-- >>> outer = Pattern { value = 3, elements = [middle] }
+-- >>> pattern = Pattern { value = 4, elements = [outer] }
+-- >>> foldr (+) 0 pattern
+-- 10
+--
+-- Counting all values in a pattern:
+--
+-- >>> elem1 = Pattern { value = "a", elements = [] }
+-- >>> elem2 = Pattern { value = "b", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [elem1, elem2] }
+-- >>> foldr (\_ acc -> acc + 1) 0 pattern
+-- 3
+--
+-- === Edge Cases
+--
+-- The Foldable instance handles all pattern structures correctly:
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> atom = Pattern { value = 42, elements = [] }
+-- >>> foldr (+) 0 atom
+-- 42
+--
+-- **Patterns with empty elements list**:
+--
+-- >>> pattern = Pattern { value = 10, elements = [] }
+-- >>> foldr (+) 0 pattern
+-- 10
+--
+-- **Singular patterns** (one element):
+--
+-- >>> elem = Pattern { value = 5, elements = [] }
+-- >>> pattern = Pattern { value = 10, elements = [elem] }
+-- >>> foldr (+) 0 pattern
+-- 15
+--
+-- **Nested patterns** (multiple levels):
+--
+-- >>> level3 = Pattern { value = 1, elements = [] }
+-- >>> level2 = Pattern { value = 2, elements = [level3] }
+-- >>> level1 = Pattern { value = 3, elements = [level2] }
+-- >>> pattern = Pattern { value = 4, elements = [level1] }
+-- >>> foldr (+) 0 pattern
+-- 10
+--
+instance Foldable Pattern where
+  -- | Right-associative fold over pattern values.
+  --
+  -- Processes all values in the pattern structure, including the pattern's own value
+  -- and all element values at all nesting levels. Element values are processed first
+  -- (right-to-left through the elements list), then the pattern's own value is combined
+  -- with the accumulated result.
+  --
+  -- === Examples
+  --
+  -- >>> atom = Pattern { value = 5, elements = [] }
+  -- >>> foldr (+) 0 atom
+  -- 5
+  --
+  -- >>> elem1 = Pattern { value = 10, elements = [] }
+  -- >>> elem2 = Pattern { value = 20, elements = [] }
+  -- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+  -- >>> foldr (+) 0 pattern
+  -- 130
+  --
+  -- >>> inner = Pattern { value = 1, elements = [] }
+  -- >>> middle = Pattern { value = 2, elements = [inner] }
+  -- >>> pattern = Pattern { value = 3, elements = [middle] }
+  -- >>> foldr (+) 0 pattern
+  -- 6
+  --
+  foldr f z (Pattern v els) = f v (foldr (\e acc -> foldr f acc e) z els)
+
 -- | Create an atomic pattern (pattern with no elements) from a value.
 --
 -- This function provides a convenient way to create atomic patterns without
