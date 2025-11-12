@@ -7,7 +7,7 @@
 
 ## Summary
 
-Implement a `Foldable` instance for the `Pattern` data type that enables folding over all values in pattern structures (including the pattern's own value and all element values at all nesting levels). The implementation must support `foldr`, `foldl`, `foldMap`, and `toList` operations, work with patterns of any structure (atomic, with elements, nested), and satisfy foldable laws and properties. Additionally, implement a `flatten()` function that extracts all values as a flat list. The `toList()` operation preserves pattern structure (like standard Foldable behavior on lists), while `flatten()` explicitly flattens all nesting levels. This provides the foundational capability for aggregating pattern values without manual traversal, enabling statistics computation, value extraction, and data analysis over pattern structures.
+Implement a `Foldable` instance for the `Pattern` data type that enables folding over all values in pattern structures (including the pattern's own value and all element values at all nesting levels). The implementation must support `foldr`, `foldl`, `foldMap`, and `toList` operations, work with patterns of any structure (atomic, with elements, nested), and satisfy foldable laws and properties. The `toList()` operation follows standard Foldable behavior, extracting all values as a flat list. Additionally, implement a `flatten()` function that extracts all values as a flat list (which may be equivalent to `toList` or provided for clarity), and a `toTuple()` function that extracts patterns as tuples preserving structure. This provides the foundational capability for aggregating pattern values without manual traversal, enabling statistics computation, value extraction, and data analysis over pattern structures.
 
 ## Technical Context
 
@@ -29,7 +29,7 @@ Implement a `Foldable` instance for the `Pattern` data type that enables folding
 
 - **Code Quality (NON-NEGOTIABLE)**: ✅ PASS - Foldable instance is a standard Haskell typeclass implementation. The `foldr`, `foldl`, `foldMap`, and `toList` functions will be self-documenting through their type signatures and standard foldable semantics. Haddock documentation will include examples demonstrating value aggregation, list extraction, and order preservation.
 
-- **Testing Standards (NON-NEGOTIABLE)**: ✅ PASS - Comprehensive testing strategy includes: (1) Unit tests for folding operations in various pattern structures (atomic, with elements, nested), (2) Unit tests for `toList` structure-preserving extraction, (3) Unit tests for `flatten` flat list extraction, (4) Unit tests for `foldMap` with monoids, (5) Property-based tests for foldable laws and properties (using `quickProperty` helper for performance - 20 test cases max), (6) Edge case tests for empty elements, single elements, many elements, deep nesting, and various value types. All tests must complete quickly to avoid long-running test suites.
+- **Testing Standards (NON-NEGOTIABLE)**: ✅ PASS - Comprehensive testing strategy includes: (1) Unit tests for folding operations in various pattern structures (atomic, with elements, nested), (2) Unit tests for `toList` flat list extraction (standard Foldable behavior), (3) Unit tests for `flatten` flat list extraction, (4) Unit tests for `foldMap` with monoids, (5) Property-based tests for foldable laws and properties (using `quickProperty` helper for performance - 20 test cases max), (6) Edge case tests for empty elements, single elements, many elements, deep nesting, and various value types. All tests must complete quickly to avoid long-running test suites.
 
 - **Conceptual Consistency**: ✅ PASS - Foldable is a fundamental category theory concept. The implementation explicitly represents the foldable structure: `Pattern` is a foldable that aggregates values while traversing the pattern structure. The foldable laws are mathematical requirements that ensure categorical correctness.
 
@@ -229,7 +229,7 @@ instance Foldable Pattern where
   -- Derived methods (can be overridden for efficiency if needed)
   foldl :: (b -> a -> b) -> b -> Pattern a -> b
   foldMap :: Monoid m => (a -> m) -> Pattern a -> m
-  toList :: Pattern a -> [a]  -- Structure-preserving: returns nested lists
+  toList :: Pattern a -> [a]  -- Standard Foldable: returns flat list of all values
 ```
 
 ### flatten() Function
@@ -239,6 +239,15 @@ instance Foldable Pattern where
 flatten :: Pattern a -> [a]
 flatten = foldr (:) []
 -- Extracts all values from all nesting levels as a flat list
+```
+
+### toTuple() Function
+
+```haskell
+-- Structure-preserving tuple extraction
+toTuple :: Pattern v -> (v, [Pattern v])
+toTuple (Pattern v els) = (v, els)
+-- Extracts pattern as tuple preserving structure: value and elements list
 ```
 
 ### Value Processing Order
@@ -286,11 +295,14 @@ sum (flatten p)  -- [10, 5, 3] -> 18
 -- Or using foldMap with Sum monoid
 getSum (foldMap Sum p)  -- 18
 
--- Extract values as a list (preserves structure)
-toList p  -- [10, [5], [3]]  (structure-preserving)
+-- Extract values as a flat list (standard Foldable behavior)
+toList p  -- [10, 5, 3]  (flat list)
 
 -- Flatten all values (explicit flattening)
 flatten p  -- [10, 5, 3]  (flat list)
+
+-- Extract pattern as tuple (preserves structure)
+toTuple p  -- (10, [Pattern {value = 5, elements = []}, Pattern {value = 3, elements = []}])
 
 -- Fold with custom function
 foldr (+) 0 p  -- 18
@@ -311,8 +323,11 @@ length (flatten pattern) :: Int
 -- Check if all values satisfy a predicate
 all (> 0) (flatten pattern) :: Bool
 
--- Extract with structure preserved
-toList pattern :: [a]  -- Nested list structure
+-- Extract all values as flat list
+toList pattern :: [a]  -- Flat list of all values
+
+-- Extract pattern structure as tuple
+toTuple pattern :: (a, [Pattern a])  -- Preserves structure
 ```
 
 ## Contracts
@@ -333,11 +348,12 @@ toList :: Pattern a -> [a]
 
 ### Laws and Properties
 
-1. **toList preserves structure**: `toList (Pattern v els) = v : map toList els` (structure-preserving)
+1. **toList extracts all values**: `toList (Pattern v els) = v : concatMap toList els` (flat list, standard Foldable behavior)
 2. **flatten extracts all values**: `flatten (Pattern v els) = v : concatMap flatten els` (flat list)
-3. **foldr processes all values**: `foldr f z p = foldr f z (flatten p)` (conceptually, using flatten)
-4. **foldMap with monoids**: `foldMap f p = foldMap f (flatten p)` (conceptually, using flatten)
-5. **Relationship**: `flatten p = concat (toList p)` (when toList returns nested lists)
+3. **foldr processes all values**: `foldr f z p = foldr f z (toList p)` (conceptually, using toList)
+4. **foldMap with monoids**: `foldMap f p = foldMap f (toList p)` (conceptually, using toList)
+5. **Relationship**: `toList p = flatten p` (both extract flat lists, flatten may be an alias for clarity)
+6. **toTuple preserves structure**: `toTuple (Pattern v els) = (v, els)` (structure-preserving tuple)
 
 ## Testing Plan
 
@@ -350,17 +366,23 @@ toList :: Pattern a -> [a]
 - Nested pattern: `foldr (+) 0` sums values from all levels
 - Custom type: `foldr` works with custom aggregation functions
 
-**User Story 2 - Extract Values as List (Structure-Preserving)**:
+**User Story 2 - Extract Values as Flat List**:
 - Atomic pattern: `toList` returns single-element list
-- Pattern with elements: `toList` returns pattern value followed by lists representing each element
-- Nested pattern: `toList` returns nested list structure preserving nesting levels
-- Integer pattern: `toList` returns nested list structure with integers
+- Pattern with elements: `toList` returns flat list with all values (pattern value and all element values)
+- Nested pattern: `toList` returns flat list with all values from all nesting levels
+- Integer pattern: `toList` returns flat list of integers
 
 **User Story 2a - Flatten All Values**:
 - Atomic pattern: `flatten` returns single-element list
 - Pattern with elements: `flatten` returns flat list with all values including pattern's value
 - Nested pattern: `flatten` returns flat list with values from all levels
 - Integer pattern: `flatten` returns flat list of integers
+
+**User Story 2b - Extract Pattern as Tuple**:
+- Atomic pattern: `toTuple` returns tuple with value and empty list
+- Pattern with elements: `toTuple` returns tuple with value and list of element patterns
+- Nested pattern: `toTuple` returns tuple where elements list contains nested Pattern structures
+- Integer pattern: `toTuple` returns tuple with integer value and list of Pattern Int
 
 **User Story 3 - Right-Associative Folding**:
 - Pattern with values: `foldr` processes in correct order
@@ -390,13 +412,13 @@ toList :: Pattern a -> [a]
 
 **Using `quickProperty` helper (20 test cases max)**:
 
-1. **toList preserves structure**: `toList p` returns nested list structure matching pattern structure
+1. **toList extracts all values**: `toList p` returns flat list with all values from pattern structure
 2. **flatten extracts all values**: `length (flatten p) == countValues p` (where `countValues` manually counts all values)
 3. **foldr processes all values**: `foldr (+) 0 p == sum (flatten p)` (for numeric patterns)
 4. **foldl processes all values**: `foldl (+) 0 p == sum (flatten p)` (for commutative operations)
 5. **foldMap with Sum monoid**: `getSum (foldMap Sum p) == sum (flatten p)` (for numeric patterns)
 6. **Order preservation**: Both `toList p` and `flatten p` maintain consistent order across multiple calls
-7. **Relationship**: `flatten p = concat (toList p)` (when toList returns nested lists)
+7. **Relationship**: `toList p = flatten p` (both extract flat lists, standard Foldable behavior)
 
 **Performance**: All property-based tests must complete in <10ms total using `quickProperty` helper.
 
@@ -415,8 +437,9 @@ Ensure test examples align with patterns shown in `examples/examples.md`:
 - ✅ **SC-002**: Property-based tests verify `foldr` processes all values with 100% accuracy
 - ✅ **SC-003**: Property-based tests verify `foldl` processes all values with 100% accuracy
 - ✅ **SC-004**: Unit and property-based tests verify `foldMap` works correctly
-- ✅ **SC-005**: Unit and property-based tests verify `toList` extracts values correctly while preserving structure
+- ✅ **SC-005**: Unit and property-based tests verify `toList` extracts all values correctly as a flat list (standard Foldable behavior)
 - ✅ **SC-005a**: Unit and property-based tests verify `flatten` extracts all values correctly as flat lists
+- ✅ **SC-005b**: Unit and property-based tests verify `toTuple` extracts patterns correctly as tuples preserving structure
 - ✅ **SC-006**: Tests cover String, Int, and custom type values
 - ✅ **SC-007**: Tests include nested patterns (3+ levels deep)
 - ✅ **SC-008**: Tests verify order preservation

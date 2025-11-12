@@ -2,6 +2,7 @@
 module Spec.Pattern.CoreSpec where
 
 import Data.Char (toUpper)
+import Data.Foldable (toList)
 import Test.Hspec
 import Pattern.Core (Pattern(..), pattern, patternWith, fromList)
 
@@ -1118,3 +1119,71 @@ spec = do
           let pattern = Pattern { value = 100, elements = [middle1, middle2] }
           -- Should sum: 100 + 10 + 1 + 20 + 2 = 133
           foldr (+) 0 pattern `shouldBe` (133 :: Int)
+    
+    describe "toList Operation (User Story 2)" $ do
+      
+      describe "toList on atomic patterns" $ do
+        
+        it "toList on atomic pattern returns single-element list" $ do
+          let atom = Pattern { value = "test", elements = [] }
+          toList atom `shouldBe` ["test"]
+      
+      describe "toList on patterns with multiple elements" $ do
+        
+        it "toList on pattern with multiple elements returns flat list with all values" $ do
+          let elem1 = Pattern { value = "a", elements = [] }
+          let elem2 = Pattern { value = "b", elements = [] }
+          let elem3 = Pattern { value = "c", elements = [] }
+          let pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+          -- Should return flat list: ["root", "a", "b", "c"]
+          toList pattern `shouldBe` ["root", "a", "b", "c"]
+      
+      describe "toList on nested patterns" $ do
+        
+        it "toList on nested pattern returns flat list with all values from all levels" $ do
+          let inner = Pattern { value = "inner", elements = [] }
+          let middle = Pattern { value = "middle", elements = [inner] }
+          let outer = Pattern { value = "outer", elements = [middle] }
+          let pattern = Pattern { value = "root", elements = [outer] }
+          -- Should return flat list: ["root", "outer", "middle", "inner"]
+          toList pattern `shouldBe` ["root", "outer", "middle", "inner"]
+      
+      describe "toList on patterns with integer values" $ do
+        
+        it "toList on pattern with integer values returns flat list of integers" $ do
+          let elem1 = Pattern { value = 10, elements = [] }
+          let elem2 = Pattern { value = 20, elements = [] }
+          let pattern = Pattern { value = 100, elements = [elem1, elem2] }
+          -- Should return flat list: [100, 10, 20]
+          toList pattern `shouldBe` [100, 10, 20]
+      
+      describe "Verifying toList includes pattern's own value" $ do
+        
+        it "toList includes pattern's own value" $ do
+          let pattern = Pattern { value = "test", elements = [] }
+          toList pattern `shouldBe` ["test"]
+        
+        it "toList includes pattern's own value even when elements exist" $ do
+          let elem1 = Pattern { value = "a", elements = [] }
+          let pattern = Pattern { value = "root", elements = [elem1] }
+          -- Should include "root" as first element
+          toList pattern `shouldBe` ["root", "a"]
+      
+      describe "Verifying toList preserves element order" $ do
+        
+        it "toList preserves element order" $ do
+          let elem1 = Pattern { value = "first", elements = [] }
+          let elem2 = Pattern { value = "second", elements = [] }
+          let elem3 = Pattern { value = "third", elements = [] }
+          let pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+          -- Should preserve order: root, first, second, third
+          toList pattern `shouldBe` ["root", "first", "second", "third"]
+        
+        it "toList preserves order in nested structures" $ do
+          let inner1 = Pattern { value = "inner1", elements = [] }
+          let inner2 = Pattern { value = "inner2", elements = [] }
+          let middle1 = Pattern { value = "middle1", elements = [inner1] }
+          let middle2 = Pattern { value = "middle2", elements = [inner2] }
+          let pattern = Pattern { value = "root", elements = [middle1, middle2] }
+          -- Should preserve order: root, middle1, inner1, middle2, inner2
+          toList pattern `shouldBe` ["root", "middle1", "inner1", "middle2", "inner2"]

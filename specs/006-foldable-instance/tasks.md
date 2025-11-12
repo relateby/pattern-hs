@@ -48,29 +48,54 @@
 
 ---
 
-## Phase 2: User Story 2 - Extract Values as a List Preserving Structure (Priority: P1)
+## Phase 2: User Story 2 - Extract Values as a Flat List (Priority: P1)
 
-**Goal**: Implement `toList` operation that extracts values from a pattern as a list while preserving structure, so that developers can work with pattern values in a familiar list-based interface while maintaining structural information for roundtrips and structure-aware operations.
+**Goal**: Implement `toList` operation that extracts all values from a pattern as a flat list (standard Foldable behavior), so that developers can work with pattern values in a familiar list-based interface and use standard list-processing functions.
 
-**Independent Test**: Convert patterns to lists and verify that: (1) the pattern's value is included, (2) element patterns are converted to lists preserving their structure, (3) values appear in the correct order, and (4) conversion works for all pattern structures.
+**Independent Test**: Convert patterns to lists and verify that: (1) the pattern's value is included, (2) all element values are included in a flat list, (3) values appear in the correct order, and (4) conversion works for all pattern structures.
 
 ### Tests for User Story 2
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T011 [P] [US2] Write unit test for toList on atomic pattern returning single-element list in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T012 [P] [US2] Write unit test for toList on pattern with multiple elements returning pattern value followed by lists representing each element in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T013 [P] [US2] Write unit test for toList on nested pattern returning nested list structure preserving nesting levels in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T014 [P] [US2] Write unit test for toList on pattern with integer values returning nested list structure with integers in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T015 [P] [US2] Write unit test verifying toList includes pattern's own value in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T016 [P] [US2] Write unit test verifying toList preserves element order and structure in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T011 [P] [US2] Write unit test for toList on atomic pattern returning single-element list in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T012 [P] [US2] Write unit test for toList on pattern with multiple elements returning flat list with all values in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T013 [P] [US2] Write unit test for toList on nested pattern returning flat list with all values from all levels in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T014 [P] [US2] Write unit test for toList on pattern with integer values returning flat list of integers in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T015 [P] [US2] Write unit test verifying toList includes pattern's own value in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T016 [P] [US2] Write unit test verifying toList preserves element order in `tests/Spec/Pattern/CoreSpec.hs`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Implement toList to preserve structure (returns nested lists) in `src/Pattern/Core.hs`
-- [ ] T018 [US2] Add Haddock documentation examples for toList usage showing structure preservation in `src/Pattern/Core.hs`
+- [x] T017 [US2] Implement toList using standard Foldable behavior (returns flat list) in `src/Pattern/Core.hs`
+- [x] T018 [US2] Add Haddock documentation examples for toList usage showing flat list extraction in `src/Pattern/Core.hs`
 
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. toList should extract values correctly while preserving structure.
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. toList should extract all values correctly as a flat list (standard Foldable behavior).
+
+---
+
+## Phase 2b: User Story 2b - Extract Pattern as Tuple (Priority: P2)
+
+**Goal**: Implement `toTuple` operation that extracts a pattern as a tuple preserving structure, so that developers can work with the pattern's value and elements separately while maintaining the structural relationship.
+
+**Independent Test**: Convert patterns to tuples and verify that: (1) the pattern's value is the first element of the tuple, (2) the pattern's elements list is the second element of the tuple, (3) the structure is preserved, and (4) conversion works for all pattern structures.
+
+### Tests for User Story 2b
+
+> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+
+- [ ] T019 [P] [US2b] Write unit test for toTuple on atomic pattern returning tuple with value and empty list in `tests/Spec/Pattern/CoreSpec.hs`
+- [ ] T020 [P] [US2b] Write unit test for toTuple on pattern with multiple elements returning tuple with value and list of element patterns in `tests/Spec/Pattern/CoreSpec.hs`
+- [ ] T021 [P] [US2b] Write unit test for toTuple on nested pattern returning tuple where elements list contains nested Pattern structures in `tests/Spec/Pattern/CoreSpec.hs`
+- [ ] T022 [P] [US2b] Write unit test for toTuple on pattern with integer values returning tuple with integer value and list of Pattern Int in `tests/Spec/Pattern/CoreSpec.hs`
+- [ ] T023 [P] [US2b] Write unit test verifying toTuple preserves pattern structure in `tests/Spec/Pattern/CoreSpec.hs`
+
+### Implementation for User Story 2b
+
+- [ ] T024 [US2b] Implement toTuple to preserve structure (returns tuple) in `src/Pattern/Core.hs`
+- [ ] T025 [US2b] Add Haddock documentation examples for toTuple usage showing structure preservation in `src/Pattern/Core.hs`
+
+**Checkpoint**: At this point, User Stories 1, 2, 2a, AND 2b should all work independently. toTuple should extract patterns correctly as tuples preserving structure.
 
 ---
 
@@ -158,13 +183,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T047 [P] Write property-based test for toList preserving structure correctly in `tests/Spec/Pattern/Properties.hs`
+- [ ] T047 [P] Write property-based test for toList extracting all values correctly as flat list in `tests/Spec/Pattern/Properties.hs`
 - [ ] T048 [P] Write property-based test for flatten extracting all values correctly in `tests/Spec/Pattern/Properties.hs`
 - [ ] T049 [P] Write property-based test for foldr processing all values correctly in `tests/Spec/Pattern/Properties.hs`
 - [ ] T050 [P] Write property-based test for foldl processing all values correctly in `tests/Spec/Pattern/Properties.hs`
 - [ ] T051 [P] Write property-based test for foldMap with Sum monoid producing correct results in `tests/Spec/Pattern/Properties.hs`
 - [ ] T052 [P] Write property-based test for order preservation in toList and flatten in `tests/Spec/Pattern/Properties.hs`
-- [ ] T053 [P] Write property-based test verifying flatten p = concat (toList p) relationship in `tests/Spec/Pattern/Properties.hs`
+- [ ] T053 [P] Write property-based test verifying toList p = flatten p relationship (both extract flat lists) in `tests/Spec/Pattern/Properties.hs`
 - [ ] T054 [P] Write property-based test verifying foldr and foldl produce same results for commutative operations in `tests/Spec/Pattern/Properties.hs`
 
 ### Implementation for Foldable Laws
@@ -223,8 +248,9 @@
 ### Phase Dependencies
 
 - **User Story 1 (Phase 1)**: No dependencies - Pattern data type, Eq, Show, and Functor instances already exist (Features 1-4)
-- **User Story 2 (Phase 2)**: Depends on User Story 1 completion - toList requires working foldr (structure-preserving)
+- **User Story 2 (Phase 2)**: Depends on User Story 1 completion - toList requires working foldr (standard Foldable behavior, flat list)
 - **User Story 2a (Phase 2a)**: Depends on User Story 1 completion - flatten requires working foldr (explicit flattening)
+- **User Story 2b (Phase 2b)**: No dependencies - toTuple is a simple structure-preserving extraction
 - **User Story 3 (Phase 3)**: Depends on User Stories 1 and 2a completion - foldr order verification requires working foldr and flatten for testing
 - **User Story 4 (Phase 4)**: Depends on User Stories 1 and 2a completion - foldl derivation requires working foldr and flatten for testing
 - **User Story 5 (Phase 5)**: Depends on User Stories 1 and 2a completion - foldMap derivation requires working foldr and flatten for testing
@@ -235,7 +261,8 @@
 ### Story Completion Order
 
 1. **User Story 1** (MVP) - Must complete first - provides foldr foundation
-2. **User Story 2** - Can start after US1 - toList depends on foldr (structure-preserving)
+2. **User Story 2** - Can start after US1 - toList depends on foldr (standard Foldable behavior, flat list)
+2b. **User Story 2b** - Can start anytime - toTuple has no dependencies (simple structure-preserving extraction)
 3. **User Story 2a** - Can start after US1 - flatten depends on foldr (explicit flattening)
 4. **User Story 3** - Can start after US1 and US2a - order verification depends on foldr, testing uses flatten
 5. **User Story 4** - Can start after US1 and US2a - foldl depends on foldr, testing uses flatten
@@ -318,8 +345,9 @@ Each phase includes checkpoint verification. Final success criteria from spec:
 - ✅ **SC-002**: Property-based tests verify foldr processes all values with 100% accuracy
 - ✅ **SC-003**: Property-based tests verify foldl processes all values with 100% accuracy
 - ✅ **SC-004**: Unit and property-based tests verify foldMap works correctly
-- ✅ **SC-005**: Unit and property-based tests verify toList extracts values correctly while preserving structure
+- ✅ **SC-005**: Unit and property-based tests verify toList extracts all values correctly as a flat list (standard Foldable behavior)
 - ✅ **SC-005a**: Unit and property-based tests verify flatten extracts all values correctly as flat lists
+- ✅ **SC-005b**: Unit and property-based tests verify toTuple extracts patterns correctly as tuples preserving structure
 - ✅ **SC-006**: Tests cover String, Int, and custom type values
 - ✅ **SC-007**: Tests include nested patterns (3+ levels deep)
 - ✅ **SC-008**: Tests verify order preservation
@@ -331,7 +359,8 @@ Each phase includes checkpoint verification. Final success criteria from spec:
 - **Examples Alignment**: Test examples should align with patterns shown in `examples/examples.md`
 - **Terminology**: Use consistent terminology (atomic patterns, elements, values) throughout tests and documentation
 - **Implementation Pattern**: foldr is the primary method; other methods (foldl, foldMap, toList) can be derived or implemented explicitly for efficiency
-- **toList Behavior**: `toList()` preserves pattern structure (returns nested lists), consistent with standard Foldable behavior on lists
-- **flatten Function**: `flatten()` explicitly extracts all values as a flat list, complementing `toList()` for cases where structure is not needed
-- **Relationship**: `flatten p = concat (toList p)` when toList returns nested lists
+- **toList Behavior**: `toList()` follows standard Foldable behavior, extracting all values as a flat list `[a]`
+- **flatten Function**: `flatten()` explicitly extracts all values as a flat list, may be equivalent to `toList` or provided for clarity
+- **toTuple Function**: `toTuple()` extracts patterns as tuples `(v, [Pattern v])`, preserving structure by keeping elements as Pattern values rather than flattening
+- **Relationship**: `toList p = flatten p` (both extract flat lists, standard Foldable behavior)
 

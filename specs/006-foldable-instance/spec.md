@@ -25,20 +25,20 @@ As a developer working with patterns, I need to aggregate values from patterns (
 
 ---
 
-### User Story 2 - Extract Values as a List Preserving Structure (Priority: P1)
+### User Story 2 - Extract Values as a Flat List (Priority: P1)
 
-As a developer working with patterns, I need to extract values from a pattern as a list while preserving the pattern's structure, so that I can work with pattern values in a familiar list-based interface while maintaining structural information for roundtrips and structure-aware operations.
+As a developer working with patterns, I need to extract all values from a pattern as a flat list, so that I can work with pattern values in a familiar list-based interface and use standard list-processing functions.
 
-**Why this priority**: Converting patterns to lists is a common operation that enables interoperability with existing list-based code and libraries. Preserving structure ensures that structural information is not lost, enabling roundtrips and maintaining consistency with how lists behave in standard Foldable instances. Without this capability, developers must manually traverse patterns to build lists, making integration with list-processing code difficult.
+**Why this priority**: Converting patterns to lists is a common operation that enables interoperability with existing list-based code and libraries. The standard Foldable `toList` provides this functionality, extracting all values as a flat list. Pattern structure is already preserved by the Pattern type itself, so structure-preserving conversion is not needed. Without this capability, developers must manually traverse patterns to build lists, making integration with list-processing code difficult.
 
-**Independent Test**: Can be fully tested by converting patterns to lists and verifying that: (1) the pattern's value is included, (2) element patterns are converted to lists preserving their structure, (3) values appear in the correct order, and (4) conversion works for all pattern structures. This delivers the ability to extract pattern values as lists while preserving structure.
+**Independent Test**: Can be fully tested by converting patterns to lists and verifying that: (1) the pattern's value is included, (2) all element values are included in a flat list, (3) values appear in the correct order, and (4) conversion works for all pattern structures. This delivers the ability to extract all pattern values as a flat list (standard Foldable behavior).
 
 **Acceptance Scenarios**:
 
 1. **Given** an atomic pattern with value "test", **When** I convert it to a list, **Then** I get a list containing ["test"]
-2. **Given** a pattern with multiple elements containing values ["a", "b", "c"], **When** I convert it to a list, **Then** I get a list containing the pattern's value followed by lists representing each element pattern
-3. **Given** a nested pattern structure, **When** I convert it to a list, **Then** I get a nested list structure that preserves the nesting levels
-4. **Given** a pattern with integer values, **When** I convert it to a list, **Then** I get a list structure with integers in the correct order
+2. **Given** a pattern with multiple elements containing values ["a", "b", "c"], **When** I convert it to a list, **Then** I get a flat list containing all values including the pattern's own value
+3. **Given** a nested pattern structure, **When** I convert it to a list, **Then** I get a flat list containing all values from all nesting levels
+4. **Given** a pattern with integer values, **When** I convert it to a list, **Then** I get a flat list of integers in the correct order
 
 ---
 
@@ -46,7 +46,7 @@ As a developer working with patterns, I need to extract values from a pattern as
 
 As a developer working with patterns, I need to extract all values from a pattern as a flat list (flattening all nesting levels) so that I can aggregate values, compute statistics, and work with all values in a single flat list when structural information is not needed.
 
-**Why this priority**: Sometimes developers need all values in a flat list regardless of structure, such as when computing sums, counting elements, or passing to functions that expect flat lists. This complements `toList()` which preserves structure, providing both structure-preserving and structure-flattening options.
+**Why this priority**: Sometimes developers need all values in a flat list regardless of structure, such as when computing sums, counting elements, or passing to functions that expect flat lists. The standard `toList()` already provides this functionality, but `flatten()` can be provided as an explicit alias for clarity or future extensibility.
 
 **Independent Test**: Can be fully tested by flattening patterns and verifying that: (1) all values from all nesting levels are included, (2) values appear in the correct order, (3) the result is a flat list (no nested lists), and (4) flattening works for all pattern structures. This delivers the ability to extract all pattern values as a flat list.
 
@@ -56,6 +56,23 @@ As a developer working with patterns, I need to extract all values from a patter
 2. **Given** a pattern with multiple elements containing values ["a", "b", "c"], **When** I flatten it, **Then** I get a flat list containing all values including the pattern's own value
 3. **Given** a nested pattern structure, **When** I flatten it, **Then** I get a flat list containing values from all nesting levels
 4. **Given** a pattern with integer values, **When** I flatten it, **Then** I get a flat list of integers in the correct order
+
+---
+
+### User Story 2b - Extract Pattern as Tuple (Priority: P2)
+
+As a developer working with patterns, I need to extract a pattern as a tuple preserving its structure, so that I can work with the pattern's value and elements separately while maintaining the structural relationship.
+
+**Why this priority**: Converting patterns to tuples provides direct access to the pattern's value and elements list without flattening. This enables structure-preserving operations and makes the pattern's composition explicit. The tuple representation `(v, [Pattern v])` directly reflects the Pattern's structure.
+
+**Independent Test**: Can be fully tested by converting patterns to tuples and verifying that: (1) the pattern's value is the first element of the tuple, (2) the pattern's elements list is the second element of the tuple, (3) the structure is preserved (elements remain as Pattern values), and (4) conversion works for all pattern structures. This delivers the ability to extract patterns as tuples preserving structure.
+
+**Acceptance Scenarios**:
+
+1. **Given** an atomic pattern with value "test", **When** I convert it to a tuple, **Then** I get a tuple containing ("test", [])
+2. **Given** a pattern with multiple elements, **When** I convert it to a tuple, **Then** I get a tuple containing the pattern's value and the list of element patterns
+3. **Given** a nested pattern structure, **When** I convert it to a tuple, **Then** I get a tuple where the second element contains nested Pattern structures
+4. **Given** a pattern with integer values, **When** I convert it to a tuple, **Then** I get a tuple with integer value and list of Pattern Int
 
 ---
 
@@ -128,8 +145,9 @@ As a developer working with patterns, I need to map values to monoids and combin
 - **FR-002**: System MUST support right-associative folding (foldr) that processes values in correct order
 - **FR-003**: System MUST support left-associative folding (foldl) that processes values in correct order
 - **FR-004**: System MUST support mapping values to monoids and combining them (foldMap)
-- **FR-005**: System MUST provide a way to extract values from a pattern as a list while preserving structure (toList)
+- **FR-005**: System MUST provide a way to extract values from a pattern as a flat list (toList, standard Foldable behavior)
 - **FR-005a**: System MUST provide a way to extract all values from a pattern as a flat list (flatten)
+- **FR-005b**: System MUST provide a way to extract a pattern as a tuple preserving structure (toTuple)
 - **FR-006**: System MUST include all values in folding operations, including the pattern's own value and all element values
 - **FR-007**: System MUST process values from all nesting levels when folding nested patterns
 - **FR-008**: System MUST work with patterns containing any value type (strings, integers, custom types)
@@ -153,8 +171,9 @@ As a developer working with patterns, I need to map values to monoids and combin
 - **SC-002**: foldr correctly processes all values from patterns with 100% accuracy, including values from all nesting levels
 - **SC-003**: foldl correctly processes all values from patterns with 100% accuracy, including values from all nesting levels, in left-to-right order
 - **SC-004**: foldMap correctly maps values to monoids and combines them with 100% accuracy for all pattern structures
-- **SC-005**: toList correctly extracts values from patterns as lists with 100% accuracy while preserving structure
+- **SC-005**: toList correctly extracts all values from patterns as a flat list with 100% accuracy (standard Foldable behavior)
 - **SC-005a**: flatten correctly extracts all values from patterns as flat lists with 100% accuracy, including values from all nesting levels
+- **SC-005b**: toTuple correctly extracts patterns as tuples with 100% accuracy, preserving the pattern's value and elements structure
 - **SC-006**: Folding operations work correctly for patterns with values of any type (strings, integers, custom types) with 100% success rate
 - **SC-007**: Folding of nested patterns (3+ levels deep) completes successfully and correctly processes values at all levels
 - **SC-008**: Element order is preserved or respected during folding operations with 100% consistency
@@ -181,29 +200,29 @@ As a developer working with patterns, I need to map values to monoids and combin
 
 ## Design Decisions
 
-### toList() Behavior: Structure-Preserving
+### toList() Behavior: Standard Foldable
 
-**Decision**: `toList()` preserves pattern structure, similar to how `toList` works on lists in standard Foldable instances.
+**Decision**: `toList()` follows standard Foldable behavior, extracting all values as a flat list `[a]`.
 
 **Rationale**:
-- Consistency with standard Foldable behavior (lists preserve structure)
-- Enables roundtrips and structure-aware operations
-- Maintains structural information that may be important
-- Makes flattening explicit and intentional via `flatten()`
+- Consistency with standard Foldable behavior (standard `toList` flattens values)
+- Pattern structure is already preserved by the Pattern type itself
+- Enables interoperability with standard list-processing functions
+- Simple and predictable behavior that matches Haskell conventions
 
 **Behavior**:
 - Atomic pattern: Returns `[value]` (single-element list)
-- Pattern with elements: Returns `[value, toList elem1, toList elem2, ...]` (pattern value followed by lists representing each element)
-- Nested patterns: Returns nested list structure preserving nesting levels
+- Pattern with elements: Returns `[value, elem1_value, elem2_value, ...]` (flat list with all values)
+- Nested patterns: Returns flat list with all values from all nesting levels
 
 **Example**:
 ```haskell
 -- Pattern structure
 p = patternWith "root" [patternWith "inner" [pattern "value"]]
 
--- toList preserves structure
+-- toList extracts all values as flat list (standard Foldable behavior)
 toList p
--- ["root", ["inner", ["value"]]]
+-- ["root", "inner", "value"]
 ```
 
 ### flatten() Function: Explicit Flattening
@@ -229,6 +248,37 @@ p = patternWith "root" [patternWith "inner" [pattern "value"]]
 -- flatten extracts all values as flat list
 flatten p
 -- ["root", "inner", "value"]
+```
+
+### toTuple() Function: Structure-Preserving Tuple Extraction
+
+**Decision**: Add `toTuple()` function that extracts a pattern as a tuple `(v, [Pattern v])`, preserving the pattern's structure.
+
+**Rationale**:
+- Directly reflects the Pattern's structure: value + list of patterns
+- Enables structure-preserving operations without flattening
+- Provides explicit access to pattern's value and elements separately
+- Makes pattern composition explicit and clear
+
+**Behavior**:
+- Returns a tuple `(v, [Pattern v])` where the first element is the pattern's value and the second is the list of element patterns
+- Preserves all structural information (elements remain as Pattern values, not flattened)
+- Works for all pattern structures (atomic, with elements, nested)
+
+**Example**:
+```haskell
+-- Pattern structure
+p = patternWith "root" [patternWith "inner" [pattern "value"]]
+
+-- toTuple preserves structure as tuple
+toTuple p
+-- ("root", [Pattern {value = "inner", elements = [Pattern {value = "value", elements = []}]}])
+```
+
+**Type Signature**:
+```haskell
+toTuple :: Pattern v -> (v, [Pattern v])
+toTuple (Pattern v els) = (v, els)
 ```
 
 ## Out of Scope

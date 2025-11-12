@@ -116,8 +116,9 @@
 --
 -- The Pattern type has a Foldable instance that enables value aggregation over pattern
 -- structures. This supports operations like summing values, concatenating strings, counting
--- elements, and computing statistics without manually traversing the pattern tree. See the
--- Foldable instance documentation below for details on value aggregation and folding operations.
+-- elements, and computing statistics without manually traversing the pattern tree. The instance
+-- provides @toList@ for extracting all values as a flat list. See the Foldable instance
+-- documentation below for details on value aggregation and folding operations.
 --
 -- == Examples
 --
@@ -611,6 +612,10 @@ instance Foldable Pattern where
   -- 6
   --
   foldr f z (Pattern v els) = f v (foldr (\e acc -> foldr f acc e) z els)
+  
+  -- Note: @toList@ is automatically derived from @foldr@ and extracts all values
+  -- as a flat list. The pattern's own value and all element values at all
+  -- nesting levels are included in the result.
 
 -- | Create an atomic pattern (pattern with no elements) from a value.
 --
