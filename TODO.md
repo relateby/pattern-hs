@@ -46,15 +46,23 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 3: Construction Functions
+## Feaure 3: Construction Functions ✅
 
 ### 3.1 Basic Constructors
-- [ ] Implement `pattern :: v -> Pattern v` (creates atomic pattern)
-- [ ] Implement `patternWith :: v -> [Pattern v] -> Pattern v` (creates pattern with member elements)
-- [ ] Write tests: construct various patterns and verify structure
-- [ ] Write tests: edge cases -- empty sequence (atomic pattern), one element (singular pattern), two elements (a pair), many elements (an extended pattern)
+- [x] Implement `pattern :: v -> Pattern v` (creates atomic pattern)
+- [x] Implement `patternWith :: v -> [Pattern v] -> Pattern v` (creates pattern with member elements)
+- [x] Implement `fromList :: v -> [v] -> Pattern v` (creates pattern from list of values by converting each to atomic pattern)
+- [x] Write tests: construct various patterns and verify structure
+- [x] Write tests: edge cases -- empty sequence (atomic pattern), one element (singular pattern), two elements (a pair), many elements (an extended pattern)
+- [x] Add comprehensive Haddock documentation with examples
+- [x] Export all constructor functions from `Pattern.Core` and re-export from main `Pattern` module
 
-**Goal**: Convenient ways to create patterns.
+**Constructor Functions Added**:
+1. **`pattern :: v -> Pattern v`** - Creates an atomic pattern (pattern with no elements) from a single value. Provides a convenient alternative to `Pattern { value = v, elements = [] }`.
+2. **`patternWith :: v -> [Pattern v] -> Pattern v`** - Creates a pattern with elements from a value and a list of pattern elements. Provides a convenient alternative to `Pattern { value = v, elements = ps }`.
+3. **`fromList :: v -> [v] -> Pattern v`** - Creates a pattern from a list of values by converting each value to an atomic pattern. Implemented as `patternWith decoration (map pattern values)`.
+
+**Goal**: Convenient ways to create patterns. ✅ **COMPLETE**
 
 ---
 
@@ -195,16 +203,23 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ## Current Status
 
-**Current Phase**: Phase 2 (Basic Typeclasses) - Complete ✅
+**Current Phase**: Phase 3 (Construction Functions) - Complete ✅
 
 **Completed**:
 - ✅ Phase 1: Core Pattern type fully implemented with comprehensive tests (25 test cases)
 - ✅ Phase 2: Show and Eq instances implemented with comprehensive tests (13 additional test cases)
+- ✅ Phase 3: Construction Functions implemented with comprehensive tests:
+  - `pattern` function for atomic patterns
+  - `patternWith` function for patterns with elements
+  - `fromList` function for patterns from lists of values
+  - All functions fully tested (81 total test cases including property-based tests)
+  - Comprehensive edge case coverage (0, 1, 2, many elements)
+  - All functions exported and documented
 
 **Next Steps**: 
-1. Move to Phase 3 (Construction Functions)
-2. Implement `pattern` and `patternWith` constructor functions
-3. Write tests for constructor functions
+1. Move to Phase 4 (Functor Instance)
+2. Implement `Functor` instance for `Pattern`
+3. Write property tests for functor laws
 
 ---
 

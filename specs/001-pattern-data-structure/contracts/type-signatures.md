@@ -235,8 +235,8 @@ module Pattern
 ### Required Instances
 
 - `Pattern v` instances:
-  - ✅ Implemented: `Show`, `Eq`
-  - ⏳ Planned: `Functor`, `Foldable`, `Traversable`, `Ord` (required for `Set (Pattern v)` in Graph structures)
+  - ✅ Implemented: `Show`, `Eq`, `Functor`
+  - ⏳ Planned: `Foldable`, `Traversable`, `Ord` (required for `Set (Pattern v)` in Graph structures)
 - `Graph dir v` must be instances of: `Show`, `Eq` (⏳ Planned)
 - `Edge dir v` must be instances of: `Show`, `Eq` (⏳ Planned)
 

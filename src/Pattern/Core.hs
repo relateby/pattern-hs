@@ -105,9 +105,14 @@
 -- == Mathematical Foundation
 --
 -- Patterns form the foundation for category-theoretic graph representations.
--- The recursive structure enables functor instances (to be added in future phases)
--- and supports various graph interpretations through categorical views. The sequence
--- semantic aligns with categorical composition and transformation operations.
+-- The recursive structure enables functor instances and supports various graph
+-- interpretations through categorical views. The sequence semantic aligns with
+-- categorical composition and transformation operations.
+--
+-- The Pattern type has a Functor instance that enables value transformation while
+-- preserving pattern structure. This supports functional transformations and type
+-- conversions essential for pattern manipulation. See the Functor instance documentation
+-- below for details on structure preservation and functor laws.
 --
 -- == Examples
 --
@@ -309,3 +314,156 @@ data Pattern v = Pattern
 instance Show v => Show (Pattern v) where
   show (Pattern v els) = 
     "Pattern {value = " ++ show v ++ ", elements = " ++ show els ++ "}"
+
+-- | Functor instance for Pattern.
+--
+-- Transforms values in patterns while preserving pattern structure (element count,
+-- nesting depth, element order). The transformation function is applied recursively
+-- to all values in the pattern structure, including values at all nesting levels.
+--
+-- The Functor instance enables value transformation without manual pattern reconstruction.
+-- This is essential for pattern composition, type conversion, and functional transformations
+-- that are fundamental to practical pattern manipulation.
+--
+-- === Structure Preservation
+--
+-- The Functor instance preserves pattern structure during transformation:
+--
+-- * Element count: The number of elements remains unchanged
+-- * Nesting depth: The nesting structure is preserved
+-- * Element order: The order of elements is maintained
+--
+-- Only the values are transformed; the pattern structure itself remains identical.
+--
+-- === Functor Laws
+--
+-- The Functor instance satisfies the standard functor laws, which are verified
+-- through property-based testing in the test suite:
+--
+-- **Identity Law**: For all patterns @p :: Pattern v@,
+--
+-- @
+-- fmap id p = id p
+-- @
+--
+-- This law states that applying the identity function to a pattern produces
+-- the exact same pattern. The identity function leaves all values unchanged,
+-- so the pattern structure and values remain identical.
+--
+-- **Composition Law**: For all patterns @p :: Pattern a@ and functions
+-- @f :: b -> c@ and @g :: a -> b@,
+--
+-- @
+-- fmap (f . g) p = (fmap f . fmap g) p
+-- @
+--
+-- This law states that applying a composition of two functions to a pattern
+-- produces the same result as applying each function sequentially. This enables
+-- safe composition of transformations and predictable behavior when chaining
+-- multiple transformations.
+--
+-- Both laws hold for all pattern structures (atomic, with elements, nested)
+-- and all value types, as verified by property-based tests.
+--
+-- === Examples
+--
+-- Transforming atomic pattern with string value:
+--
+-- >>> atom = Pattern { value = "test", elements = [] }
+-- >>> fmap (map toUpper) atom
+-- Pattern {value = "TEST", elements = []}
+--
+-- Transforming pattern with multiple elements:
+--
+-- >>> elem1 = Pattern { value = "hello", elements = [] }
+-- >>> elem2 = Pattern { value = "world", elements = [] }
+-- >>> pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "GREETING", elements = [Pattern {value = "HELLO", elements = []},Pattern {value = "WORLD", elements = []}]}
+--
+-- Transforming pattern with integer values:
+--
+-- >>> elem1 = Pattern { value = 5, elements = [] }
+-- >>> elem2 = Pattern { value = 10, elements = [] }
+-- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> fmap (* 2) pattern
+-- Pattern {value = 40, elements = [Pattern {value = 10, elements = []},Pattern {value = 20, elements = []}]}
+--
+-- Transforming nested pattern structure (3 levels):
+--
+-- >>> inner = Pattern { value = "inner", elements = [] }
+-- >>> middle = Pattern { value = "middle", elements = [inner] }
+-- >>> outer = Pattern { value = "outer", elements = [middle] }
+-- >>> pattern = Pattern { value = "root", elements = [outer] }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "ROOT", elements = [Pattern {value = "OUTER", elements = [Pattern {value = "MIDDLE", elements = [Pattern {value = "INNER", elements = []}]}]}]}
+--
+-- Transforming deeply nested pattern structure (4+ levels):
+--
+-- >>> level4 = Pattern { value = "level4", elements = [] }
+-- >>> level3 = Pattern { value = "level3", elements = [level4] }
+-- >>> level2 = Pattern { value = "level2", elements = [level3] }
+-- >>> level1 = Pattern { value = "level1", elements = [level2] }
+-- >>> pattern = Pattern { value = "root", elements = [level1] }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "ROOT", elements = [Pattern {value = "LEVEL1", elements = [Pattern {value = "LEVEL2", elements = [Pattern {value = "LEVEL3", elements = [Pattern {value = "LEVEL4", elements = []}]}]}]}]}
+--
+-- Transforming pattern with varying nesting depths in different branches:
+--
+-- >>> branch1 = Pattern { value = "b1", elements = [Pattern { value = "b1leaf", elements = [] }] }
+-- >>> branch2 = Pattern { value = "b2", elements = [Pattern { value = "b2mid", elements = [Pattern { value = "b2leaf", elements = [] }] }] }
+-- >>> branch3 = Pattern { value = "b3", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "ROOT", elements = [Pattern {value = "B1", elements = [Pattern {value = "B1LEAF", elements = []}]},Pattern {value = "B2", elements = [Pattern {value = "B2MID", elements = [Pattern {value = "B2LEAF", elements = []}]}]},Pattern {value = "B3", elements = []}]}
+--
+-- Type transformation (String to Int):
+--
+-- >>> elem1 = Pattern { value = "5", elements = [] }
+-- >>> elem2 = Pattern { value = "10", elements = [] }
+-- >>> pattern = Pattern { value = "20", elements = [elem1, elem2] }
+-- >>> fmap (read :: String -> Int) pattern
+-- Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]}
+--
+-- === Edge Cases
+--
+-- The Functor instance handles all pattern structures correctly:
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> atom = Pattern { value = "atom", elements = [] }
+-- >>> fmap (map toUpper) atom
+-- Pattern {value = "ATOM", elements = []}
+--
+-- **Singular patterns** (one element):
+--
+-- >>> elem = Pattern { value = "elem", elements = [] }
+-- >>> pattern = Pattern { value = "singular", elements = [elem] }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "SINGULAR", elements = [Pattern {value = "ELEM", elements = []}]}
+--
+-- **Pair patterns** (two elements):
+--
+-- >>> elem1 = Pattern { value = "first", elements = [] }
+-- >>> elem2 = Pattern { value = "second", elements = [] }
+-- >>> pattern = Pattern { value = "pair", elements = [elem1, elem2] }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "PAIR", elements = [Pattern {value = "FIRST", elements = []},Pattern {value = "SECOND", elements = []}]}
+--
+-- **Extended patterns** (many elements):
+--
+-- >>> elems = [Pattern { value = "a", elements = [] }, Pattern { value = "b", elements = [] }, Pattern { value = "c", elements = [] }]
+-- >>> pattern = Pattern { value = "extended", elements = elems }
+-- >>> fmap (map toUpper) pattern
+-- Pattern {value = "EXTENDED", elements = [Pattern {value = "A", elements = []},Pattern {value = "B", elements = []},Pattern {value = "C", elements = []}]}
+--
+-- **Type transformations** (Int to String):
+--
+-- >>> elem1 = Pattern { value = 5, elements = [] }
+-- >>> elem2 = Pattern { value = 10, elements = [] }
+-- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> fmap show pattern
+-- Pattern {value = "20", elements = [Pattern {value = "5", elements = []},Pattern {value = "10", elements = []}]}
+--
+instance Functor Pattern where
+  fmap f (Pattern v els) = Pattern (f v) (map (fmap f) els)
