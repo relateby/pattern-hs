@@ -209,19 +209,19 @@
 
 ### Tests for Edge Cases
 
-- [ ] T057 [P] Write unit test for folding atomic pattern (no elements) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T058 [P] Write unit test for folding pattern with empty elements list in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T059 [P] Write unit test for folding singular pattern (one element) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T060 [P] Write unit test for folding pattern with many elements in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T061 [P] Write unit test for folding nested patterns with varying depths in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T062 [P] Write unit test for folding patterns with different value types (strings, integers, custom types) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T063 [P] Write unit test for order preservation in folding operations in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T064 [P] Write unit test for deep nesting (3+ levels) in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T057 [P] Write unit test for folding atomic pattern (no elements) in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T058 [P] Write unit test for folding pattern with empty elements list in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T059 [P] Write unit test for folding singular pattern (one element) in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T060 [P] Write unit test for folding pattern with many elements in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T061 [P] Write unit test for folding nested patterns with varying depths in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T062 [P] Write unit test for folding patterns with different value types (strings, integers, custom types) in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T063 [P] Write unit test for order preservation in folding operations in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T064 [P] Write unit test for deep nesting (3+ levels) in `tests/Spec/Pattern/CoreSpec.hs`
 
 ### Implementation for Edge Cases
 
-- [ ] T065 Verify all edge cases are handled correctly by existing Foldable instance (no code changes expected)
-- [ ] T066 Add Haddock documentation examples for edge cases in `src/Pattern/Core.hs`
+- [x] T065 Verify all edge cases are handled correctly by existing Foldable instance (no code changes expected)
+- [x] T066 Add Haddock documentation examples for edge cases in `src/Pattern/Core.hs`
 
 **Checkpoint**: All edge cases should be tested and verified. The Foldable instance should handle all pattern structures correctly.
 

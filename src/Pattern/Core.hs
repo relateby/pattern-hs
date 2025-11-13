@@ -659,11 +659,21 @@ instance Functor Pattern where
 -- >>> atom = Pattern { value = 42, elements = [] }
 -- >>> foldr (+) 0 atom
 -- 42
+-- >>> toList atom
+-- [42]
+-- >>> foldl (+) 0 atom
+-- 42
+-- >>> getSum (foldMap Sum atom)
+-- 42
 --
 -- **Patterns with empty elements list**:
 --
 -- >>> pattern = Pattern { value = 10, elements = [] }
 -- >>> foldr (+) 0 pattern
+-- 10
+-- >>> toList pattern
+-- [10]
+-- >>> foldl (+) 0 pattern
 -- 10
 --
 -- **Singular patterns** (one element):
@@ -672,6 +682,21 @@ instance Functor Pattern where
 -- >>> pattern = Pattern { value = 10, elements = [elem] }
 -- >>> foldr (+) 0 pattern
 -- 15
+-- >>> toList pattern
+-- [10, 5]
+-- >>> foldl (+) 0 pattern
+-- 15
+--
+-- **Patterns with many elements**:
+--
+-- >>> elems = map (\i -> Pattern { value = i, elements = [] }) [1..5]
+-- >>> pattern = Pattern { value = 100, elements = elems }
+-- >>> foldr (+) 0 pattern
+-- 115
+-- >>> length (toList pattern)
+-- 6
+-- >>> head (toList pattern)
+-- 100
 --
 -- **Nested patterns** (multiple levels):
 --
@@ -681,6 +706,64 @@ instance Functor Pattern where
 -- >>> pattern = Pattern { value = 4, elements = [level1] }
 -- >>> foldr (+) 0 pattern
 -- 10
+-- >>> toList pattern
+-- [4, 3, 2, 1]
+--
+-- **Deep nesting** (3+ levels):
+--
+-- >>> level4 = Pattern { value = 1, elements = [] }
+-- >>> level3 = Pattern { value = 2, elements = [level4] }
+-- >>> level2 = Pattern { value = 3, elements = [level3] }
+-- >>> level1 = Pattern { value = 4, elements = [level2] }
+-- >>> pattern = Pattern { value = 5, elements = [level1] }
+-- >>> foldr (+) 0 pattern
+-- 15
+-- >>> toList pattern
+-- [5, 4, 3, 2, 1]
+--
+-- **Patterns with different value types**:
+--
+-- String values:
+--
+-- >>> elem1 = Pattern { value = "hello", elements = [] }
+-- >>> elem2 = Pattern { value = "world", elements = [] }
+-- >>> pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+-- >>> foldr (++) "" pattern
+-- "greetinghelloworld"
+-- >>> toList pattern
+-- ["greeting", "hello", "world"]
+--
+-- Integer values:
+--
+-- >>> elem1 = Pattern { value = 10, elements = [] }
+-- >>> elem2 = Pattern { value = 20, elements = [] }
+-- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+-- >>> foldr (+) 0 pattern
+-- 130
+-- >>> getSum (foldMap Sum pattern)
+-- 130
+--
+-- **Order preservation**:
+--
+-- >>> elem1 = Pattern { value = "first", elements = [] }
+-- >>> elem2 = Pattern { value = "second", elements = [] }
+-- >>> elem3 = Pattern { value = "third", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+-- >>> toList pattern
+-- ["root", "first", "second", "third"]
+-- >>> foldr (:) [] pattern
+-- ["root", "first", "second", "third"]
+--
+-- **Nested patterns with varying depths**:
+--
+-- >>> branch1 = Pattern { value = 10, elements = [Pattern { value = 1, elements = [] }] }
+-- >>> branch2 = Pattern { value = 20, elements = [Pattern { value = 2, elements = [Pattern { value = 3, elements = [] }] }] }
+-- >>> branch3 = Pattern { value = 30, elements = [] }
+-- >>> pattern = Pattern { value = 100, elements = [branch1, branch2, branch3] }
+-- >>> foldr (+) 0 pattern
+-- 166
+-- >>> length (toList pattern)
+-- 7
 --
 instance Foldable Pattern where
   -- | Right-associative fold over pattern values.

@@ -1637,3 +1637,300 @@ spec = do
           let pattern = Pattern { value = 100, elements = [middle1, middle2] }
           -- Should sum: 100 + 10 + 1 + 20 + 2 = 133
           getSum (foldMap Sum pattern) `shouldBe` (133 :: Int)
+    
+    describe "Edge Cases & Comprehensive Testing (Phase 7)" $ do
+      
+      describe "Folding atomic patterns (no elements)" $ do
+        
+        it "folds atomic pattern (no elements) with foldr" $ do
+          let atom = Pattern { value = 42, elements = [] }
+          foldr (+) 0 atom `shouldBe` (42 :: Int)
+          toList atom `shouldBe` [42]
+          foldl (+) 0 atom `shouldBe` (42 :: Int)
+          getSum (foldMap Sum atom) `shouldBe` (42 :: Int)
+        
+        it "folds atomic pattern (no elements) with string value" $ do
+          let atom = Pattern { value = "test", elements = [] }
+          foldr (++) "" atom `shouldBe` "test"
+          toList atom `shouldBe` ["test"]
+          foldl (++) "" atom `shouldBe` "test"
+          foldMap (: []) atom `shouldBe` ["test"]
+        
+        it "folds atomic pattern (no elements) with custom type" $ do
+          let person = Person "Alice" (Just 30)
+          let atom = Pattern { value = person, elements = [] }
+          foldr (\_ acc -> acc + 1) 0 atom `shouldBe` (1 :: Int)
+          toList atom `shouldBe` [person]
+          length (toList atom) `shouldBe` 1
+      
+      describe "Folding patterns with empty elements list" $ do
+        
+        it "folds pattern with empty elements list using foldr" $ do
+          let pattern = Pattern { value = 10, elements = [] }
+          foldr (+) 0 pattern `shouldBe` (10 :: Int)
+          toList pattern `shouldBe` [10]
+          length (toList pattern) `shouldBe` 1
+        
+        it "folds pattern with empty elements list using foldl" $ do
+          let pattern = Pattern { value = 20, elements = [] }
+          foldl (+) 0 pattern `shouldBe` (20 :: Int)
+          toList pattern `shouldBe` [20]
+        
+        it "folds pattern with empty elements list using foldMap" $ do
+          let pattern = Pattern { value = 30, elements = [] }
+          getSum (foldMap Sum pattern) `shouldBe` (30 :: Int)
+          toList pattern `shouldBe` [30]
+        
+        it "folds pattern with empty elements list preserves structure" $ do
+          let pattern = Pattern { value = "empty", elements = [] }
+          toTuple pattern `shouldBe` ("empty", [] :: [Pattern String])
+          toList pattern `shouldBe` ["empty"]
+      
+      describe "Folding singular patterns (one element)" $ do
+        
+        it "folds singular pattern (one element) using foldr" $ do
+          let elem = Pattern { value = 5, elements = [] }
+          let pattern = Pattern { value = 10, elements = [elem] }
+          -- Should sum: 10 + 5 = 15
+          foldr (+) 0 pattern `shouldBe` (15 :: Int)
+          toList pattern `shouldBe` [10, 5]
+        
+        it "folds singular pattern (one element) using foldl" $ do
+          let elem = Pattern { value = 3, elements = [] }
+          let pattern = Pattern { value = 7, elements = [elem] }
+          -- Should sum: ((0 + 7) + 3) = 10
+          foldl (+) 0 pattern `shouldBe` (10 :: Int)
+          toList pattern `shouldBe` [7, 3]
+        
+        it "folds singular pattern (one element) using foldMap" $ do
+          let elem = Pattern { value = 2, elements = [] }
+          let pattern = Pattern { value = 8, elements = [elem] }
+          -- Should sum: 8 + 2 = 10
+          getSum (foldMap Sum pattern) `shouldBe` (10 :: Int)
+          toList pattern `shouldBe` [8, 2]
+        
+        it "folds singular pattern (one element) with string values" $ do
+          let elem = Pattern { value = "world", elements = [] }
+          let pattern = Pattern { value = "hello", elements = [elem] }
+          toList pattern `shouldBe` ["hello", "world"]
+          foldr (++) "" pattern `shouldBe` "helloworld"
+      
+      describe "Folding patterns with many elements" $ do
+        
+        it "folds pattern with many elements using foldr" $ do
+          let elems = map (\i -> Pattern { value = i, elements = [] }) [1..10]
+          let pattern = Pattern { value = 100, elements = elems }
+          -- Should sum: 100 + 1 + 2 + ... + 10 = 100 + 55 = 155
+          foldr (+) 0 pattern `shouldBe` (155 :: Int)
+          length (toList pattern) `shouldBe` 11
+          head (toList pattern) `shouldBe` 100
+        
+        it "folds pattern with many elements using foldl" $ do
+          let elems = map (\i -> Pattern { value = i, elements = [] }) [1..5]
+          let pattern = Pattern { value = 50, elements = elems }
+          -- Should sum: (((((0 + 50) + 1) + 2) + 3) + 4) + 5 = 65
+          foldl (+) 0 pattern `shouldBe` (65 :: Int)
+          length (toList pattern) `shouldBe` 6
+        
+        it "folds pattern with many elements using foldMap" $ do
+          let elems = map (\i -> Pattern { value = i * 2, elements = [] }) [1..5]
+          let pattern = Pattern { value = 100, elements = elems }
+          -- Should sum: 100 + 2 + 4 + 6 + 8 + 10 = 130
+          getSum (foldMap Sum pattern) `shouldBe` (130 :: Int)
+          length (toList pattern) `shouldBe` 6
+        
+        it "folds pattern with many string elements" $ do
+          let elems = map (\i -> Pattern { value = "elem" ++ show i, elements = [] }) [1..10]
+          let pattern = Pattern { value = "root", elements = elems }
+          length (toList pattern) `shouldBe` 11
+          head (toList pattern) `shouldBe` "root"
+          last (toList pattern) `shouldBe` "elem10"
+      
+      describe "Folding nested patterns with varying depths" $ do
+        
+        it "folds nested patterns with depth 2" $ do
+          let inner = Pattern { value = 1, elements = [] }
+          let pattern = Pattern { value = 2, elements = [inner] }
+          foldr (+) 0 pattern `shouldBe` (3 :: Int)
+          toList pattern `shouldBe` [2, 1]
+        
+        it "folds nested patterns with depth 3" $ do
+          let inner = Pattern { value = 1, elements = [] }
+          let middle = Pattern { value = 2, elements = [inner] }
+          let pattern = Pattern { value = 3, elements = [middle] }
+          foldr (+) 0 pattern `shouldBe` (6 :: Int)
+          toList pattern `shouldBe` [3, 2, 1]
+        
+        it "folds nested patterns with depth 4" $ do
+          let level3 = Pattern { value = 1, elements = [] }
+          let level2 = Pattern { value = 2, elements = [level3] }
+          let level1 = Pattern { value = 3, elements = [level2] }
+          let pattern = Pattern { value = 4, elements = [level1] }
+          foldr (+) 0 pattern `shouldBe` (10 :: Int)
+          toList pattern `shouldBe` [4, 3, 2, 1]
+        
+        it "folds nested patterns with varying depths in different branches" $ do
+          -- Branch 1: depth 2
+          let branch1Inner = Pattern { value = 1, elements = [] }
+          let branch1 = Pattern { value = 10, elements = [branch1Inner] }
+          -- Branch 2: depth 3
+          let branch2Level2 = Pattern { value = 2, elements = [] }
+          let branch2Level1 = Pattern { value = 20, elements = [branch2Level2] }
+          let branch2 = Pattern { value = 200, elements = [branch2Level1] }
+          -- Branch 3: depth 1 (atomic)
+          let branch3 = Pattern { value = 300, elements = [] }
+          let pattern = Pattern { value = 1000, elements = [branch1, branch2, branch3] }
+          -- Should sum: 1000 + 10 + 1 + 200 + 20 + 2 + 300 = 1533
+          foldr (+) 0 pattern `shouldBe` (1533 :: Int)
+          length (toList pattern) `shouldBe` 7
+        
+        it "folds nested patterns with multiple elements at each level" $ do
+          let inner1 = Pattern { value = 1, elements = [] }
+          let inner2 = Pattern { value = 2, elements = [] }
+          let middle = Pattern { value = 10, elements = [inner1, inner2] }
+          let pattern = Pattern { value = 100, elements = [middle] }
+          -- Should sum: 100 + 10 + 1 + 2 = 113
+          foldr (+) 0 pattern `shouldBe` (113 :: Int)
+          toList pattern `shouldBe` [100, 10, 1, 2]
+      
+      describe "Folding patterns with different value types" $ do
+        
+        it "folds patterns with string values" $ do
+          let elem1 = Pattern { value = "hello", elements = [] }
+          let elem2 = Pattern { value = "world", elements = [] }
+          let pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+          foldr (++) "" pattern `shouldBe` "greetinghelloworld"
+          toList pattern `shouldBe` ["greeting", "hello", "world"]
+          foldMap (: []) pattern `shouldBe` ["greeting", "hello", "world"]
+        
+        it "folds patterns with integer values" $ do
+          let elem1 = Pattern { value = 10, elements = [] }
+          let elem2 = Pattern { value = 20, elements = [] }
+          let pattern = Pattern { value = 100, elements = [elem1, elem2] }
+          foldr (+) 0 pattern `shouldBe` (130 :: Int)
+          toList pattern `shouldBe` [100, 10, 20]
+          getSum (foldMap Sum pattern) `shouldBe` (130 :: Int)
+        
+        it "folds patterns with custom type values" $ do
+          let person1 = Person "Alice" (Just 30)
+          let person2 = Person "Bob" (Just 25)
+          let elem1 = Pattern { value = person1, elements = [] }
+          let elem2 = Pattern { value = person2, elements = [] }
+          let pattern = Pattern { value = person1, elements = [elem1, elem2] }
+          -- Count all Person values
+          foldr (\_ acc -> acc + 1) 0 pattern `shouldBe` (3 :: Int)
+          length (toList pattern) `shouldBe` 3
+          head (toList pattern) `shouldBe` person1
+        
+        it "folds patterns with mixed value types in nested structure" $ do
+          -- All values must be same type, so test with strings
+          let inner1 = Pattern { value = "inner1", elements = [] }
+          let inner2 = Pattern { value = "inner2", elements = [] }
+          let middle = Pattern { value = "middle", elements = [inner1, inner2] }
+          let pattern = Pattern { value = "root", elements = [middle] }
+          toList pattern `shouldBe` ["root", "middle", "inner1", "inner2"]
+          foldr (++) "" pattern `shouldBe` "rootmiddleinner1inner2"
+      
+      describe "Order preservation in folding operations" $ do
+        
+        it "order preservation in toList" $ do
+          let elem1 = Pattern { value = "first", elements = [] }
+          let elem2 = Pattern { value = "second", elements = [] }
+          let elem3 = Pattern { value = "third", elements = [] }
+          let pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+          -- toList should preserve order: root, first, second, third
+          toList pattern `shouldBe` ["root", "first", "second", "third"]
+          head (toList pattern) `shouldBe` "root"
+          last (toList pattern) `shouldBe` "third"
+        
+        it "order preservation in foldr" $ do
+          let elem1 = Pattern { value = 1, elements = [] }
+          let elem2 = Pattern { value = 2, elements = [] }
+          let elem3 = Pattern { value = 3, elements = [] }
+          let pattern = Pattern { value = 0, elements = [elem1, elem2, elem3] }
+          -- foldr (:) [] should preserve order
+          foldr (:) [] pattern `shouldBe` [0, 1, 2, 3]
+          toList pattern `shouldBe` [0, 1, 2, 3]
+        
+        it "order preservation in foldl" $ do
+          let elem1 = Pattern { value = "1", elements = [] }
+          let elem2 = Pattern { value = "2", elements = [] }
+          let pattern = Pattern { value = "0", elements = [elem1, elem2] }
+          -- foldl should process in left-to-right order
+          foldl (++) "" pattern `shouldBe` "012"
+          toList pattern `shouldBe` ["0", "1", "2"]
+        
+        it "order preservation in nested structures" $ do
+          let inner1 = Pattern { value = "inner1", elements = [] }
+          let inner2 = Pattern { value = "inner2", elements = [] }
+          let middle1 = Pattern { value = "middle1", elements = [inner1] }
+          let middle2 = Pattern { value = "middle2", elements = [inner2] }
+          let pattern = Pattern { value = "root", elements = [middle1, middle2] }
+          -- Order should be: root, middle1, inner1, middle2, inner2
+          toList pattern `shouldBe` ["root", "middle1", "inner1", "middle2", "inner2"]
+        
+        it "order preservation with foldMap" $ do
+          let elem1 = Pattern { value = "a", elements = [] }
+          let elem2 = Pattern { value = "b", elements = [] }
+          let pattern = Pattern { value = "root", elements = [elem1, elem2] }
+          -- foldMap (: []) should preserve order
+          foldMap (: []) pattern `shouldBe` ["root", "a", "b"]
+          toList pattern `shouldBe` ["root", "a", "b"]
+      
+      describe "Deep nesting (3+ levels)" $ do
+        
+        it "folds pattern with 3 levels of nesting" $ do
+          let level3 = Pattern { value = 1, elements = [] }
+          let level2 = Pattern { value = 2, elements = [level3] }
+          let level1 = Pattern { value = 3, elements = [level2] }
+          let pattern = Pattern { value = 4, elements = [level1] }
+          -- Should sum: 4 + 3 + 2 + 1 = 10
+          foldr (+) 0 pattern `shouldBe` (10 :: Int)
+          toList pattern `shouldBe` [4, 3, 2, 1]
+          foldl (+) 0 pattern `shouldBe` (10 :: Int)
+          getSum (foldMap Sum pattern) `shouldBe` (10 :: Int)
+        
+        it "folds pattern with 4 levels of nesting" $ do
+          let level4 = Pattern { value = 1, elements = [] }
+          let level3 = Pattern { value = 2, elements = [level4] }
+          let level2 = Pattern { value = 3, elements = [level3] }
+          let level1 = Pattern { value = 4, elements = [level2] }
+          let pattern = Pattern { value = 5, elements = [level1] }
+          -- Should sum: 5 + 4 + 3 + 2 + 1 = 15
+          foldr (+) 0 pattern `shouldBe` (15 :: Int)
+          toList pattern `shouldBe` [5, 4, 3, 2, 1]
+          length (toList pattern) `shouldBe` 5
+        
+        it "folds pattern with 5 levels of nesting" $ do
+          let level5 = Pattern { value = 1, elements = [] }
+          let level4 = Pattern { value = 2, elements = [level5] }
+          let level3 = Pattern { value = 3, elements = [level4] }
+          let level2 = Pattern { value = 4, elements = [level3] }
+          let level1 = Pattern { value = 5, elements = [level2] }
+          let pattern = Pattern { value = 6, elements = [level1] }
+          -- Should sum: 6 + 5 + 4 + 3 + 2 + 1 = 21
+          foldr (+) 0 pattern `shouldBe` (21 :: Int)
+          toList pattern `shouldBe` [6, 5, 4, 3, 2, 1]
+          length (toList pattern) `shouldBe` 6
+        
+        it "folds pattern with deep nesting and multiple elements at each level" $ do
+          let level3a = Pattern { value = 1, elements = [] }
+          let level3b = Pattern { value = 2, elements = [] }
+          let level2 = Pattern { value = 10, elements = [level3a, level3b] }
+          let level1 = Pattern { value = 20, elements = [level2] }
+          let pattern = Pattern { value = 100, elements = [level1] }
+          -- Should sum: 100 + 20 + 10 + 1 + 2 = 133
+          foldr (+) 0 pattern `shouldBe` (133 :: Int)
+          toList pattern `shouldBe` [100, 20, 10, 1, 2]
+          length (toList pattern) `shouldBe` 5
+        
+        it "folds pattern with deep nesting using all foldable operations" $ do
+          let level3 = Pattern { value = "level3", elements = [] }
+          let level2 = Pattern { value = "level2", elements = [level3] }
+          let level1 = Pattern { value = "level1", elements = [level2] }
+          let pattern = Pattern { value = "root", elements = [level1] }
+          -- Test all operations
+          toList pattern `shouldBe` ["root", "level1", "level2", "level3"]
+          foldr (++) "" pattern `shouldBe` "rootlevel1level2level3"
+          foldl (++) "" pattern `shouldBe` "rootlevel1level2level3"
+          foldMap (: []) pattern `shouldBe` ["root", "level1", "level2", "level3"]
