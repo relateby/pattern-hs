@@ -1163,6 +1163,77 @@ instance Foldable Pattern where
 -- >>> traverse Identity pattern
 -- Identity (Pattern {value = "root", elements = [Pattern {value = "level1", elements = [Pattern {value = "level2", elements = [Pattern {value = "level3", elements = []}]}]}]})
 --
+-- === Validation Use Cases
+--
+-- The Traversable instance enables validation of pattern values using Maybe or Either
+-- applicative functors. Validation functions can check values and return success or
+-- failure, with effects combined using applicative semantics.
+--
+-- **Validation with Maybe** (simple success/failure):
+--
+-- >>> let validate x = if x > 0 then Just x else Nothing
+-- >>> elem1 = Pattern { value = 5, elements = [] }
+-- >>> elem2 = Pattern { value = 10, elements = [] }
+-- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> traverse validate pattern
+-- Just (Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]})
+--
+-- >>> let validate x = if x > 0 then Just x else Nothing
+-- >>> elem1 = Pattern { value = 5, elements = [] }
+-- >>> elem2 = Pattern { value = -3, elements = [] }
+-- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> traverse validate pattern
+-- Nothing
+--
+-- **Validation with Either** (success with error messages):
+--
+-- >>> let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+-- >>> elem1 = Pattern { value = 5, elements = [] }
+-- >>> elem2 = Pattern { value = 10, elements = [] }
+-- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> traverse validate pattern
+-- Right (Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]})
+--
+-- >>> let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+-- >>> elem1 = Pattern { value = 5, elements = [] }
+-- >>> elem2 = Pattern { value = -3, elements = [] }
+-- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> traverse validate pattern
+-- Left "Invalid: -3"
+--
+-- **Validation on nested patterns**:
+--
+-- >>> let validate x = if x > 0 then Just x else Nothing
+-- >>> inner = Pattern { value = 1, elements = [] }
+-- >>> middle = Pattern { value = 2, elements = [inner] }
+-- >>> outer = Pattern { value = 3, elements = [middle] }
+-- >>> pattern = Pattern { value = 4, elements = [outer] }
+-- >>> traverse validate pattern
+-- Just (Pattern {value = 4, elements = [Pattern {value = 3, elements = [Pattern {value = 2, elements = [Pattern {value = 1, elements = []}]}]}]})
+--
+-- >>> let validate x = if x > 0 then Just x else Nothing
+-- >>> inner = Pattern { value = -1, elements = [] }
+-- >>> middle = Pattern { value = 2, elements = [inner] }
+-- >>> outer = Pattern { value = 3, elements = [middle] }
+-- >>> pattern = Pattern { value = 4, elements = [outer] }
+-- >>> traverse validate pattern
+-- Nothing
+--
+-- === Error Handling Patterns
+--
+-- The Traversable instance supports two error handling patterns:
+--
+-- **Maybe pattern**: Use when you only need to know if validation succeeded or failed.
+-- Short-circuits to Nothing on first failure. Useful for simple validation where error
+-- messages are not needed.
+--
+-- **Either pattern**: Use when you need error messages explaining why validation failed.
+-- Short-circuits to Left with first error encountered. Useful for validation where
+-- detailed error reporting is required.
+--
+-- Both patterns ensure that validation fails if any value at any nesting level is invalid,
+-- providing comprehensive validation coverage for entire pattern structures.
+--
 instance Traversable Pattern where
   -- | Effectful traversal over pattern values.
   --

@@ -1,6 +1,7 @@
 -- | Unit tests for Pattern.Core module.
 module Spec.Pattern.CoreSpec where
 
+import Control.Monad.State (State, get, put, runState)
 import Data.Char (toUpper)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, foldMap, toList)
@@ -2276,3 +2277,151 @@ spec = do
               p = patternWith (Right 20 :: Either String Int) [elem1, elem2]
               result = sequenceA p
           result `shouldBe` (Left "first error" :: Either String (Pattern Int))
+    
+    describe "Validate Pattern Values with Error Handling (User Story 3)" $ do
+      
+      describe "Validation with Maybe" $ do
+        
+        it "validates pattern with Maybe (all values valid)" $ do
+          -- T055: Unit test for validation with Maybe (all values valid)
+          let validate x = if x > 0 then Just x else Nothing
+              elem1 = pattern 5
+              elem2 = pattern 10
+              p = patternWith 20 [elem1, elem2]
+              result = traverse validate p
+          result `shouldBe` Just p
+        
+        it "validates pattern with Maybe (some values invalid)" $ do
+          -- T056: Unit test for validation with Maybe (some values invalid)
+          let validate x = if x > 0 then Just x else Nothing
+              elem1 = pattern 5
+              elem2 = pattern (-3)
+              p = patternWith 20 [elem1, elem2]
+              result = traverse validate p
+          result `shouldBe` Nothing
+      
+      describe "Validation with Either" $ do
+        
+        it "validates pattern with Either (all values valid)" $ do
+          -- T057: Unit test for validation with Either (all values valid)
+          let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+              elem1 = pattern 5
+              elem2 = pattern 10
+              p = patternWith 20 [elem1, elem2]
+              result = traverse validate p
+          result `shouldBe` Right p
+        
+        it "validates pattern with Either (some values invalid, first error returned)" $ do
+          -- T058: Unit test for validation with Either (some values invalid, first error returned)
+          let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+              elem1 = pattern 5
+              elem2 = pattern (-3)
+              p = patternWith 20 [elem1, elem2]
+              result = traverse validate p
+          result `shouldBe` Left "Invalid: -3"
+      
+      describe "Validation on nested pattern structures with Maybe" $ do
+        
+        it "validates nested pattern structure with Maybe (all valid)" $ do
+          -- T059: Unit test for validation on nested pattern structure with Maybe (all valid)
+          let validate x = if x > 0 then Just x else Nothing
+              inner = pattern 1
+              middle = patternWith 2 [inner]
+              outer = patternWith 3 [middle]
+              p = patternWith 4 [outer]
+              result = traverse validate p
+          result `shouldBe` Just p
+        
+        it "validates nested pattern structure with Maybe (one invalid at any level)" $ do
+          -- T060: Unit test for validation on nested pattern structure with Maybe (one invalid at any level)
+          let validate x = if x > 0 then Just x else Nothing
+              inner = pattern (-1)
+              middle = patternWith 2 [inner]
+              outer = patternWith 3 [middle]
+              p = patternWith 4 [outer]
+              result = traverse validate p
+          result `shouldBe` Nothing
+      
+      describe "Validation on nested pattern structures with Either" $ do
+        
+        it "validates nested pattern structure with Either (all valid)" $ do
+          -- T061: Unit test for validation on nested pattern structure with Either (all valid)
+          let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+              inner = pattern 1
+              middle = patternWith 2 [inner]
+              outer = patternWith 3 [middle]
+              p = patternWith 4 [outer]
+              result = traverse validate p
+          result `shouldBe` Right p
+        
+        it "validates nested pattern structure with Either (one invalid at any level)" $ do
+          -- T062: Unit test for validation on nested pattern structure with Either (one invalid at any level)
+          let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+              inner = pattern (-1)
+              middle = patternWith 2 [inner]
+              outer = patternWith 3 [middle]
+              p = patternWith 4 [outer]
+              result = traverse validate p
+          result `shouldBe` Left "Invalid: -1"
+      
+      describe "Validation failure behavior" $ do
+        
+        it "validation fails if any value at any nesting level is invalid" $ do
+          -- T063: Unit test verifying validation fails if any value at any nesting level is invalid
+          let validate x = if x > 0 then Just x else Nothing
+              -- Test with invalid value at root level
+              p1 = patternWith (-1) [pattern 5, pattern 10]
+              result1 = traverse validate p1
+              -- Test with invalid value at element level
+              p2 = patternWith 20 [pattern (-3), pattern 10]
+              result2 = traverse validate p2
+              -- Test with invalid value at nested level
+              inner = pattern (-1)
+              middle = patternWith 2 [inner]
+              p3 = patternWith 4 [middle]
+              result3 = traverse validate p3
+          result1 `shouldBe` Nothing
+          result2 `shouldBe` Nothing
+          result3 `shouldBe` Nothing
+    
+    describe "IO and State Support (Phase 6)" $ do
+      
+      describe "IO applicative functor support" $ do
+        
+        it "traverse works with IO applicative functor" $ do
+          -- T079: Verify traversable instance works with IO applicative functor
+          let readValue :: String -> IO Int
+              readValue = readIO
+              p = patternWith "10" [pattern "5", pattern "3"]
+              ioResult = traverse readValue p
+          -- Execute IO and verify result
+          result <- ioResult
+          value result `shouldBe` (10 :: Int)
+          length (elements result) `shouldBe` 2
+          value (elements result !! 0) `shouldBe` (5 :: Int)
+          value (elements result !! 1) `shouldBe` (3 :: Int)
+      
+      describe "State applicative functor support" $ do
+        
+        it "traverse works with State applicative functor" $ do
+          -- T080: Verify traversable instance works with State applicative functor
+          let addState :: Int -> State Int Int
+              addState x = do
+                s <- get
+                put (s + x)
+                return (s + x)
+              p = patternWith 10 [pattern 5, pattern 3]
+              stateResult = traverse addState p
+              (result, finalState) = runState stateResult 0
+          -- Verify result pattern structure
+          -- State processes: pattern value (10) first, then elements (5, 3)
+          -- Initial state: 0
+          -- Pattern value 10: state 0 -> 10, return 10
+          -- Element 5: state 10 -> 15, return 15
+          -- Element 3: state 15 -> 18, return 18
+          value result `shouldBe` (10 :: Int)  -- Pattern value processed with state 0
+          length (elements result) `shouldBe` 2
+          value (elements result !! 0) `shouldBe` (15 :: Int)  -- First element processed with state 10
+          value (elements result !! 1) `shouldBe` (18 :: Int)  -- Second element processed with state 15
+          -- Verify final state (0 + 10 + 5 + 3 = 18)
+          finalState `shouldBe` (18 :: Int)

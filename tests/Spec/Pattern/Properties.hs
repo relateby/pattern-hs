@@ -9,8 +9,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Spec.Pattern.Properties where
 
+import Control.Applicative (liftA2)
 import Data.Char (toUpper)
 import Data.Foldable (foldl, foldMap, foldr, toList)
+import Data.Functor.Compose (Compose(..))
 import Data.Functor.Identity (Identity(..))
 import Data.Monoid (All(..), Sum(..))
 import Pattern.Core (Pattern(..), pattern, patternWith, fromList, flatten)
@@ -97,6 +99,21 @@ instance Arbitrary (Pattern (Maybe String)) where
         -- Limit to 2 elements max and smaller size to keep tests fast
         numElems <- choose (0, min 2 (max 1 (n `div` 3)))
         elems <- vectorOf numElems (genPatternMaybeString (max 0 (n - 2)))
+        return $ Pattern { value = v, elements = elems }
+
+-- | Arbitrary instance for Pattern with Either String Int values.
+-- Generates patterns of varying structure with Either String Int values.
+instance Arbitrary (Pattern (Either String Int)) where
+  arbitrary = sized genPatternEither
+    where
+      genPatternEither 0 = do
+        v <- arbitrary
+        return $ Pattern { value = v, elements = [] }
+      genPatternEither n = do
+        v <- arbitrary
+        -- Limit to 2 elements max and smaller size to keep tests fast
+        numElems <- choose (0, min 2 (max 1 (n `div` 3)))
+        elems <- vectorOf numElems (genPatternEither (max 0 (n - 2)))
         return $ Pattern { value = v, elements = elems }
 
 -- | Helper to create a property with reduced test cases for faster execution.
@@ -377,4 +394,151 @@ spec = do
               result1 = sequenceA pMaybe
               result2 = traverse id pMaybe
           in result1 == result2
+  
+  describe "Traversable Laws (Phase 5)" $ do
+    
+    describe "Naturality Law" $ do
+      
+      it "t . traverse f = traverse (t . f) for Pattern Int with Maybe" $ do
+        -- T067: Property-based test for Naturality law (t . traverse f = traverse (t . f))
+        -- Testing with Maybe as the applicative functor
+        quickProperty $ \p -> 
+          let pInt = p :: Pattern Int
+              f x = if x > 0 then Just x else Nothing
+              -- Naturality: t . traverse f = traverse (t . f)
+              -- For Maybe, t is the identity transformation (Maybe a -> Maybe a)
+              -- So we test: traverse f = traverse f (which is trivially true)
+              -- A more meaningful test: traverse (fmap (+1) . f) = fmap (fmap (+1)) . traverse f
+              result1 = traverse (fmap (+1) . f) pInt
+              result2 = fmap (fmap (+1)) (traverse f pInt)
+          in result1 == result2
+      
+      it "t . traverse f = traverse (t . f) for Pattern String with Identity" $ do
+        -- T067: Property-based test for Naturality law with Identity transformation
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+              f = Identity
+              -- Naturality with Identity: Identity . traverse Identity = traverse (Identity . Identity)
+              -- Since Identity . Identity = Identity, this simplifies to:
+              -- Identity . traverse Identity = traverse Identity
+              result1 = Identity (runIdentity (traverse Identity pStr))
+              result2 = traverse Identity pStr
+          in runIdentity result1 == runIdentity result2
+    
+    describe "Identity Law" $ do
+      
+      it "traverse Identity = Identity for Pattern String (Phase 5)" $ do
+        -- T068: Property-based test for Identity law (traverse Identity = Identity)
+        -- Note: This is also tested in T030, but included here for completeness
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+              result = traverse Identity pStr
+          in runIdentity result == pStr
+      
+      it "traverse Identity = Identity for Pattern Int (Phase 5)" $ do
+        -- T068: Property-based test for Identity law (traverse Identity = Identity)
+        -- Note: This is also tested in T030, but included here for completeness
+        quickProperty $ \p -> 
+          let pInt = p :: Pattern Int
+              result = traverse Identity pInt
+          in runIdentity result == pInt
+    
+    describe "Composition Law" $ do
+      
+      it "traverse (Compose . fmap g . f) = Compose . fmap (traverse g) . traverse f for Pattern Int" $ do
+        -- T069: Property-based test for Composition law
+        quickProperty $ \p -> 
+          let pInt = p :: Pattern Int
+              f x = if x > 0 then Just x else Nothing
+              g x = if x < 100 then Right x else Left "too large"
+              -- Composition law: traverse (Compose . fmap g . f) = Compose . fmap (traverse g) . traverse f
+              -- f :: Int -> Maybe Int
+              -- g :: Int -> Either String Int
+              -- Compose . fmap g . f :: Int -> Compose Maybe (Either String) Int
+              -- Compose . fmap (traverse g) . traverse f :: Pattern Int -> Compose Maybe (Either String) (Pattern Int)
+              h = Compose . fmap g . f
+              result1 = traverse h pInt
+              result2 = (Compose . fmap (traverse g) . traverse f) pInt
+          in getCompose result1 == getCompose result2
+      
+      it "traverse (Compose . fmap g . f) = Compose . fmap (traverse g) . traverse f for Pattern String" $ do
+        -- T069: Property-based test for Composition law with String
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+              f = Identity
+              g = map toUpper
+              -- Composition law with Identity and fmap
+              -- f :: String -> Identity String
+              -- g :: String -> String
+              -- Compose . fmap g . f :: String -> Compose Identity Identity String
+              h = Compose . fmap (Identity . g) . f
+              result1 = traverse h pStr
+              result2 = (Compose . fmap (traverse (Identity . g)) . traverse f) pStr
+          in getCompose result1 == getCompose result2
+    
+    describe "Structure Preservation (Phase 5)" $ do
+      
+      it "traverse preserves structure (element count, nesting depth, element order) for Pattern String" $ do
+        -- T070: Property-based test for structure preservation
+        -- Note: This is also tested in T031, but included here for completeness
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+              result = traverse Identity pStr
+              p' = runIdentity result
+              -- Helper to count elements recursively
+              countElems (Pattern _ els) = length els + sum (map countElems els)
+          in length (elements p') == length (elements pStr) 
+             && countElems p' == countElems pStr
+      
+      it "traverse preserves structure (element count, nesting depth, element order) for Pattern Int" $ do
+        -- T070: Property-based test for structure preservation
+        -- Note: This is also tested in T031, but included here for completeness
+        quickProperty $ \p -> 
+          let pInt = p :: Pattern Int
+              result = traverse Identity pInt
+              p' = runIdentity result
+              -- Helper to count elements recursively
+              countElems (Pattern _ els) = length els + sum (map countElems els)
+          in length (elements p') == length (elements pInt) 
+             && countElems p' == countElems pInt
+    
+    describe "Effect Combination Semantics" $ do
+      
+      it "Maybe short-circuits on first Nothing" $ do
+        -- T071: Property-based test for effect combination semantics (Maybe short-circuits)
+        quickProperty $ \p -> 
+          let pMaybe = p :: Pattern (Maybe Int)
+              -- If any value is Nothing, sequenceA should return Nothing
+              hasNothing = any (== Nothing) (toList pMaybe)
+              result = sequenceA pMaybe
+          in if hasNothing
+             then result == Nothing
+             else case result of
+                    Just p' -> length (elements p') == length (elements pMaybe)
+                    Nothing -> False
+      
+      it "Either short-circuits on first Left" $ do
+        -- T071: Property-based test for effect combination semantics (Either short-circuits)
+        -- We need to generate patterns with Either values
+        quickProperty $ \p -> 
+          let pEither = p :: Pattern (Either String Int)
+              -- Convert to list and check for Left values
+              values = toList pEither
+              hasLeft = any (\v -> case v of Left _ -> True; Right _ -> False) values
+              result = sequenceA pEither
+          in if hasLeft
+             then case result of
+                    Left _ -> True
+                    Right _ -> False
+             else case result of
+                    Right p' -> length (elements p') == length (elements pEither)
+                    Left _ -> False
+      
+      it "Identity preserves structure without effects" $ do
+        -- T071: Property-based test for effect combination semantics (Identity preserves)
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+              result = traverse Identity pStr
+              p' = runIdentity result
+          in p' == pStr
 

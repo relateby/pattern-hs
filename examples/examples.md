@@ -776,6 +776,101 @@ pairPattern = Pattern { value = "pair", elements = [elemA, elemB] }
 
 ---
 
+## Effectful Traversal with Traversable
+
+The Pattern type has a Traversable instance that enables effectful operations while preserving pattern structure. This allows you to validate values, handle errors, perform IO operations, and work with stateful computations.
+
+### Traversing with Identity
+
+```haskell
+import Pattern
+import Data.Functor.Identity (Identity(..))
+
+-- Traverse with Identity (no effects, preserves structure)
+let p = patternWith "root" [pattern "a", pattern "b"]
+    result = traverse Identity p
+    p' = runIdentity result
+-- p' = patternWith "root" [pattern "a", pattern "b"]
+-- Structure is preserved exactly
+```
+
+### Validating with Maybe
+
+```haskell
+import Pattern
+import Data.Maybe (Maybe(..))
+
+-- Validate all values are positive
+let validate x = if x > 0 then Just x else Nothing
+    p = patternWith 10 [pattern 5, pattern 3]
+    result = traverse validate p
+-- result = Just (patternWith 10 [pattern 5, pattern 3])
+
+-- If any value is invalid, returns Nothing
+let p = patternWith 10 [pattern 5, pattern (-3)]
+    result = traverse validate p
+-- result = Nothing
+```
+
+### Validating with Either
+
+```haskell
+import Pattern
+import Data.Either (Either(..))
+
+-- Validate with error messages
+let validate x = if x > 0 then Right x else Left ("Invalid: " ++ show x)
+    p = patternWith 10 [pattern 5, pattern 3]
+    result = traverse validate p
+-- result = Right (patternWith 10 [pattern 5, pattern 3])
+
+-- Returns first error encountered
+let p = patternWith 10 [pattern 5, pattern (-3)]
+    result = traverse validate p
+-- result = Left "Invalid: -3"
+```
+
+### Sequencing Applicative Effects
+
+```haskell
+import Pattern
+import Data.Maybe (Maybe(..))
+
+-- Sequence Maybe values
+let p = patternWith (Just 10) [Just 5, Just 3]
+    result = sequenceA p
+-- result = Just (patternWith 10 [pattern 5, pattern 3])
+
+-- Short-circuits on first Nothing
+let p = patternWith (Just 10) [Just 5, Nothing]
+    result = sequenceA p
+-- result = Nothing
+```
+
+### Validating Nested Patterns
+
+```haskell
+import Pattern
+
+-- Validation works recursively on nested structures
+let validate x = if x > 0 then Just x else Nothing
+    inner = pattern 1
+    middle = patternWith 2 [inner]
+    outer = patternWith 3 [middle]
+    p = patternWith 4 [outer]
+    result = traverse validate p
+-- result = Just (patternWith 4 [patternWith 3 [patternWith 2 [pattern 1]]])
+
+-- Fails if any value at any level is invalid
+let inner = pattern (-1)
+    middle = patternWith 2 [inner]
+    p = patternWith 4 [middle]
+    result = traverse validate p
+-- result = Nothing
+```
+
+---
+
 ## Summary
 
 These examples demonstrate:
@@ -785,6 +880,7 @@ These examples demonstrate:
 3. **Accessing Values and Elements**: Direct access to pattern decoration and sequence elements
 4. **Nested Patterns**: Recursive structures enabling arbitrary nesting depth
 5. **Sequence-Based Model**: Understanding patterns as decorated sequences where elements form the pattern itself
+6. **Effectful Traversal**: Using Traversable to validate values, handle errors, and perform effectful operations while preserving pattern structure
 
 All examples use consistent terminology:
 - **value**: Decoration about what kind of pattern it is
