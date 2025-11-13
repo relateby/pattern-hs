@@ -135,15 +135,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T035 [P] [US4] Write unit test for foldl processing values in left-to-right order with addition in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T036 [P] [US4] Write unit test for foldl computing running total correctly with integer values in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T037 [P] [US4] Write unit test for foldl processing nested pattern values in left-to-right order in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T038 [P] [US4] Write unit test verifying foldl left-associativity property in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T035 [P] [US4] Write unit test for foldl processing values in left-to-right order with addition in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T036 [P] [US4] Write unit test for foldl computing running total correctly with integer values in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T037 [P] [US4] Write unit test for foldl processing nested pattern values in left-to-right order in `tests/Spec/Pattern/CoreSpec.hs`
+- [x] T038 [P] [US4] Write unit test verifying foldl left-associativity property in `tests/Spec/Pattern/CoreSpec.hs`
 
 ### Implementation for User Story 4
 
-- [ ] T039 [US4] Verify foldl is correctly derived from foldr (or implement explicitly if needed) in `src/Pattern/Core.hs`
-- [ ] T040 [US4] Add Haddock documentation examples for foldl usage in `src/Pattern/Core.hs`
+- [x] T039 [US4] Verify foldl is correctly derived from foldr (or implement explicitly if needed) in `src/Pattern/Core.hs`
+- [x] T040 [US4] Add Haddock documentation examples for foldl usage in `src/Pattern/Core.hs`
 
 **Checkpoint**: At this point, User Stories 1, 2, 3, AND 4 should all work independently. foldl should process values in left-to-right order.
 
@@ -363,4 +363,51 @@ Each phase includes checkpoint verification. Final success criteria from spec:
 - **flatten Function**: `flatten()` explicitly extracts all values as a flat list, may be equivalent to `toList` or provided for clarity
 - **toTuple Function**: `toTuple()` extracts patterns as tuples `(v, [Pattern v])`, preserving structure by keeping elements as Pattern values rather than flattening
 - **Relationship**: `toList p = flatten p` (both extract flat lists, standard Foldable behavior)
+
+## Testing Performance Guidelines
+
+### Test Execution Timeouts
+
+**CRITICAL**: Always use timeouts when running tests to prevent hanging:
+
+- **First test run after implementation**: Use `timeout 60` (60 seconds) to catch any infinite loops or performance issues
+- **Subsequent test runs**: Use `timeout 30` (30 seconds) for normal verification
+- **Full test suite**: Should complete in under 1 minute total
+
+### Test Performance Requirements
+
+- **Unit tests**: Each test should complete in <100ms
+- **Property-based tests**: Each property test should complete in <10ms (using `quickProperty` with 20 test cases max)
+- **Full test suite**: Should complete in <1 minute total
+- **Individual test phases**: Should complete in <10 seconds
+
+### Troubleshooting Slow Tests
+
+If tests hang or take too long:
+
+1. **Check for infinite recursion**: Verify recursive functions have proper base cases
+2. **Check for ambiguous function calls**: Use explicit module qualifiers (e.g., `Prelude.foldl` vs `foldl`)
+3. **Check test data size**: Ensure property-based tests use bounded generators
+4. **Check for lazy evaluation issues**: Ensure strict evaluation where needed
+5. **Verify test isolation**: Ensure tests don't depend on shared mutable state
+
+### Test Execution Commands
+
+```bash
+# First run after implementation (with timeout):
+timeout 60 cabal test
+
+# Normal verification (with timeout):
+timeout 30 cabal test
+
+# Run specific test suite:
+timeout 30 cabal test --test-options="--match 'Test Name'"
+```
+
+### Performance Monitoring
+
+- Monitor test execution time in CI/CD
+- Alert if test suite exceeds 1 minute
+- Investigate any test that takes >1 second individually
+- Use profiling tools if tests consistently slow
 

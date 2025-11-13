@@ -2,7 +2,7 @@
 module Spec.Pattern.CoreSpec where
 
 import Data.Char (toUpper)
-import Data.Foldable (toList)
+import Data.Foldable (foldl, toList)
 import Test.Hspec
 import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple)
 
@@ -1393,3 +1393,131 @@ spec = do
           toList pattern `shouldBe` ["pattern", "elem1", "elem2"]
           -- Verify order by checking first element is pattern's value
           head (toList pattern) `shouldBe` "pattern"
+    
+    describe "Fold with Left-Associative Operations (User Story 4)" $ do
+      
+      describe "foldl processing values in left-to-right order with addition" $ do
+        
+        it "foldl processes values in left-to-right order with addition" $ do
+          -- Pattern: value=100, elements=[10, 20]
+          -- foldl should process: ((0 + 100) + 10) + 20 = 130
+          let elem1 = Pattern { value = 10, elements = [] }
+          let elem2 = Pattern { value = 20, elements = [] }
+          let pattern = Pattern { value = 100, elements = [elem1, elem2] }
+          -- foldl (+) 0 should sum: ((0 + 100) + 10) + 20 = 130
+          foldl (+) 0 pattern `shouldBe` (130 :: Int)
+        
+        it "foldl processes values in left-to-right order for pattern with three elements" $ do
+          -- Pattern: value=1, elements=[2, 3, 4]
+          -- foldl should process: (((0 + 1) + 2) + 3) + 4 = 10
+          let elem1 = Pattern { value = 2, elements = [] }
+          let elem2 = Pattern { value = 3, elements = [] }
+          let elem3 = Pattern { value = 4, elements = [] }
+          let pattern = Pattern { value = 1, elements = [elem1, elem2, elem3] }
+          foldl (+) 0 pattern `shouldBe` (10 :: Int)
+        
+        it "foldl processes atomic pattern value correctly" $ do
+          -- Atomic pattern: value=42
+          -- foldl should process: 0 + 42 = 42
+          let atom = Pattern { value = 42, elements = [] }
+          foldl (+) 0 atom `shouldBe` (42 :: Int)
+      
+      describe "foldl computing running total correctly with integer values" $ do
+        
+        it "foldl computes running total correctly with integer values" $ do
+          -- Pattern: value=10, elements=[20, 30]
+          -- foldl should compute: ((0 + 10) + 20) + 30 = 60
+          let elem1 = Pattern { value = 20, elements = [] }
+          let elem2 = Pattern { value = 30, elements = [] }
+          let pattern = Pattern { value = 10, elements = [elem1, elem2] }
+          foldl (+) 0 pattern `shouldBe` (60 :: Int)
+        
+        it "foldl computes running total correctly for nested pattern" $ do
+          -- Pattern: value=1, elements=[Pattern { value=2, elements=[Pattern { value=3 }] }]
+          -- foldl should compute: (((0 + 1) + 2) + 3) = 6
+          let inner = Pattern { value = 3, elements = [] }
+          let middle = Pattern { value = 2, elements = [inner] }
+          let pattern = Pattern { value = 1, elements = [middle] }
+          foldl (+) 0 pattern `shouldBe` (6 :: Int)
+        
+        it "foldl computes running total correctly with multiple nested elements" $ do
+          -- Pattern: value=100, elements=[Pattern { value=10, elements=[Pattern { value=1 }] }, Pattern { value=20, elements=[Pattern { value=2 }] }]
+          -- foldl should compute: (((((0 + 100) + 10) + 1) + 20) + 2) = 133
+          let inner1 = Pattern { value = 1, elements = [] }
+          let inner2 = Pattern { value = 2, elements = [] }
+          let middle1 = Pattern { value = 10, elements = [inner1] }
+          let middle2 = Pattern { value = 20, elements = [inner2] }
+          let pattern = Pattern { value = 100, elements = [middle1, middle2] }
+          foldl (+) 0 pattern `shouldBe` (133 :: Int)
+      
+      describe "foldl processing nested pattern values in left-to-right order" $ do
+        
+        it "foldl processes nested pattern values in left-to-right order" $ do
+          -- Nested structure:
+          -- Pattern { value = 4, elements = [
+          --   Pattern { value = 3, elements = [
+          --     Pattern { value = 2, elements = [
+          --       Pattern { value = 1, elements = [] }
+          --     ]}
+          --   ]}
+          -- ]}
+          -- foldl should process: ((((0 + 4) + 3) + 2) + 1) = 10
+          let inner = Pattern { value = 1, elements = [] }
+          let middle = Pattern { value = 2, elements = [inner] }
+          let outer = Pattern { value = 3, elements = [middle] }
+          let pattern = Pattern { value = 4, elements = [outer] }
+          foldl (+) 0 pattern `shouldBe` (10 :: Int)
+        
+        it "foldl processes nested pattern values in left-to-right order for multiple nested elements" $ do
+          -- Pattern { value = 100, elements = [
+          --   Pattern { value = 10, elements = [Pattern { value = 1, elements = [] }] },
+          --   Pattern { value = 20, elements = [Pattern { value = 2, elements = [] }] }
+          -- ]}
+          -- foldl should process: (((((0 + 100) + 10) + 1) + 20) + 2) = 133
+          let inner1 = Pattern { value = 1, elements = [] }
+          let inner2 = Pattern { value = 2, elements = [] }
+          let middle1 = Pattern { value = 10, elements = [inner1] }
+          let middle2 = Pattern { value = 20, elements = [inner2] }
+          let pattern = Pattern { value = 100, elements = [middle1, middle2] }
+          foldl (+) 0 pattern `shouldBe` (133 :: Int)
+        
+        it "foldl processes deeply nested pattern values in left-to-right order" $ do
+          -- 5 levels deep: (((((0 + 5) + 4) + 3) + 2) + 1) = 15
+          let level4 = Pattern { value = 1, elements = [] }
+          let level3 = Pattern { value = 2, elements = [level4] }
+          let level2 = Pattern { value = 3, elements = [level3] }
+          let level1 = Pattern { value = 4, elements = [level2] }
+          let pattern = Pattern { value = 5, elements = [level1] }
+          foldl (+) 0 pattern `shouldBe` (15 :: Int)
+      
+      describe "foldl left-associativity property" $ do
+        
+        it "foldl left-associativity property: foldl f z = foldl f z . toList for commutative operations" $ do
+          -- For commutative operations, foldl on pattern should equal foldl on toList
+          let elem1 = Pattern { value = 10, elements = [] }
+          let elem2 = Pattern { value = 20, elements = [] }
+          let pattern = Pattern { value = 100, elements = [elem1, elem2] }
+          -- Addition is commutative, so both should produce same result
+          let patternFold = foldl (+) 0 pattern
+          let listFold = foldl (+) 0 (toList pattern)
+          patternFold `shouldBe` listFold
+          patternFold `shouldBe` (130 :: Int)
+        
+        it "foldl left-associativity property: order matters for non-commutative operations" $ do
+          -- For non-commutative operations like subtraction, order matters
+          let elem1 = Pattern { value = 5, elements = [] }
+          let elem2 = Pattern { value = 3, elements = [] }
+          let pattern = Pattern { value = 10, elements = [elem1, elem2] }
+          -- foldl (-) 0 should compute: (((0 - 10) - 5) - 3) = -18
+          foldl (-) 0 pattern `shouldBe` (-18 :: Int)
+        
+        it "foldl left-associativity property: pattern value processed first" $ do
+          -- Verify that pattern's own value is processed first (left-to-right)
+          -- Using subtraction to reveal order: ((0 - pattern) - elem1) - elem2
+          let elem1 = Pattern { value = 5, elements = [] }
+          let elem2 = Pattern { value = 3, elements = [] }
+          let pattern = Pattern { value = 10, elements = [elem1, elem2] }
+          -- foldl (-) 0 should compute: (((0 - 10) - 5) - 3) = -18
+          foldl (-) 0 pattern `shouldBe` (-18 :: Int)
+          -- Verify by checking intermediate steps
+          foldl (-) 0 (Pattern { value = 10, elements = [] }) `shouldBe` (-10 :: Int)

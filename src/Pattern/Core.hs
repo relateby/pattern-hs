@@ -117,8 +117,9 @@
 -- The Pattern type has a Foldable instance that enables value aggregation over pattern
 -- structures. This supports operations like summing values, concatenating strings, counting
 -- elements, and computing statistics without manually traversing the pattern tree. The instance
--- provides @toList@ for extracting all values as a flat list. See the Foldable instance
--- documentation below for details on value aggregation and folding operations.
+-- provides @foldr@ for right-associative folding, @foldl@ for left-associative folding, and
+-- @toList@ for extracting all values as a flat list. See the Foldable instance documentation
+-- below for details on value aggregation and folding operations.
 --
 -- == Examples
 --
@@ -663,6 +664,80 @@ instance Foldable Pattern where
   -- ["root", "a", "b"]
   --
   foldr f z (Pattern v els) = f v (foldr (\e acc -> foldr f acc e) z els)
+  
+  -- | Left-associative fold over pattern values.
+  --
+  -- Processes all values in the pattern structure, including the pattern's own value
+  -- and all element values at all nesting levels. Values are processed in left-to-right
+  -- order: the pattern's own value is processed first, then element values are processed
+  -- recursively from left to right.
+  --
+  -- === Processing Order
+  --
+  -- The @foldl@ operation processes values in a specific order:
+  --
+  -- 1. The pattern's own value is processed first (combined with initial accumulator)
+  -- 2. Element values are processed recursively from left to right
+  --
+  -- This order ensures that when applying operations that require strict left-to-right
+  -- evaluation, the pattern's own value is combined first, followed by element values
+  -- in their natural order.
+  --
+  -- === Examples
+  --
+  -- Atomic pattern:
+  --
+  -- >>> atom = Pattern { value = 5, elements = [] }
+  -- >>> foldl (+) 0 atom
+  -- 5
+  --
+  -- Pattern with multiple elements (order: pattern's value first, then elements left-to-right):
+  --
+  -- >>> elem1 = Pattern { value = 10, elements = [] }
+  -- >>> elem2 = Pattern { value = 20, elements = [] }
+  -- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+  -- >>> foldl (+) 0 pattern
+  -- 130
+  --
+  -- Computing running total with left-associative operations:
+  --
+  -- >>> foldl (-) 0 pattern
+  -- -130
+  --
+  -- Nested pattern structure:
+  --
+  -- >>> inner = Pattern { value = 1, elements = [] }
+  -- >>> middle = Pattern { value = 2, elements = [inner] }
+  -- >>> pattern = Pattern { value = 3, elements = [middle] }
+  -- >>> foldl (+) 0 pattern
+  -- 6
+  --
+  -- === Left-Associativity
+  --
+  -- The @foldl@ operation is left-associative, meaning operations are grouped from
+  -- left to right. For commutative operations like addition, this produces the same
+  -- result as right-associative folding. For non-commutative operations, the order
+  -- matters and is preserved as described above.
+  --
+  -- Example with commutative operation (addition):
+  --
+  -- >>> elem1 = Pattern { value = 10, elements = [] }
+  -- >>> elem2 = Pattern { value = 20, elements = [] }
+  -- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+  -- >>> foldl (+) 0 pattern
+  -- 130
+  -- >>> foldl (+) 0 (toList pattern)
+  -- 130
+  --
+  -- Example with non-commutative operation (subtraction):
+  --
+  -- >>> elem1 = Pattern { value = 5, elements = [] }
+  -- >>> elem2 = Pattern { value = 3, elements = [] }
+  -- >>> pattern = Pattern { value = 10, elements = [elem1, elem2] }
+  -- >>> foldl (-) 0 pattern
+  -- -18
+  --
+  foldl f z (Pattern v els) = Prelude.foldl (\acc e -> foldl f acc e) (f z v) els
   
   -- Note: @toList@ is automatically derived from @foldr@ and extracts all values
   -- as a flat list. The pattern's own value and all element values at all

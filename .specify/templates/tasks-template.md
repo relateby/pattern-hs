@@ -82,6 +82,8 @@ Examples of foundational tasks (adjust based on your project):
 ### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> 
+> **PERFORMANCE**: Always use timeouts when running tests (`timeout 60 cabal test` or equivalent). Tests should complete in <1 minute total. See Testing Performance Guidelines section below.
 
 - [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
@@ -249,3 +251,53 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+
+## Testing Performance Guidelines
+
+### Test Execution Timeouts
+
+**CRITICAL**: Always use timeouts when running tests to prevent hanging:
+
+- **First test run after implementation**: Use `timeout 60` (60 seconds) to catch any infinite loops or performance issues
+- **Subsequent test runs**: Use `timeout 30` (30 seconds) for normal verification
+- **Full test suite**: Should complete in under 1 minute total
+
+### Test Performance Requirements
+
+- **Unit tests**: Each test should complete in <100ms
+- **Property-based tests**: Each property test should complete in <10ms (use bounded generators)
+- **Full test suite**: Should complete in <1 minute total
+- **Individual test phases**: Should complete in <10 seconds
+
+### Troubleshooting Slow Tests
+
+If tests hang or take too long:
+
+1. **Check for infinite recursion**: Verify recursive functions have proper base cases
+2. **Check for ambiguous function calls**: Use explicit module qualifiers (e.g., `Prelude.foldl` vs `foldl`)
+3. **Check test data size**: Ensure property-based tests use bounded generators
+4. **Check for lazy evaluation issues**: Ensure strict evaluation where needed
+5. **Verify test isolation**: Ensure tests don't depend on shared mutable state
+
+### Test Execution Commands
+
+```bash
+# First run after implementation (with timeout):
+timeout 60 [test-command]
+
+# Normal verification (with timeout):
+timeout 30 [test-command]
+
+# Examples by language/framework:
+# Haskell/Cabal: timeout 60 cabal test
+# Python/pytest: timeout 60 pytest
+# Node/npm: timeout 60 npm test
+# etc.
+```
+
+### Performance Monitoring
+
+- Monitor test execution time in CI/CD
+- Alert if test suite exceeds 1 minute
+- Investigate any test that takes >1 second individually
+- Use profiling tools if tests consistently slow
