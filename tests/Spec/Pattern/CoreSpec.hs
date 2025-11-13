@@ -5,6 +5,7 @@ import Data.Char (toUpper)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, foldMap, toList)
 import Data.Functor.Identity (Identity(..))
+import Data.Maybe (fromJust)
 import Data.Monoid (All(..), Sum(..))
 import Test.Hspec
 import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple)
@@ -2148,3 +2149,130 @@ spec = do
               p = patternWith rootPerson [elem1, elem2]
               result = traverse validate p
           result `shouldBe` Right p
+    
+    describe "Sequence Applicative Effects (User Story 2)" $ do
+      
+      describe "sequenceA on patterns containing Identity values" $ do
+        
+        it "sequences pattern containing Identity values" $ do
+          -- T037: Unit test for sequenceA on pattern containing Identity values
+          let atom = pattern (Identity "test")
+              result = sequenceA atom
+          runIdentity result `shouldBe` pattern "test"
+      
+      describe "sequenceA on patterns containing Maybe values" $ do
+        
+        it "sequences pattern containing Maybe values (all Just)" $ do
+          -- T038: Unit test for sequenceA on pattern containing Maybe values (all Just)
+          let elem1 = pattern (Just 5)
+              elem2 = pattern (Just 10)
+              p = patternWith (Just 20) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` Just (patternWith 20 [pattern 5, pattern 10])
+        
+        it "sequences pattern containing Maybe values (one Nothing)" $ do
+          -- T039: Unit test for sequenceA on pattern containing Maybe values (one Nothing)
+          let elem1 = pattern (Just 5)
+              elem2 = pattern Nothing
+              p = patternWith (Just 20) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` Nothing
+      
+      describe "sequenceA on patterns containing Either values" $ do
+        
+        it "sequences pattern containing Either values (all Right)" $ do
+          -- T040: Unit test for sequenceA on pattern containing Either values (all Right)
+          let elem1 = pattern (Right 5 :: Either String Int)
+              elem2 = pattern (Right 10 :: Either String Int)
+              p = patternWith (Right 20 :: Either String Int) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` (Right (patternWith 20 [pattern 5, pattern 10]) :: Either String (Pattern Int))
+        
+        it "sequences pattern containing Either values (one Left)" $ do
+          -- T041: Unit test for sequenceA on pattern containing Either values (one Left)
+          let elem1 = pattern (Right 5 :: Either String Int)
+              elem2 = pattern (Left "error" :: Either String Int)
+              p = patternWith (Right 20 :: Either String Int) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` (Left "error" :: Either String (Pattern Int))
+      
+      describe "sequenceA on nested pattern structures with Maybe values" $ do
+        
+        it "sequences nested pattern structure with Maybe values (all Just)" $ do
+          -- T042: Unit test for sequenceA on nested pattern structure with Maybe values (all Just)
+          let inner = pattern (Just 1)
+              middle = patternWith (Just 2) [inner]
+              outer = patternWith (Just 3) [middle]
+              p = patternWith (Just 4) [outer]
+              result = sequenceA p
+          result `shouldBe` Just (patternWith 4 [patternWith 3 [patternWith 2 [pattern 1]]])
+        
+        it "sequences nested pattern structure with Maybe values (one Nothing)" $ do
+          -- T043: Unit test for sequenceA on nested pattern structure with Maybe values (one Nothing)
+          let inner = pattern Nothing
+              middle = patternWith (Just 2) [inner]
+              outer = patternWith (Just 3) [middle]
+              p = patternWith (Just 4) [outer]
+              result = sequenceA p
+          result `shouldBe` Nothing
+      
+      describe "sequenceA on nested pattern structures with Either values" $ do
+        
+        it "sequences nested pattern structure with Either values (all Right)" $ do
+          -- T044: Unit test for sequenceA on nested pattern structure with Either values (all Right)
+          let inner = pattern (Right 1 :: Either String Int)
+              middle = patternWith (Right 2 :: Either String Int) [inner]
+              outer = patternWith (Right 3 :: Either String Int) [middle]
+              p = patternWith (Right 4 :: Either String Int) [outer]
+              result = sequenceA p
+          result `shouldBe` (Right (patternWith 4 [patternWith 3 [patternWith 2 [pattern 1]]]) :: Either String (Pattern Int))
+        
+        it "sequences nested pattern structure with Either values (one Left)" $ do
+          -- T045: Unit test for sequenceA on nested pattern structure with Either values (one Left)
+          let inner = pattern (Left "error" :: Either String Int)
+              middle = patternWith (Right 2 :: Either String Int) [inner]
+              outer = patternWith (Right 3 :: Either String Int) [middle]
+              p = patternWith (Right 4 :: Either String Int) [outer]
+              result = sequenceA p
+          result `shouldBe` (Left "error" :: Either String (Pattern Int))
+      
+      describe "Structure preservation in sequenceA" $ do
+        
+        it "sequenceA preserves pattern structure" $ do
+          -- T046: Unit test verifying sequenceA preserves pattern structure
+          let elem1 = pattern (Just "a")
+              elem2 = pattern (Just "b")
+              elem3 = pattern (Just "c")
+              p = patternWith (Just "root") [elem1, elem2, elem3]
+              result = sequenceA p
+              p' = fromJust result
+          length (elements p') `shouldBe` 3
+          value (elements p' !! 0) `shouldBe` "a"
+          value (elements p' !! 1) `shouldBe` "b"
+          value (elements p' !! 2) `shouldBe` "c"
+        
+        it "sequenceA collects effects from all values" $ do
+          -- T047: Unit test verifying sequenceA collects effects from all values
+          let elem1 = pattern (Just 5)
+              elem2 = pattern (Just 10)
+              p = patternWith (Just 20) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` Just (patternWith 20 [pattern 5, pattern 10])
+      
+      describe "Short-circuiting behavior in sequenceA" $ do
+        
+        it "sequenceA short-circuits for Maybe (returns Nothing on first Nothing)" $ do
+          -- T048: Unit test verifying sequenceA short-circuits for Maybe (returns Nothing on first Nothing)
+          let elem1 = pattern Nothing
+              elem2 = pattern (Just 10)
+              p = patternWith (Just 20) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` Nothing
+        
+        it "sequenceA short-circuits for Either (returns Left on first Left)" $ do
+          -- T049: Unit test verifying sequenceA short-circuits for Either (returns Left on first Left)
+          let elem1 = pattern (Left "first error" :: Either String Int)
+              elem2 = pattern (Right 10 :: Either String Int)
+              p = patternWith (Right 20 :: Either String Int) [elem1, elem2]
+              result = sequenceA p
+          result `shouldBe` (Left "first error" :: Either String (Pattern Int))

@@ -99,27 +99,27 @@
 > 
 > **PERFORMANCE**: Always use timeouts when running tests (`timeout 60 cabal test` for first run, `timeout 30 cabal test` for subsequent runs). Property-based tests MUST use `quickProperty` helper (20 test cases max) and complete in <10ms total.
 
-- [ ] T037 [P] [US2] Write unit test for sequenceA on pattern containing Identity values in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T038 [P] [US2] Write unit test for sequenceA on pattern containing Maybe values (all Just) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T039 [P] [US2] Write unit test for sequenceA on pattern containing Maybe values (one Nothing) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T040 [P] [US2] Write unit test for sequenceA on pattern containing Either values (all Right) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T041 [P] [US2] Write unit test for sequenceA on pattern containing Either values (one Left) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T042 [P] [US2] Write unit test for sequenceA on nested pattern structure with Maybe values (all Just) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T043 [P] [US2] Write unit test for sequenceA on nested pattern structure with Maybe values (one Nothing) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T044 [P] [US2] Write unit test for sequenceA on nested pattern structure with Either values (all Right) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T045 [P] [US2] Write unit test for sequenceA on nested pattern structure with Either values (one Left) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T046 [P] [US2] Write unit test verifying sequenceA preserves pattern structure in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T047 [P] [US2] Write unit test verifying sequenceA collects effects from all values in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T048 [P] [US2] Write unit test verifying sequenceA short-circuits for Maybe (returns Nothing on first Nothing) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T049 [P] [US2] Write unit test verifying sequenceA short-circuits for Either (returns Left on first Left) in `tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T050 [P] [US2] Write property-based test for relationship between traverse and sequenceA using quickProperty in `tests/Spec/Pattern/Properties.hs`
+- [x] T037 [P] [US2] Write unit test for sequenceA on pattern containing Identity values in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T038 [P] [US2] Write unit test for sequenceA on pattern containing Maybe values (all Just) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T039 [P] [US2] Write unit test for sequenceA on pattern containing Maybe values (one Nothing) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T040 [P] [US2] Write unit test for sequenceA on pattern containing Either values (all Right) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T041 [P] [US2] Write unit test for sequenceA on pattern containing Either values (one Left) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T042 [P] [US2] Write unit test for sequenceA on nested pattern structure with Maybe values (all Just) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T043 [P] [US2] Write unit test for sequenceA on nested pattern structure with Maybe values (one Nothing) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T044 [P] [US2] Write unit test for sequenceA on nested pattern structure with Either values (all Right) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T045 [P] [US2] Write unit test for sequenceA on nested pattern structure with Either values (one Left) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T046 [P] [US2] Write unit test verifying sequenceA preserves pattern structure in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T047 [P] [US2] Write unit test verifying sequenceA collects effects from all values in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T048 [P] [US2] Write unit test verifying sequenceA short-circuits for Maybe (returns Nothing on first Nothing) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T049 [P] [US2] Write unit test verifying sequenceA short-circuits for Either (returns Left on first Left) in `tests/Spec/Pattern/CoreSpec.hs` ✅
+- [x] T050 [P] [US2] Write property-based test for relationship between traverse and sequenceA using quickProperty in `tests/Spec/Pattern/Properties.hs` ✅
 
 ### Implementation for User Story 2
 
-- [ ] T051 [US2] Implement sequenceA using traverse id (derived from traverse) in `src/Pattern/Core.hs`
-- [ ] T052 [US2] Add Haddock documentation for sequenceA in `src/Pattern/Core.hs` explaining effect sequencing
-- [ ] T053 [US2] Add Haddock examples for sequenceA usage in `src/Pattern/Core.hs` demonstrating Maybe, Either
-- [ ] T054 [US2] Add Haddock documentation explaining relationship between traverse and sequenceA in `src/Pattern/Core.hs`
+- [x] T051 [US2] Implement sequenceA using traverse id (derived from traverse) in `src/Pattern/Core.hs` ✅
+- [x] T052 [US2] Add Haddock documentation for sequenceA in `src/Pattern/Core.hs` explaining effect sequencing ✅
+- [x] T053 [US2] Add Haddock examples for sequenceA usage in `src/Pattern/Core.hs` demonstrating Maybe, Either ✅
+- [x] T054 [US2] Add Haddock documentation explaining relationship between traverse and sequenceA in `src/Pattern/Core.hs` ✅
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. sequenceA should sequence effects correctly while preserving pattern structure.
 

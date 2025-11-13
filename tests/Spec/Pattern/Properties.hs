@@ -69,6 +69,36 @@ instance Arbitrary (Pattern Int) where
         elems <- vectorOf numElems (genPatternInt (max 0 (n - 2)))
         return $ Pattern { value = v, elements = elems }
 
+-- | Arbitrary instance for Pattern with Maybe Int values.
+-- Generates patterns of varying structure with Maybe Int values.
+instance Arbitrary (Pattern (Maybe Int)) where
+  arbitrary = sized genPatternMaybeInt
+    where
+      genPatternMaybeInt 0 = do
+        v <- arbitrary
+        return $ Pattern { value = v, elements = [] }
+      genPatternMaybeInt n = do
+        v <- arbitrary
+        -- Limit to 2 elements max and smaller size to keep tests fast
+        numElems <- choose (0, min 2 (max 1 (n `div` 3)))
+        elems <- vectorOf numElems (genPatternMaybeInt (max 0 (n - 2)))
+        return $ Pattern { value = v, elements = elems }
+
+-- | Arbitrary instance for Pattern with Maybe String values.
+-- Generates patterns of varying structure with Maybe String values.
+instance Arbitrary (Pattern (Maybe String)) where
+  arbitrary = sized genPatternMaybeString
+    where
+      genPatternMaybeString 0 = do
+        v <- arbitrary
+        return $ Pattern { value = v, elements = [] }
+      genPatternMaybeString n = do
+        v <- arbitrary
+        -- Limit to 2 elements max and smaller size to keep tests fast
+        numElems <- choose (0, min 2 (max 1 (n `div` 3)))
+        elems <- vectorOf numElems (genPatternMaybeString (max 0 (n - 2)))
+        return $ Pattern { value = v, elements = elems }
+
 -- | Helper to create a property with reduced test cases for faster execution.
 --
 -- PERFORMANCE NOTE: This reduces QuickCheck test cases from the default 100 to 20.
@@ -329,4 +359,22 @@ spec = do
               countElems (Pattern _ els) = length els + sum (map countElems els)
           in length (elements p') == length (elements pInt) 
              && countElems p' == countElems pInt
+    
+    describe "Relationship between traverse and sequenceA" $ do
+      
+      it "sequenceA = traverse id for Pattern (Maybe Int)" $ do
+        -- T050: Property-based test for relationship between traverse and sequenceA
+        quickProperty $ \p -> 
+          let pMaybe = p :: Pattern (Maybe Int)
+              result1 = sequenceA pMaybe
+              result2 = traverse id pMaybe
+          in result1 == result2
+      
+      it "sequenceA = traverse id for Pattern (Maybe String)" $ do
+        -- T050: Property-based test for relationship between traverse and sequenceA
+        quickProperty $ \p -> 
+          let pMaybe = p :: Pattern (Maybe String)
+              result1 = sequenceA pMaybe
+              result2 = traverse id pMaybe
+          in result1 == result2
 
