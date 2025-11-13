@@ -8,6 +8,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - Haskell (GHC 9.10.3) + Standard Haskell libraries (base, no external dependencies for this feature) (001-pattern-structure-review)
 - N/A (documentation review feature, no data storage) (001-pattern-structure-review)
 - Haskell (GHC 9.8.4, 9.10.3) + `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11` (005-functor-instance)
+- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6 (008-basic-query-functions)
+- N/A (pure functional data structure) (008-basic-query-functions)
 
 - (001-pattern-data-structure)
 
@@ -27,9 +29,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 008-basic-query-functions: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 - 007-traversable-instance: Added Haskell (GHC 9.8.4, 9.10.3) + `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11`
 - 005-functor-instance: Added Haskell (GHC 9.8.4, 9.10.3) + `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11`
-- 001-pattern-structure-review: Added Haskell (GHC 9.10.3) + Standard Haskell libraries (base, no external dependencies for this feature)
 
 
 <!-- MANUAL ADDITIONS START -->

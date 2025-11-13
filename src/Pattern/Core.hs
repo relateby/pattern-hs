@@ -130,6 +130,17 @@
 -- applicative effects. See the Traversable instance documentation below for details on effectful
 -- traversal and structure preservation.
 --
+-- The Pattern type provides query functions for introspecting pattern structure:
+--
+-- * @length@ - Returns the number of direct elements in a pattern's sequence (O(1))
+-- * @size@ - Returns the total number of nodes in a pattern structure, including all nested patterns (O(n))
+-- * @depth@ - Returns the maximum nesting depth of a pattern structure (O(n))
+-- * @values@ - Extracts all values from a pattern structure as a flat list (O(n))
+-- * @value@ - Field accessor for accessing a pattern's decoration value (O(1))
+--
+-- These query functions enable pattern introspection, validation, and analysis operations.
+-- See individual function documentation for details on usage and performance characteristics.
+--
 -- == Examples
 --
 -- Atomic pattern:
@@ -267,16 +278,81 @@ data Pattern v = Pattern
     -- Type parameter @v@ allows for different decoration types. All patterns in a
     -- structure must share the same value type (enforced by the type system).
     --
+    -- The @value@ field accessor provides direct access to a pattern's decoration
+    -- value without any computation. This is the primary way to access pattern
+    -- decoration values for querying, analysis, and transformation operations.
+    --
+    -- === Accessing Pattern Values
+    --
+    -- The @value@ field accessor works with patterns of any value type and at any
+    -- nesting level. Each pattern in a nested structure has its own value that can
+    -- be accessed independently.
+    --
     -- === Examples
+    --
+    -- Atomic pattern with string value:
     --
     -- >>> value (Pattern { value = "test", elements = [] })
     -- "test"
     --
+    -- Atomic pattern with integer value:
+    --
     -- >>> value (Pattern { value = 42, elements = [] })
     -- 42
     --
+    -- Pattern with elements (accesses root value):
+    --
     -- >>> value (Pattern { value = "group", elements = [Pattern { value = "atom", elements = [] }] })
     -- "group"
+    --
+    -- Accessing values at different nesting levels:
+    --
+    -- >>> inner = Pattern { value = "inner", elements = [] }
+    -- >>> middle = Pattern { value = "middle", elements = [inner] }
+    -- >>> outer = Pattern { value = "outer", elements = [middle] }
+    -- >>> pattern = Pattern { value = "root", elements = [outer] }
+    -- >>> value pattern
+    -- "root"
+    -- >>> value outer
+    -- "outer"
+    -- >>> value middle
+    -- "middle"
+    -- >>> value inner
+    -- "inner"
+    --
+    -- Pattern with custom type value:
+    --
+    -- >>> data Person = Person { name :: String, age :: Maybe Int } deriving (Show)
+    -- >>> person = Person "Alice" (Just 30)
+    -- >>> value (Pattern { value = person, elements = [] })
+    -- Person {name = "Alice", age = Just 30}
+    --
+    -- === Relationship to values function
+    --
+    -- The @value@ field accessor returns a single value (the pattern's own value),
+    -- while the @values@ function returns all values from the entire pattern structure:
+    --
+    -- @
+    -- value p == head (values p)
+    -- @
+    --
+    -- The @value@ field provides O(1) access to the pattern's decoration, while
+    -- @values@ extracts all values recursively.
+    --
+    -- === Performance
+    --
+    -- The @value@ field accessor is a direct field access operation with O(1) time
+    -- complexity. No computation is required - it simply returns the stored value.
+    --
+    -- === Type Safety
+    --
+    -- The @value@ field accessor works with patterns of any value type @v@:
+    --
+    -- >>> value (Pattern { value = "test", elements = [] } :: Pattern String)
+    -- "test"
+    -- >>> value (Pattern { value = 42, elements = [] } :: Pattern Int)
+    -- 42
+    --
     value    :: v
     
     -- | The pattern itself, represented as a sequence of elements.
@@ -1745,3 +1821,511 @@ toTuple (Pattern v els) = (v, els)
 --
 flatten :: Pattern a -> [a]
 flatten = toList
+
+-- | Query the number of direct elements in a pattern's sequence.
+--
+-- Returns the count of direct child elements in the pattern's sequence.
+-- This function provides the most basic structural information about a pattern,
+-- indicating how many elements are directly contained in the pattern's sequence.
+--
+-- The @length@ function counts only direct children, not nested descendants.
+-- For example, a pattern with one element that itself contains elements will
+-- have @length@ of 1, not the total count of all nested elements.
+--
+-- === Relationship to elements
+--
+-- The @length@ function is equivalent to @length (elements p)@:
+--
+-- @
+-- length p = length (elements p)
+-- @
+--
+-- This provides a convenient way to query element count without explicitly
+-- accessing the @elements@ field.
+--
+-- === Examples
+--
+-- Atomic pattern (no elements):
+--
+-- >>> atom = Pattern { value = "atom", elements = [] }
+-- >>> length atom
+-- 0
+--
+-- Singular pattern (one element):
+--
+-- >>> elem = Pattern { value = "elem", elements = [] }
+-- >>> pattern = Pattern { value = "pattern", elements = [elem] }
+-- >>> length pattern
+-- 1
+--
+-- Pattern with multiple elements:
+--
+-- >>> elem1 = Pattern { value = "e1", elements = [] }
+-- >>> elem2 = Pattern { value = "e2", elements = [] }
+-- >>> elem3 = Pattern { value = "e3", elements = [] }
+-- >>> pattern = Pattern { value = "pattern", elements = [elem1, elem2, elem3] }
+-- >>> length pattern
+-- 3
+--
+-- Nested pattern (counts only direct children):
+--
+-- >>> inner = Pattern { value = "inner", elements = [] }
+-- >>> middle = Pattern { value = "middle", elements = [inner] }
+-- >>> outer = Pattern { value = "outer", elements = [middle] }
+-- >>> pattern = Pattern { value = "root", elements = [outer] }
+-- >>> length pattern
+-- 1
+-- >>> length outer
+-- 1
+-- >>> length middle
+-- 1
+-- >>> length inner
+-- 0
+--
+-- === Edge Cases
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> length (Pattern { value = "atom", elements = [] })
+-- 0
+--
+-- **Patterns with empty elements list**:
+--
+-- >>> length (Pattern { value = "empty", elements = [] })
+-- 0
+--
+-- **Patterns with many elements**:
+--
+-- >>> elems = map (\i -> Pattern { value = i, elements = [] }) [1..10]
+-- >>> pattern = Pattern { value = 100, elements = elems }
+-- >>> length pattern
+-- 10
+--
+-- === Performance
+--
+-- The @length@ function completes in O(1) time for patterns with elements
+-- stored as lists, as it simply returns the length of the elements list.
+-- Performance is constant regardless of pattern structure or nesting depth.
+--
+-- === Type Safety
+--
+-- The @length@ function works with patterns of any value type @v@:
+--
+-- >>> length (Pattern { value = "test", elements = [] } :: Pattern String)
+-- 0
+-- >>> length (Pattern { value = 42, elements = [] } :: Pattern Int)
+-- 0
+--
+length :: Pattern v -> Int
+length (Pattern _ els) = Prelude.length els
+
+-- | Query the total number of nodes in a pattern structure.
+--
+-- Returns the total count of all nodes in the pattern structure, including
+-- the pattern itself and all nested patterns at all levels. This provides a
+-- complete picture of pattern complexity by counting every node in the
+-- recursive structure.
+--
+-- The @size@ function counts all nodes recursively:
+--
+-- * The pattern itself counts as 1 node
+-- * Each element pattern is counted recursively
+-- * All nested patterns at all levels are included
+--
+-- This is different from @length@, which counts only direct children.
+-- The @size@ function provides the total node count across the entire
+-- pattern structure.
+--
+-- === Relationship to length
+--
+-- The @size@ function is always greater than or equal to @length@:
+--
+-- @
+-- size p >= length p
+-- @
+--
+-- This is because @size@ counts the root node plus all descendants, while
+-- @length@ counts only direct children.
+--
+-- === Recursive Definition
+--
+-- The @size@ function is defined recursively:
+--
+-- @
+-- size p = 1 + sum (map size (elements p))
+-- @
+--
+-- This means:
+-- * The pattern itself contributes 1 node
+-- * Each element's size is computed recursively
+-- * The sum of all element sizes is added to 1
+--
+-- === Examples
+--
+-- Atomic pattern (single node):
+--
+-- >>> atom = Pattern { value = "atom", elements = [] }
+-- >>> size atom
+-- 1
+--
+-- Pattern with direct elements (no nesting):
+--
+-- >>> elem1 = Pattern { value = "e1", elements = [] }
+-- >>> elem2 = Pattern { value = "e2", elements = [] }
+-- >>> elem3 = Pattern { value = "e3", elements = [] }
+-- >>> pattern = Pattern { value = "pattern", elements = [elem1, elem2, elem3] }
+-- >>> size pattern
+-- 4
+--
+-- Deeply nested pattern:
+--
+-- >>> level4 = Pattern { value = "level4", elements = [] }
+-- >>> level3 = Pattern { value = "level3", elements = [level4] }
+-- >>> level2 = Pattern { value = "level2", elements = [level3] }
+-- >>> level1 = Pattern { value = "level1", elements = [level2] }
+-- >>> pattern = Pattern { value = "root", elements = [level1] }
+-- >>> size pattern
+-- 5
+--
+-- Pattern with varying branch depths:
+--
+-- >>> branch1Leaf = Pattern { value = "b1leaf", elements = [] }
+-- >>> branch1 = Pattern { value = "b1", elements = [branch1Leaf] }
+-- >>> branch2Mid = Pattern { value = "b2mid", elements = [] }
+-- >>> branch2Leaf = Pattern { value = "b2leaf", elements = [] }
+-- >>> branch2 = Pattern { value = "b2", elements = [branch2Mid, branch2Leaf] }
+-- >>> branch3 = Pattern { value = "b3", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+-- >>> size pattern
+-- 7
+--
+-- === Edge Cases
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> size (Pattern { value = "atom", elements = [] })
+-- 1
+--
+-- **Patterns with empty elements list**:
+--
+-- >>> size (Pattern { value = "empty", elements = [] })
+-- 1
+--
+-- **Patterns with many direct elements**:
+--
+-- >>> elems = map (\i -> Pattern { value = i, elements = [] }) [1..10]
+-- >>> pattern = Pattern { value = 100, elements = elems }
+-- >>> size pattern
+-- 11
+--
+-- **Deep nesting** (many levels):
+--
+-- >>> level5 = Pattern { value = 1, elements = [] }
+-- >>> level4 = Pattern { value = 2, elements = [level5] }
+-- >>> level3 = Pattern { value = 3, elements = [level4] }
+-- >>> level2 = Pattern { value = 4, elements = [level3] }
+-- >>> level1 = Pattern { value = 5, elements = [level2] }
+-- >>> pattern = Pattern { value = 6, elements = [level1] }
+-- >>> size pattern
+-- 6
+--
+-- === Performance
+--
+-- The @size@ function traverses the entire pattern structure recursively,
+-- visiting every node exactly once. Time complexity is O(n) where n is the
+-- total number of nodes in the pattern structure. For patterns with up to
+-- 1000 nodes, the function should complete in under 10 milliseconds.
+--
+-- === Type Safety
+--
+-- The @size@ function works with patterns of any value type @v@:
+--
+-- >>> size (Pattern { value = "test", elements = [] } :: Pattern String)
+-- 1
+-- >>> size (Pattern { value = 42, elements = [] } :: Pattern Int)
+-- 1
+--
+size :: Pattern v -> Int
+size (Pattern _ els) = 1 + sum (map size els)
+
+-- | Query the maximum nesting depth of a pattern structure.
+--
+-- Returns the maximum depth of any path from the root to a leaf node in the
+-- pattern structure. This provides insight into pattern complexity and helps
+-- validate depth constraints.
+--
+-- The @depth@ function measures the maximum nesting level:
+--
+-- * Atomic patterns (no elements) have depth 0 (root only, no nesting)
+-- * Patterns with elements have depth 1 + the maximum depth of any element
+-- * The depth is the maximum across all branches in the pattern structure
+--
+-- This is different from @size@, which counts total nodes, and @length@,
+-- which counts only direct children. The @depth@ function provides the
+-- maximum path length from root to any leaf.
+--
+-- === Depth Counting Convention
+--
+-- Depth follows standard tree depth conventions:
+--
+-- * Depth 0: Atomic pattern (root only, no nesting levels below root)
+-- * Depth 1: One level of nesting (root -> element)
+-- * Depth n: n levels of nesting (root -> ... -> leaf, n steps)
+--
+-- === Recursive Definition
+--
+-- The @depth@ function is defined recursively:
+--
+-- @
+-- depth (Pattern _ []) = 0
+-- depth (Pattern _ els) = 1 + maximum (map depth els)
+-- @
+--
+-- This means:
+-- * Atomic patterns (no elements) have depth 0
+-- * Patterns with elements have depth 1 plus the maximum depth of any element
+-- * The maximum is taken across all branches to find the deepest path
+--
+-- === Examples
+--
+-- Atomic pattern (no nesting):
+--
+-- >>> atom = Pattern { value = "atom", elements = [] }
+-- >>> depth atom
+-- 0
+--
+-- One level of nesting:
+--
+-- >>> elem = Pattern { value = "elem", elements = [] }
+-- >>> pattern = Pattern { value = "pattern", elements = [elem] }
+-- >>> depth pattern
+-- 1
+--
+-- Multiple branches with different depths:
+--
+-- >>> branch1Leaf = Pattern { value = "b1leaf", elements = [] }
+-- >>> branch1 = Pattern { value = "b1", elements = [branch1Leaf] }
+-- >>> branch2Mid = Pattern { value = "b2mid", elements = [] }
+-- >>> branch2Leaf = Pattern { value = "b2leaf", elements = [] }
+-- >>> branch2Inner = Pattern { value = "b2inner", elements = [branch2Leaf] }
+-- >>> branch2 = Pattern { value = "b2", elements = [branch2Mid, branch2Inner] }
+-- >>> branch3 = Pattern { value = "b3", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+-- >>> depth pattern
+-- 3
+--
+-- Deeply nested pattern:
+--
+-- >>> level4 = Pattern { value = "level4", elements = [] }
+-- >>> level3 = Pattern { value = "level3", elements = [level4] }
+-- >>> level2 = Pattern { value = "level2", elements = [level3] }
+-- >>> level1 = Pattern { value = "level1", elements = [level2] }
+-- >>> pattern = Pattern { value = "root", elements = [level1] }
+-- >>> depth pattern
+-- 4
+--
+-- === Edge Cases
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> depth (Pattern { value = "atom", elements = [] })
+-- 0
+--
+-- **Patterns with empty elements list**:
+--
+-- >>> depth (Pattern { value = "empty", elements = [] })
+-- 0
+--
+-- **Patterns with many direct elements** (all atomic):
+--
+-- >>> elems = map (\i -> Pattern { value = i, elements = [] }) [1..10]
+-- >>> pattern = Pattern { value = 100, elements = elems }
+-- >>> depth pattern
+-- 1
+--
+-- **Deep nesting** (linear chain):
+--
+-- >>> level5 = Pattern { value = 1, elements = [] }
+-- >>> level4 = Pattern { value = 2, elements = [level5] }
+-- >>> level3 = Pattern { value = 3, elements = [level4] }
+-- >>> level2 = Pattern { value = 4, elements = [level3] }
+-- >>> level1 = Pattern { value = 5, elements = [level2] }
+-- >>> pattern = Pattern { value = 6, elements = [level1] }
+-- >>> depth pattern
+-- 5
+--
+-- === Relationship to size
+--
+-- The @depth@ function is always less than or equal to @size - 1@:
+--
+-- @
+-- depth p <= size p - 1
+-- @
+--
+-- This is because the worst-case depth occurs in a linear chain where
+-- depth = size - 1. In other structures, depth is typically less.
+--
+-- === Performance
+--
+-- The @depth@ function traverses the entire pattern structure recursively,
+-- visiting every node to find the maximum depth. Time complexity is O(n)
+-- where n is the total number of nodes. For patterns with up to 100 levels
+-- of nesting, the function should complete in under 5 milliseconds.
+--
+-- === Type Safety
+--
+-- The @depth@ function works with patterns of any value type @v@:
+--
+-- >>> depth (Pattern { value = "test", elements = [] } :: Pattern String)
+-- 0
+-- >>> depth (Pattern { value = 42, elements = [] } :: Pattern Int)
+-- 0
+--
+depth :: Pattern v -> Int
+depth (Pattern _ els) = case els of
+  [] -> 0
+  _  -> 1 + maximum (map depth els)
+
+-- | Extract all values from a pattern structure as a flat list.
+--
+-- Returns all values from the pattern structure, including the pattern's own
+-- value and all element values at all nesting levels, as a single flat list.
+-- This enables value aggregation, analysis, and transformation operations.
+--
+-- The @values@ function extracts all values in a specific order:
+--
+-- * The pattern's own value appears first in the result
+-- * Element values are included recursively in order
+-- * Values from all nesting levels are included
+-- * The result is always a flat list (no nested lists)
+--
+-- This function is equivalent to @toList@ from the Foldable instance and
+-- @flatten@ function. It provides an explicit, intentional way to extract
+-- all values from a pattern structure.
+--
+-- === Relationship to toList and flatten
+--
+-- The @values@ function is equivalent to both @toList@ and @flatten@:
+--
+-- @
+-- values p = toList p
+-- values p = flatten p
+-- @
+--
+-- All three functions extract all values as a flat list. Use @values@ when
+-- you want to make value extraction explicit, or use @toList@ for standard
+-- Foldable behavior, or @flatten@ for explicit flattening operations.
+--
+-- === Relationship to size
+--
+-- The number of values returned equals the total number of nodes:
+--
+-- @
+-- length (values p) == size p
+-- @
+--
+-- This is because each node in the pattern structure contributes exactly
+-- one value to the result.
+--
+-- === Relationship to value
+--
+-- The first value in the result is always the pattern's own value:
+--
+-- @
+-- head (values p) == value p
+-- @
+--
+-- This ensures that the pattern's decoration value is always accessible
+-- as the first element of the values list.
+--
+-- === Examples
+--
+-- Atomic pattern:
+--
+-- >>> atom = Pattern { value = "atom", elements = [] }
+-- >>> values atom
+-- ["atom"]
+--
+-- Pattern with multiple elements:
+--
+-- >>> elem1 = Pattern { value = "e1", elements = [] }
+-- >>> elem2 = Pattern { value = "e2", elements = [] }
+-- >>> elem3 = Pattern { value = "e3", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+-- >>> values pattern
+-- ["root", "e1", "e2", "e3"]
+--
+-- Nested pattern structure:
+--
+-- >>> inner = Pattern { value = "inner", elements = [] }
+-- >>> middle = Pattern { value = "middle", elements = [inner] }
+-- >>> outer = Pattern { value = "outer", elements = [middle] }
+-- >>> pattern = Pattern { value = "root", elements = [outer] }
+-- >>> values pattern
+-- ["root", "outer", "middle", "inner"]
+--
+-- Pattern with varying nesting depths:
+--
+-- >>> branch1Leaf = Pattern { value = "b1leaf", elements = [] }
+-- >>> branch1 = Pattern { value = "b1", elements = [branch1Leaf] }
+-- >>> branch2Mid = Pattern { value = "b2mid", elements = [] }
+-- >>> branch2Leaf = Pattern { value = "b2leaf", elements = [] }
+-- >>> branch2 = Pattern { value = "b2", elements = [branch2Mid, branch2Leaf] }
+-- >>> branch3 = Pattern { value = "b3", elements = [] }
+-- >>> pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+-- >>> values pattern
+-- ["root", "b1", "b1leaf", "b2", "b2mid", "b2leaf", "b3"]
+--
+-- Using values for aggregation:
+--
+-- >>> pattern = Pattern { value = 10, elements = [Pattern { value = 5, elements = [] }, Pattern { value = 3, elements = [] }] }
+-- >>> sum (values pattern)
+-- 18
+--
+-- === Edge Cases
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> values (Pattern { value = "atom", elements = [] })
+-- ["atom"]
+--
+-- **Patterns with empty elements list**:
+--
+-- >>> values (Pattern { value = "empty", elements = [] })
+-- ["empty"]
+--
+-- **Patterns with many direct elements**:
+--
+-- >>> elems = map (\i -> Pattern { value = i, elements = [] }) [1..5]
+-- >>> pattern = Pattern { value = 100, elements = elems }
+-- >>> values pattern
+-- [100, 1, 2, 3, 4, 5]
+--
+-- **Deep nesting** (many levels):
+--
+-- >>> level4 = Pattern { value = 1, elements = [] }
+-- >>> level3 = Pattern { value = 2, elements = [level4] }
+-- >>> level2 = Pattern { value = 3, elements = [level3] }
+-- >>> level1 = Pattern { value = 4, elements = [level2] }
+-- >>> pattern = Pattern { value = 5, elements = [level1] }
+-- >>> values pattern
+-- [5, 4, 3, 2, 1]
+--
+-- === Performance
+--
+-- The @values@ function traverses the entire pattern structure recursively,
+-- visiting every node exactly once. Time complexity is O(n) where n is the
+-- total number of nodes. For patterns with up to 1000 nodes, the function
+-- should complete in under 10 milliseconds.
+--
+-- === Type Safety
+--
+-- The @values@ function works with patterns of any value type @v@:
+--
+-- >>> values (Pattern { value = "test", elements = [] } :: Pattern String)
+-- ["test"]
+-- >>> values (Pattern { value = 42, elements = [] } :: Pattern Int)
+-- [42]
+--
+values :: Pattern v -> [v]
+values = toList

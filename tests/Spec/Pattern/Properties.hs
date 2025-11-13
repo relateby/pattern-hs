@@ -15,7 +15,8 @@ import Data.Foldable (foldl, foldMap, foldr, toList)
 import Data.Functor.Compose (Compose(..))
 import Data.Functor.Identity (Identity(..))
 import Data.Monoid (All(..), Sum(..))
-import Pattern.Core (Pattern(..), pattern, patternWith, fromList, flatten)
+import Pattern.Core (Pattern(..), pattern, patternWith, fromList, flatten, size, depth, values)
+import qualified Pattern.Core as PC
 import Test.Hspec
 import Test.QuickCheck hiding (elements)
 import qualified Test.QuickCheck as QC
@@ -541,4 +542,78 @@ spec = do
               result = traverse Identity pStr
               p' = runIdentity result
           in p' == pStr
+    
+    describe "Query Functions - Length (User Story 1)" $ do
+      
+      it "T005: length p >= 0 for all patterns" $ do
+        -- Property: length is always non-negative
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in PC.length pStr >= 0
+      
+      it "T006: length p == length (elements p) for all patterns" $ do
+        -- Property: length of pattern equals length of elements list
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in PC.length pStr == Prelude.length (elements pStr)
+    
+    describe "Query Functions - Size (User Story 2)" $ do
+      
+      it "T015: size p >= 1 for all patterns" $ do
+        -- Property: size is always at least 1 (every pattern has at least the root node)
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in size pStr >= 1
+      
+      it "T016: size p >= length p for all patterns" $ do
+        -- Property: size is always at least as large as length (size counts root + elements)
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in size pStr >= PC.length pStr
+      
+      it "T017: size p == 1 + sum (map size (elements p)) for all patterns" $ do
+        -- Property: size equals 1 (root) plus sum of sizes of all elements
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in size pStr == 1 + sum (map size (elements pStr))
+    
+    describe "Query Functions - Depth (User Story 3)" $ do
+      
+      it "T026: depth p >= 0 for all patterns" $ do
+        -- Property: depth is always non-negative (atomic patterns have depth 0)
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in depth pStr >= 0
+      
+      it "T027: depth p <= size p - 1 for all patterns" $ do
+        -- Property: depth cannot exceed size - 1 (worst case is a linear chain)
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in depth pStr <= size pStr - 1
+    
+    describe "Query Functions - Values (User Story 4)" $ do
+      
+      it "T036: length (values p) == size p for all patterns" $ do
+        -- Property: number of values equals number of nodes (one value per node)
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in Prelude.length (values pStr) == size pStr
+      
+      it "T037: head (values p) == value p for all patterns" $ do
+        -- Property: first value is the pattern's own value
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in not (null (values pStr)) && head (values pStr) == value pStr
+      
+      it "T038: values p == toList p for all patterns" $ do
+        -- Property: values is equivalent to toList from Foldable
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in values pStr == toList pStr
+      
+      it "T039: values p == flatten p for all patterns" $ do
+        -- Property: values is equivalent to flatten function
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in values pStr == flatten pStr
 

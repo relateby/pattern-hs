@@ -9,7 +9,8 @@ import Data.Functor.Identity (Identity(..))
 import Data.Maybe (fromJust)
 import Data.Monoid (All(..), Sum(..))
 import Test.Hspec
-import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple)
+import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple, size, depth, values)
+import qualified Pattern.Core as PC
 
 -- Custom type for testing
 data Person = Person { name :: String, age :: Maybe Int }
@@ -2425,3 +2426,310 @@ spec = do
           value (elements result !! 1) `shouldBe` (18 :: Int)  -- Second element processed with state 15
           -- Verify final state (0 + 10 + 5 + 3 = 18)
           finalState `shouldBe` (18 :: Int)
+    
+    describe "Query Functions (User Story 1 - Length)" $ do
+      
+      describe "length function - unit tests" $ do
+        
+        it "T001: returns 0 for atomic pattern" $ do
+          let atom = Pattern { value = "atom", elements = [] }
+          PC.length atom `shouldBe` 0
+        
+        it "T002: returns 1 for single element pattern" $ do
+          let elem = Pattern { value = "elem", elements = [] }
+          let pattern = Pattern { value = "pattern", elements = [elem] }
+          PC.length pattern `shouldBe` 1
+        
+        it "T003: returns correct count for multiple elements pattern" $ do
+          let elem1 = Pattern { value = "e1", elements = [] }
+          let elem2 = Pattern { value = "e2", elements = [] }
+          let elem3 = Pattern { value = "e3", elements = [] }
+          let pattern = Pattern { value = "pattern", elements = [elem1, elem2, elem3] }
+          PC.length pattern `shouldBe` 3
+        
+        it "T004: returns only direct children count for nested pattern" $ do
+          let inner = Pattern { value = "inner", elements = [] }
+          let middle = Pattern { value = "middle", elements = [inner] }
+          let outer = Pattern { value = "outer", elements = [middle] }
+          let pattern = Pattern { value = "root", elements = [outer] }
+          -- Should return 1 (only direct child), not count nested descendants
+          PC.length pattern `shouldBe` 1
+          -- Verify nested structure has its own length
+          PC.length outer `shouldBe` 1
+          PC.length middle `shouldBe` 1
+          PC.length inner `shouldBe` 0
+    
+    describe "Query Functions (User Story 2 - Size)" $ do
+      
+      describe "size function - unit tests" $ do
+        
+        it "T011: returns 1 for atomic pattern" $ do
+          let atom = Pattern { value = "atom", elements = [] }
+          size atom `shouldBe` 1
+        
+        it "T012: returns 1 + element count for pattern with direct elements" $ do
+          let elem1 = Pattern { value = "e1", elements = [] }
+          let elem2 = Pattern { value = "e2", elements = [] }
+          let elem3 = Pattern { value = "e3", elements = [] }
+          let pattern = Pattern { value = "pattern", elements = [elem1, elem2, elem3] }
+          -- Should return 1 (root) + 3 (elements) = 4
+          size pattern `shouldBe` 4
+        
+        it "T013: counts all nodes in deeply nested pattern" $ do
+          let level4 = Pattern { value = "level4", elements = [] }
+          let level3 = Pattern { value = "level3", elements = [level4] }
+          let level2 = Pattern { value = "level2", elements = [level3] }
+          let level1 = Pattern { value = "level1", elements = [level2] }
+          let pattern = Pattern { value = "root", elements = [level1] }
+          -- Should count all nodes: root(1) + level1(1) + level2(1) + level3(1) + level4(1) = 5
+          size pattern `shouldBe` 5
+        
+        it "T014: counts all nodes across branches with varying depths" $ do
+          let branch1Leaf = Pattern { value = "b1leaf", elements = [] }
+          let branch1 = Pattern { value = "b1", elements = [branch1Leaf] }
+          let branch2Mid = Pattern { value = "b2mid", elements = [] }
+          let branch2Leaf = Pattern { value = "b2leaf", elements = [] }
+          let branch2 = Pattern { value = "b2", elements = [branch2Mid, branch2Leaf] }
+          let branch3 = Pattern { value = "b3", elements = [] }
+          let pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+          -- Should count: root(1) + b1(1) + b1leaf(1) + b2(1) + b2mid(1) + b2leaf(1) + b3(1) = 7
+          size pattern `shouldBe` 7
+    
+    describe "Query Functions (User Story 3 - Depth)" $ do
+      
+      describe "depth function - unit tests" $ do
+        
+        it "T022: returns 0 for atomic pattern" $ do
+          let atom = Pattern { value = "atom", elements = [] }
+          -- Atomic pattern has no nesting, depth is 0 (root only)
+          depth atom `shouldBe` 0
+        
+        it "T023: returns 1 for one level of nesting" $ do
+          let elem = Pattern { value = "elem", elements = [] }
+          let pattern = Pattern { value = "pattern", elements = [elem] }
+          -- One level of nesting: root -> elem, depth is 1
+          depth pattern `shouldBe` 1
+        
+        it "T024: returns maximum depth across branches with different depths" $ do
+          let branch1Leaf = Pattern { value = "b1leaf", elements = [] }
+          let branch1 = Pattern { value = "b1", elements = [branch1Leaf] }
+          -- branch1 depth: b1 -> b1leaf = 1
+          let branch2Mid = Pattern { value = "b2mid", elements = [] }
+          let branch2Leaf = Pattern { value = "b2leaf", elements = [] }
+          let branch2Inner = Pattern { value = "b2inner", elements = [branch2Leaf] }
+          let branch2 = Pattern { value = "b2", elements = [branch2Mid, branch2Inner] }
+          -- branch2 depth: b2 -> b2inner -> b2leaf = 2 (maximum among branches)
+          let branch3 = Pattern { value = "b3", elements = [] }
+          -- branch3 depth: b3 = 0
+          let pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+          -- Should return: root -> branch2 -> branch2Inner -> branch2Leaf = 3
+          -- (1 for root -> branch2, plus branch2's depth of 2)
+          depth pattern `shouldBe` 3
+        
+        it "T025: returns maximum depth for deeply nested pattern" $ do
+          let level4 = Pattern { value = "level4", elements = [] }
+          let level3 = Pattern { value = "level3", elements = [level4] }
+          let level2 = Pattern { value = "level2", elements = [level3] }
+          let level1 = Pattern { value = "level1", elements = [level2] }
+          let pattern = Pattern { value = "root", elements = [level1] }
+          -- Depth: root -> level1 -> level2 -> level3 -> level4 = 4
+          depth pattern `shouldBe` 4
+    
+    describe "Query Functions (User Story 4 - Values)" $ do
+      
+      describe "values function - unit tests" $ do
+        
+        it "T032: returns single value for atomic pattern" $ do
+          let atom = Pattern { value = "atom", elements = [] }
+          values atom `shouldBe` ["atom"]
+        
+        it "T033: returns all values for pattern with multiple elements" $ do
+          let elem1 = Pattern { value = "e1", elements = [] }
+          let elem2 = Pattern { value = "e2", elements = [] }
+          let elem3 = Pattern { value = "e3", elements = [] }
+          let pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+          -- Should return: root value first, then element values in order
+          values pattern `shouldBe` ["root", "e1", "e2", "e3"]
+        
+        it "T034: returns all values from all levels for nested pattern" $ do
+          let inner = Pattern { value = "inner", elements = [] }
+          let middle = Pattern { value = "middle", elements = [inner] }
+          let outer = Pattern { value = "outer", elements = [middle] }
+          let pattern = Pattern { value = "root", elements = [outer] }
+          -- Should return all values: root, outer, middle, inner
+          values pattern `shouldBe` ["root", "outer", "middle", "inner"]
+        
+        it "T035: returns values in consistent order for varying nesting depths" $ do
+          let branch1Leaf = Pattern { value = "b1leaf", elements = [] }
+          let branch1 = Pattern { value = "b1", elements = [branch1Leaf] }
+          let branch2Mid = Pattern { value = "b2mid", elements = [] }
+          let branch2Leaf = Pattern { value = "b2leaf", elements = [] }
+          let branch2 = Pattern { value = "b2", elements = [branch2Mid, branch2Leaf] }
+          let branch3 = Pattern { value = "b3", elements = [] }
+          let pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+          -- Should return: root, then branch values in order, then nested values
+          -- Order: root -> b1 -> b1leaf -> b2 -> b2mid -> b2leaf -> b3
+          values pattern `shouldBe` ["root", "b1", "b1leaf", "b2", "b2mid", "b2leaf", "b3"]
+    
+    describe "Query Functions (User Story 5 - Value Accessor)" $ do
+      
+      describe "value field accessor - unit tests" $ do
+        
+        it "T044: returns correct value for string pattern" $ do
+          let pattern = Pattern { value = "test", elements = [] }
+          value pattern `shouldBe` "test"
+        
+        it "T045: returns correct value for integer pattern" $ do
+          let pattern = Pattern { value = 42, elements = [] }
+          value pattern `shouldBe` (42 :: Int)
+        
+        it "T046: returns correct value for custom type pattern" $ do
+          let person = Person "Alice" (Just 30)
+          let pattern = Pattern { value = person, elements = [] }
+          value pattern `shouldBe` person
+        
+        it "T047: returns correct value for each level in nested patterns" $ do
+          let inner = Pattern { value = "inner", elements = [] }
+          let middle = Pattern { value = "middle", elements = [inner] }
+          let outer = Pattern { value = "outer", elements = [middle] }
+          let pattern = Pattern { value = "root", elements = [outer] }
+          -- Verify each level returns its correct value
+          value pattern `shouldBe` "root"
+          value outer `shouldBe` "outer"
+          value middle `shouldBe` "middle"
+          value inner `shouldBe` "inner"
+    
+    describe "Query Functions - Integration Tests (Phase 6)" $ do
+      
+      describe "Integration with pattern constructors" $ do
+        
+        it "T051: query functions work with patterns created using pattern function" $ do
+          let atom = pattern "atom"
+          let elem1 = pattern "e1"
+          let elem2 = pattern "e2"
+          let pattern1 = patternWith "root" [elem1, elem2]
+          -- Verify all query functions work
+          PC.length atom `shouldBe` 0
+          size atom `shouldBe` 1
+          depth atom `shouldBe` 0
+          values atom `shouldBe` ["atom"]
+          value atom `shouldBe` "atom"
+          PC.length pattern1 `shouldBe` 2
+          size pattern1 `shouldBe` 3
+          depth pattern1 `shouldBe` 1
+          values pattern1 `shouldBe` ["root", "e1", "e2"]
+          value pattern1 `shouldBe` "root"
+        
+        it "T052: query functions work with patterns created using patternWith function" $ do
+          let elem1 = pattern "e1"
+          let elem2 = pattern "e2"
+          let elem3 = pattern "e3"
+          let pattern1 = patternWith "root" [elem1, elem2, elem3]
+          -- Verify all query functions work
+          PC.length pattern1 `shouldBe` 3
+          size pattern1 `shouldBe` 4
+          depth pattern1 `shouldBe` 1
+          values pattern1 `shouldBe` ["root", "e1", "e2", "e3"]
+          value pattern1 `shouldBe` "root"
+        
+        it "T053: query functions work with patterns created using fromList function" $ do
+          let pattern1 = fromList "root" ["a", "b", "c"]
+          -- Verify all query functions work
+          PC.length pattern1 `shouldBe` 3
+          size pattern1 `shouldBe` 4
+          depth pattern1 `shouldBe` 1
+          values pattern1 `shouldBe` ["root", "a", "b", "c"]
+          value pattern1 `shouldBe` "root"
+      
+      describe "Integration with type class instances" $ do
+        
+        it "T054: query functions work with patterns transformed using fmap (Functor)" $ do
+          let pattern1 = fromList "root" ["a", "b", "c"]
+          let pattern2 = fmap (map toUpper) pattern1
+          -- Verify all query functions work on transformed pattern
+          PC.length pattern2 `shouldBe` 3
+          size pattern2 `shouldBe` 4
+          depth pattern2 `shouldBe` 1
+          values pattern2 `shouldBe` ["ROOT", "A", "B", "C"]
+          value pattern2 `shouldBe` "ROOT"
+          -- Verify structure is preserved
+          PC.length pattern1 `shouldBe` PC.length pattern2
+          size pattern1 `shouldBe` size pattern2
+          depth pattern1 `shouldBe` depth pattern2
+        
+        it "T055: query functions work with patterns used in Foldable operations" $ do
+          let pattern1 = fromList (10 :: Int) [1, 2, 3, 4, 5]
+          -- Verify query functions work
+          PC.length pattern1 `shouldBe` 5
+          size pattern1 `shouldBe` 6
+          depth pattern1 `shouldBe` 1
+          values pattern1 `shouldBe` [10, 1, 2, 3, 4, 5]
+          value pattern1 `shouldBe` (10 :: Int)
+          -- Verify integration with Foldable
+          sum pattern1 `shouldBe` 25
+          length (toList pattern1) `shouldBe` 6
+          -- Verify values matches toList
+          values pattern1 `shouldBe` toList pattern1
+        
+        it "T056: query functions work with patterns used in Traversable operations" $ do
+          let pattern1 = fromList 10 [1, 2, 3]
+          -- Verify query functions work
+          PC.length pattern1 `shouldBe` 3
+          size pattern1 `shouldBe` 4
+          depth pattern1 `shouldBe` 1
+          values pattern1 `shouldBe` [10, 1, 2, 3]
+          value pattern1 `shouldBe` (10 :: Int)
+          -- Verify integration with Traversable
+          let validate x = if x > 0 then Just x else Nothing
+          let result = traverse validate pattern1
+          case result of
+            Just pattern2 -> do
+              -- Verify query functions work on traversed pattern
+              PC.length pattern2 `shouldBe` 3
+              size pattern2 `shouldBe` 4
+              depth pattern2 `shouldBe` 1
+              values pattern2 `shouldBe` [10, 1, 2, 3]
+              value pattern2 `shouldBe` (10 :: Int)
+            Nothing -> fail "Traverse should succeed for positive values"
+      
+      describe "Edge case tests" $ do
+        
+        it "T057: query functions work with very deeply nested patterns (100+ levels)" $ do
+          -- Create a deeply nested pattern (100 levels)
+          let createDeep n = if n <= 0
+                             then pattern "leaf"
+                             else patternWith ("level" ++ show n) [createDeep (n - 1)]
+          let deepPattern = createDeep 100
+          -- Verify all query functions work (should not stack overflow)
+          PC.length deepPattern `shouldBe` 1
+          size deepPattern `shouldBe` 101
+          depth deepPattern `shouldBe` 100
+          length (values deepPattern) `shouldBe` 101
+          value deepPattern `shouldBe` "level100"
+        
+        it "T058: query functions work with patterns having many direct elements (100+)" $ do
+          -- Create a pattern with 100 direct elements
+          let elems = map (\i -> pattern ("elem" ++ show i)) [1..100]
+          let pattern1 = patternWith "root" elems
+          -- Verify all query functions work
+          PC.length pattern1 `shouldBe` 100
+          size pattern1 `shouldBe` 101
+          depth pattern1 `shouldBe` 1
+          length (values pattern1) `shouldBe` 101
+          value pattern1 `shouldBe` "root"
+          -- Verify first and last elements
+          head (values pattern1) `shouldBe` "root"
+          last (values pattern1) `shouldBe` "elem100"
+        
+        it "T059: query functions work with patterns containing duplicate values" $ do
+          -- Create pattern with duplicate values
+          let pattern1 = fromList "root" ["a", "a", "b", "b", "c", "c"]
+          -- Verify all query functions work
+          PC.length pattern1 `shouldBe` 6
+          size pattern1 `shouldBe` 7
+          depth pattern1 `shouldBe` 1
+          values pattern1 `shouldBe` ["root", "a", "a", "b", "b", "c", "c"]
+          value pattern1 `shouldBe` "root"
+          -- Verify duplicates are preserved
+          filter (== "a") (values pattern1) `shouldBe` ["a", "a"]
+          filter (== "b") (values pattern1) `shouldBe` ["b", "b"]
