@@ -15,7 +15,10 @@ import Data.Foldable (foldl, foldMap, foldr, toList)
 import Data.Functor.Compose (Compose(..))
 import Data.Functor.Identity (Identity(..))
 import Data.Monoid (All(..), Sum(..))
-import Pattern.Core (Pattern(..), pattern, patternWith, fromList, flatten, size, depth, values)
+import Data.List (sort)
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Pattern.Core (Pattern(..), pattern, patternWith, fromList, flatten, size, depth, values, toTuple)
 import qualified Pattern.Core as PC
 import Test.Hspec
 import Test.QuickCheck hiding (elements)
@@ -616,4 +619,140 @@ spec = do
         quickProperty $ \p -> 
           let pStr = p :: Pattern String
           in values pStr == flatten pStr
+  
+  describe "Ord Instance Properties (User Story 1)" $ do
+    
+    describe "Ordering properties" $ do
+      
+      it "T008: transitivity: if p1 < p2 and p2 < p3, then p1 < p3" $ do
+        -- Property: ordering is transitive
+        quickProperty $ \p1 p2 p3 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+              p3Str = p3 :: Pattern String
+          in if p1Str < p2Str && p2Str < p3Str
+             then p1Str < p3Str
+             else True  -- If premise is false, property is vacuously true
+      
+      it "T009: antisymmetry: if p1 < p2, then p2 > p1" $ do
+        -- Property: ordering is antisymmetric
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+          in if p1Str < p2Str
+             then p2Str > p1Str
+             else True  -- If premise is false, property is vacuously true
+      
+      it "T010: reflexivity: p1 <= p1 always true" $ do
+        -- Property: ordering is reflexive
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in pStr <= pStr
+      
+      it "T011: lexicographic ordering: compare p1 p2 == compare (toTuple p1) (toTuple p2)" $ do
+        -- Property: ordering follows lexicographic rules based on toTuple
+        -- Tuples are compared lexicographically: first component, then second
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+              tuple1 = toTuple p1Str
+              tuple2 = toTuple p2Str
+          in compare p1Str p2Str == compare tuple1 tuple2
+  
+  describe "Ord Instance Integration Properties (User Story 2)" $ do
+    
+    describe "Data.Set operations" $ do
+      
+      it "T023: Data.Set operations with patterns" $ do
+        -- Property: Set operations work correctly with patterns
+        quickProperty $ \ps -> 
+          let patterns = ps :: [Pattern String]
+              -- Remove duplicates by converting to set and back
+              uniquePatterns = Set.toList (Set.fromList patterns)
+              -- All patterns in set should be distinct
+              allDistinct = length uniquePatterns == length (Set.fromList patterns)
+              -- All original patterns should be members of the set
+              s = Set.fromList patterns
+              allMembers = all (`Set.member` s) patterns
+          in allDistinct && allMembers
+      
+      it "T023: Data.Set maintains sorted order" $ do
+        -- Property: Set maintains patterns in sorted order
+        quickProperty $ \ps -> 
+          let patterns = ps :: [Pattern String]
+              s = Set.fromList patterns
+              sorted = Set.toList s
+              -- Verify sorted order
+              isSorted = and (zipWith (<=) sorted (drop 1 sorted))
+          in isSorted
+    
+    describe "Data.Map operations" $ do
+      
+      it "T024: Data.Map operations with patterns" $ do
+        -- Property: Map operations work correctly with patterns as keys
+        quickProperty $ \ps -> 
+          let patterns = ps :: [Pattern String]
+              -- Create map with patterns as keys
+              keyValuePairs = zip patterns (map show [1..])
+              m = Map.fromList keyValuePairs
+              -- All patterns should be members
+              allMembers = all (`Map.member` m) patterns
+              -- All lookups should succeed
+              allLookups = all (\p -> Map.lookup p m /= Nothing) patterns
+          in allMembers && allLookups
+      
+      it "T024: Data.Map key uniqueness with patterns" $ do
+        -- Property: Map correctly handles duplicate patterns (later value overwrites)
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+              -- If patterns are equal, second insert should overwrite
+              m1 = Map.insert p1Str "value1" Map.empty
+              m2 = Map.insert p2Str "value2" m1
+              -- If p1 == p2, then lookup p1 should return "value2"
+              -- If p1 /= p2, then lookup p1 should return "value1"
+              result = if p1Str == p2Str
+                       then Map.lookup p1Str m2 == Just "value2"
+                       else Map.lookup p1Str m2 == Just "value1"
+          in result
+  
+  describe "Ord Instance Consistency with Eq Properties (User Story 3)" $ do
+    
+    describe "Consistency properties" $ do
+      
+      it "T032: p1 == p2 implies compare p1 p2 == EQ" $ do
+        -- Property: If patterns are equal, they compare as equal
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+          in if p1Str == p2Str
+             then compare p1Str p2Str == EQ
+             else True  -- If premise is false, property is vacuously true
+      
+      it "T033: compare p1 p2 == EQ implies p1 == p2" $ do
+        -- Property: If patterns compare as equal, they are equal
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+          in if compare p1Str p2Str == EQ
+             then p1Str == p2Str
+             else True  -- If premise is false, property is vacuously true
+      
+      it "T034: ordering uses same comparison order as Eq (value first, then elements)" $ do
+        -- Property: Ordering respects the same structural comparison as Eq
+        -- This verifies that ordering compares value first, then elements
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+              (v1, els1) = toTuple p1Str
+              (v2, els2) = toTuple p2Str
+              -- If values differ, ordering should match value comparison
+              valueOrdering = if v1 /= v2
+                              then compare p1Str p2Str == compare v1 v2
+                              else True  -- If values equal, check elements
+              -- If values equal but elements differ, ordering should match element comparison
+              elementOrdering = if v1 == v2 && els1 /= els2
+                                then compare p1Str p2Str == compare els1 els2
+                                else True
+          in valueOrdering && elementOrdering
 

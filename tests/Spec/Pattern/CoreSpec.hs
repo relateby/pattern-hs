@@ -6,8 +6,11 @@ import Data.Char (toUpper)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, foldMap, toList)
 import Data.Functor.Identity (Identity(..))
+import Data.List (sort)
+import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Data.Monoid (All(..), Sum(..))
+import qualified Data.Set as Set
 import Test.Hspec
 import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple, size, depth, values)
 import qualified Pattern.Core as PC
@@ -2733,3 +2736,384 @@ spec = do
           -- Verify duplicates are preserved
           filter (== "a") (values pattern1) `shouldBe` ["a", "a"]
           filter (== "b") (values pattern1) `shouldBe` ["b", "b"]
+    
+    describe "Ord Instance (User Story 1)" $ do
+      
+      describe "compare function with atomic patterns" $ do
+        
+        it "T001: compare atomic patterns with different values" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+          compare p1 p2 `shouldBe` LT
+          compare p2 p1 `shouldBe` GT
+          compare p1 p1 `shouldBe` EQ
+        
+        it "T002: compare atomic patterns with same value" $ do
+          let p1 = pattern "test"
+              p2 = pattern "test"
+          compare p1 p2 `shouldBe` EQ
+          compare p2 p1 `shouldBe` EQ
+      
+      describe "compare function with patterns having elements" $ do
+        
+        it "T003: compare patterns with same value but different elements" $ do
+          let p1 = patternWith "root" [pattern "a"]
+              p2 = patternWith "root" [pattern "b"]
+          compare p1 p2 `shouldBe` LT
+          compare p2 p1 `shouldBe` GT
+        
+        it "T004: compare patterns with same value and same number of elements" $ do
+          let p1 = patternWith "root" [pattern "a", pattern "b"]
+              p2 = patternWith "root" [pattern "a", pattern "b"]
+          compare p1 p2 `shouldBe` EQ
+          compare p2 p1 `shouldBe` EQ
+      
+      describe "compare function with nested patterns" $ do
+        
+        it "T005: compare nested patterns (recursive comparison)" $ do
+          let inner1 = pattern "inner1"
+              inner2 = pattern "inner2"
+              middle1 = patternWith "middle" [inner1]
+              middle2 = patternWith "middle" [inner2]
+              outer1 = patternWith "outer" [middle1]
+              outer2 = patternWith "outer" [middle2]
+          compare outer1 outer2 `shouldBe` LT
+    
+    describe "Integration & Validation (Phase 4)" $ do
+      
+      describe "Integration with existing functions" $ do
+        
+        it "T042: all query functions work with Ord instance" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = patternWith "root" [pattern "a", pattern "b"]
+          -- Verify query functions work with patterns that can be compared
+          value p1 `shouldBe` "a"
+          PC.length p3 `shouldBe` 2
+          size p3 `shouldBe` 3
+          depth p3 `shouldBe` 1
+          values p3 `shouldBe` ["root", "a", "b"]
+          -- Verify we can compare patterns and use query functions together
+          let patterns = [p3, p1, p2]
+              sorted = sort patterns
+          -- Query functions should work on sorted patterns
+          map value sorted `shouldBe` ["a", "b", "root"]
+          map PC.length sorted `shouldBe` [0, 0, 2]
+        
+        it "T043: Ord instance works with pattern constructors" $ do
+          -- Test with pattern constructor
+          let p1 = pattern "a"
+              p2 = pattern "b"
+          compare p1 p2 `shouldBe` LT
+          -- Test with patternWith constructor
+          let p3 = patternWith "root" [pattern "a"]
+              p4 = patternWith "root" [pattern "b"]
+          compare p3 p4 `shouldBe` LT
+          -- Test with fromList constructor
+          let p5 = fromList "root" ["a", "b"]
+              p6 = fromList "root" ["a", "c"]
+          compare p5 p6 `shouldBe` LT
+          -- Verify constructors produce comparable patterns
+          let patterns = [p2, p1, p4, p3]
+              sorted = sort patterns
+          length sorted `shouldBe` 4
+          -- Verify sorted order
+          and (zipWith (<=) sorted (drop 1 sorted)) `shouldBe` True
+        
+        it "T044: Ord instance works with type class instances" $ do
+          -- Test with Functor
+          let p1 = pattern "a"
+              p2 = pattern "b"
+          fmap (map toUpper) p1 `shouldBe` pattern "A"
+          -- Functor preserves ordering
+          compare (fmap (map toUpper) p1) (fmap (map toUpper) p2) `shouldBe` LT
+          -- Test with Foldable
+          let p3 = patternWith "root" [pattern "a", pattern "b"]
+              p4 = patternWith "root" [pattern "a", pattern "c"]
+          -- Foldable operations work, and we can still compare
+          toList p3 `shouldBe` ["root", "a", "b"]
+          compare p3 p4 `shouldBe` LT
+          -- Test with Traversable
+          let p5 = pattern (Just "a")
+              p6 = pattern (Just "b")
+          -- Traversable operations work, and we can still compare
+          traverse Just p5 `shouldBe` Just (pattern (Just "a"))
+          compare p5 p6 `shouldBe` LT
+          -- Verify type class operations preserve comparability
+          let patterns = [p4, p3]
+              sorted = sort patterns
+          length sorted `shouldBe` 2
+          sorted `shouldBe` [p3, p4]
+        
+        it "T006: comparison operators (<, <=, >, >=) with patterns" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = pattern "a"
+          (p1 < p2) `shouldBe` True
+          (p1 <= p2) `shouldBe` True
+          (p2 > p1) `shouldBe` True
+          (p2 >= p1) `shouldBe` True
+          (p1 < p3) `shouldBe` False
+          (p1 <= p3) `shouldBe` True
+          (p1 > p3) `shouldBe` False
+          (p1 >= p3) `shouldBe` True
+      
+      describe "min and max functions" $ do
+        
+        it "T007: min and max functions with patterns" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = pattern "c"
+          min p1 p2 `shouldBe` p1
+          max p1 p2 `shouldBe` p2
+          min p1 p3 `shouldBe` p1
+          max p1 p3 `shouldBe` p3
+          min p2 p3 `shouldBe` p2
+          max p2 p3 `shouldBe` p3
+    
+    describe "Ord Instance Integration (User Story 2)" $ do
+      
+      describe "Data.Set integration" $ do
+        
+        it "T016: Data.Set with patterns (insertion and ordering)" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = pattern "c"
+              s = Set.insert p3 $ Set.insert p1 $ Set.insert p2 Set.empty
+          -- Set should maintain sorted order
+          Set.toList s `shouldBe` [p1, p2, p3]
+          Set.member p2 s `shouldBe` True
+          Set.member (pattern "d") s `shouldBe` False
+        
+        it "T017: Data.Set membership lookup with patterns" $ do
+          let p1 = pattern "a"
+              p2 = patternWith "root" [pattern "b"]
+              p3 = patternWith "root" [pattern "c"]
+              s = Set.fromList [p1, p2, p3]
+          Set.member p1 s `shouldBe` True
+          Set.member p2 s `shouldBe` True
+          Set.member p3 s `shouldBe` True
+          Set.member (pattern "d") s `shouldBe` False
+          Set.member (patternWith "root" [pattern "d"]) s `shouldBe` False
+        
+        it "T018: Data.Set with patterns having duplicate values but different structures" $ do
+          let p1 = patternWith "root" [pattern "a"]
+              p2 = patternWith "root" [pattern "b"]
+              p3 = patternWith "root" [pattern "a", pattern "b"]
+              s = Set.fromList [p1, p2, p3]
+          -- All three should be distinct (different structures)
+          Set.size s `shouldBe` 3
+          Set.member p1 s `shouldBe` True
+          Set.member p2 s `shouldBe` True
+          Set.member p3 s `shouldBe` True
+      
+      describe "Data.Map integration" $ do
+        
+        it "T019: Data.Map with patterns as keys (insertion and lookup)" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = pattern "c"
+              m = Map.insert p3 "value3" $ Map.insert p1 "value1" $ Map.insert p2 "value2" Map.empty
+          Map.lookup p1 m `shouldBe` Just "value1"
+          Map.lookup p2 m `shouldBe` Just "value2"
+          Map.lookup p3 m `shouldBe` Just "value3"
+          Map.lookup (pattern "d") m `shouldBe` Nothing
+        
+        it "T020: Data.Map key matching with patterns" $ do
+          let p1 = patternWith "root" [pattern "a"]
+              p2 = patternWith "root" [pattern "b"]
+              p3 = patternWith "root" [pattern "a", pattern "b"]
+              m = Map.fromList [(p1, "val1"), (p2, "val2"), (p3, "val3")]
+          Map.member p1 m `shouldBe` True
+          Map.member p2 m `shouldBe` True
+          Map.member p3 m `shouldBe` True
+          Map.lookup p1 m `shouldBe` Just "val1"
+          Map.lookup p2 m `shouldBe` Just "val2"
+          Map.lookup p3 m `shouldBe` Just "val3"
+          Map.member (patternWith "root" [pattern "d"]) m `shouldBe` False
+      
+      describe "Sorting and min/max functions" $ do
+        
+        it "T021: sorting patterns using sort function" $ do
+          let p1 = pattern "c"
+              p2 = pattern "a"
+              p3 = pattern "b"
+              sorted = sort [p1, p2, p3]
+          sorted `shouldBe` [p2, p3, p1]
+          -- Verify sorted order
+          and (zipWith (<=) sorted (tail sorted)) `shouldBe` True
+        
+        it "T022: minimum and maximum functions with pattern lists" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = pattern "c"
+              patterns = [p3, p1, p2]
+          minimum patterns `shouldBe` p1
+          maximum patterns `shouldBe` p3
+          -- Test with nested patterns
+          let nested1 = patternWith "root" [pattern "a"]
+              nested2 = patternWith "root" [pattern "b"]
+              nested3 = patternWith "root" [pattern "c"]
+              nestedPatterns = [nested3, nested1, nested2]
+          minimum nestedPatterns `shouldBe` nested1
+          maximum nestedPatterns `shouldBe` nested3
+    
+    describe "Ord Instance Consistency with Eq (User Story 3)" $ do
+      
+      describe "consistency between Ord and Eq" $ do
+        
+        it "T028: patterns equal by Eq compare as EQ" $ do
+          let p1 = pattern "test"
+              p2 = pattern "test"
+          p1 == p2 `shouldBe` True
+          compare p1 p2 `shouldBe` EQ
+          -- Test with patterns having elements
+          let p3 = patternWith "root" [pattern "a", pattern "b"]
+              p4 = patternWith "root" [pattern "a", pattern "b"]
+          p3 == p4 `shouldBe` True
+          compare p3 p4 `shouldBe` EQ
+          -- Test with nested patterns
+          let inner1 = pattern "inner"
+              inner2 = pattern "inner"
+              outer1 = patternWith "outer" [inner1]
+              outer2 = patternWith "outer" [inner2]
+          outer1 == outer2 `shouldBe` True
+          compare outer1 outer2 `shouldBe` EQ
+        
+        it "T029: patterns not equal by Eq don't compare as EQ" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+          p1 == p2 `shouldBe` False
+          compare p1 p2 `shouldNotBe` EQ
+          compare p2 p1 `shouldNotBe` EQ
+          -- Test with patterns having same value but different elements
+          let p3 = patternWith "root" [pattern "a"]
+              p4 = patternWith "root" [pattern "b"]
+          p3 == p4 `shouldBe` False
+          compare p3 p4 `shouldNotBe` EQ
+          -- Test with patterns having different values
+          let p5 = patternWith "root1" [pattern "a"]
+              p6 = patternWith "root2" [pattern "a"]
+          p5 == p6 `shouldBe` False
+          compare p5 p6 `shouldNotBe` EQ
+        
+        it "T030: patterns with same structure but different values compare by value" $ do
+          let p1 = patternWith "a" [pattern "x"]
+              p2 = patternWith "b" [pattern "x"]
+          -- Same structure (one element with same value), different root values
+          p1 == p2 `shouldBe` False
+          compare p1 p2 `shouldBe` LT  -- "a" < "b"
+          compare p2 p1 `shouldBe` GT
+          -- Verify ordering respects value comparison
+          (p1 < p2) `shouldBe` True
+          (p2 > p1) `shouldBe` True
+        
+        it "T031: patterns with same value but different element structures compare by elements" $ do
+          let p1 = patternWith "root" [pattern "a"]
+              p2 = patternWith "root" [pattern "b"]
+          -- Same root value, different element values
+          p1 == p2 `shouldBe` False
+          compare p1 p2 `shouldBe` LT  -- "a" < "b" in elements
+          compare p2 p1 `shouldBe` GT
+          -- Test with multiple elements
+          let p3 = patternWith "root" [pattern "a", pattern "b"]
+              p4 = patternWith "root" [pattern "a", pattern "c"]
+          p3 == p4 `shouldBe` False
+          compare p3 p4 `shouldBe` LT  -- "b" < "c" in second element
+          -- Test with different number of elements
+          let p5 = patternWith "root" [pattern "a"]
+              p6 = patternWith "root" [pattern "a", pattern "b"]
+          p5 == p6 `shouldBe` False
+          compare p5 p6 `shouldBe` LT  -- shorter list comes first
+          compare p6 p5 `shouldBe` GT
+    
+    describe "Edge Cases (Phase 4)" $ do
+      
+      describe "Edge case tests for Ord instance" $ do
+        
+        it "T037: comparing atomic patterns (no elements)" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              p3 = pattern "a"
+          -- Atomic patterns compare by value only
+          compare p1 p2 `shouldBe` LT
+          compare p2 p1 `shouldBe` GT
+          compare p1 p3 `shouldBe` EQ
+          -- Verify with different value types
+          let p4 = pattern (1 :: Int)
+              p5 = pattern (2 :: Int)
+          compare p4 p5 `shouldBe` LT
+          compare p5 p4 `shouldBe` GT
+        
+        it "T038: comparing patterns with different numbers of elements" $ do
+          let p1 = patternWith "root" []  -- 0 elements
+              p2 = patternWith "root" [pattern "a"]  -- 1 element
+              p3 = patternWith "root" [pattern "a", pattern "b"]  -- 2 elements
+          -- Patterns with fewer elements come first when values are equal
+          compare p1 p2 `shouldBe` LT
+          compare p2 p3 `shouldBe` LT
+          compare p1 p3 `shouldBe` LT
+          compare p3 p2 `shouldBe` GT
+          compare p2 p1 `shouldBe` GT
+          -- Test with different values
+          let p4 = patternWith "a" [pattern "x"]
+              p5 = patternWith "b" []  -- Different value, fewer elements
+          -- Value comparison takes precedence
+          compare p4 p5 `shouldBe` LT  -- "a" < "b"
+        
+        it "T039: comparing deeply nested patterns (100+ levels)" $ do
+          -- Create deeply nested patterns
+          let createDeep n = if n == 0
+                             then pattern "leaf"
+                             else patternWith ("level" ++ show n) [createDeep (n - 1)]
+          let deep1 = createDeep 100
+          let deep2 = createDeep 100
+          let deep3 = createDeep 101
+          -- Same depth patterns should compare as equal if structure is identical
+          compare deep1 deep2 `shouldBe` EQ
+          -- Different depth patterns should compare correctly
+          compare deep1 deep3 `shouldBe` LT  -- 100 < 101 in level names
+          compare deep3 deep1 `shouldBe` GT
+          -- Verify no stack overflow or performance issues
+          (deep1 <= deep2) `shouldBe` True
+          (deep1 < deep3) `shouldBe` True
+        
+        it "T040: comparing patterns with same flattened values but different structures" $ do
+          -- Patterns with same flattened values but different structures should be distinct
+          let p1 = patternWith "root" [pattern "a", pattern "b"]
+              p2 = patternWith "root" [patternWith "a" [pattern "b"]]
+          -- These have different structures even though flattened values might be similar
+          p1 == p2 `shouldBe` False
+          compare p1 p2 `shouldNotBe` EQ
+          -- Test with more complex structures
+          let p3 = patternWith "x" [pattern "y", pattern "z"]
+              p4 = patternWith "x" [patternWith "y" [pattern "z"]]
+          p3 == p4 `shouldBe` False
+          compare p3 p4 `shouldNotBe` EQ
+          -- Verify structure is preserved in comparison
+          let p5 = patternWith "root" [pattern "a"]
+              p6 = patternWith "root" [pattern "a", pattern "b"]
+          -- Even if first element is same, different structures
+          p5 == p6 `shouldBe` False
+          compare p5 p6 `shouldBe` LT  -- shorter list first
+        
+        it "T041: type constraint: Ord v requirement" $ do
+          -- This test verifies that Ord instance requires Ord v constraint
+          -- We test with types that have Ord instances
+          let p1 = pattern ("a" :: String)
+              p2 = pattern ("b" :: String)
+          compare p1 p2 `shouldBe` LT
+          -- Test with Int (has Ord instance)
+          let p3 = pattern (1 :: Int)
+              p4 = pattern (2 :: Int)
+          compare p3 p4 `shouldBe` LT
+          -- Test with patterns containing Int values
+          let p5 = patternWith (10 :: Int) [pattern (1 :: Int), pattern (2 :: Int)]
+              p6 = patternWith (10 :: Int) [pattern (1 :: Int), pattern (3 :: Int)]
+          compare p5 p6 `shouldBe` LT
+          -- Verify that comparison works with nested patterns of orderable types
+          let inner1 = pattern (5 :: Int)
+              inner2 = pattern (6 :: Int)
+              outer1 = patternWith (100 :: Int) [inner1]
+              outer2 = patternWith (100 :: Int) [inner2]
+          compare outer1 outer2 `shouldBe` LT

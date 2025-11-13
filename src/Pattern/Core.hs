@@ -130,6 +130,13 @@
 -- applicative effects. See the Traversable instance documentation below for details on effectful
 -- traversal and structure preservation.
 --
+-- The Pattern type has an Ord instance that provides lexicographic ordering for patterns based
+-- on their structure. Patterns are ordered by comparing their value first, then their elements
+-- recursively. This ordering is consistent with the Eq instance and enables patterns to be
+-- used as keys in Data.Map and elements in Data.Set. The Ord instance requires that the value
+-- type @v@ has an Ord instance. See the Ord instance documentation below for details on
+-- ordering rules and consistency with equality.
+--
 -- The Pattern type provides query functions for introspecting pattern structure:
 --
 -- * @length@ - Returns the number of direct elements in a pattern's sequence (O(1))
@@ -409,6 +416,114 @@ data Pattern v = Pattern
 instance Show v => Show (Pattern v) where
   show (Pattern v els) = 
     "Pattern {value = " ++ show v ++ ", elements = " ++ show els ++ "}"
+
+-- | Ord instance for Pattern.
+--
+-- Provides lexicographic ordering for patterns based on their structure.
+-- Patterns are ordered by comparing their value first, then their elements
+-- recursively. This ordering is consistent with the `Eq` instance and enables
+-- patterns to be used as keys in `Data.Map` and elements in `Data.Set`.
+--
+-- === Ordering Rules
+--
+-- The `Ord` instance uses lexicographic ordering:
+--
+-- 1. **Value comparison first**: If two patterns have different values,
+--    ordering is determined by comparing the values using the `Ord` instance
+--    for the value type.
+--
+-- 2. **Element comparison second**: If two patterns have the same value,
+--    ordering is determined by comparing their elements lists lexicographically.
+--    Elements are compared recursively using the same ordering rules.
+--
+-- 3. **Structure preservation**: Patterns with different structures are
+--    distinguished even if they have the same flattened values. This ensures
+--    that ordering respects the pattern's structure as represented by `toTuple`.
+--
+-- === Consistency with Eq
+--
+-- The `Ord` instance is consistent with the `Eq` instance:
+--
+-- * Patterns that are equal according to `Eq` compare as `EQ`
+-- * Patterns that are not equal according to `Eq` compare as `LT` or `GT`
+-- * Ordering uses the same comparison order as `Eq` (value first, then elements)
+--
+-- === Examples
+--
+-- Atomic patterns with different values:
+--
+-- >>> compare (pattern "a") (pattern "b")
+-- LT
+-- >>> compare (pattern "b") (pattern "a")
+-- GT
+--
+-- Patterns with same value but different elements:
+--
+-- >>> p1 = patternWith "root" [pattern "a"]
+-- >>> p2 = patternWith "root" [pattern "b"]
+-- >>> compare p1 p2
+-- LT
+--
+-- Patterns with same value and same elements:
+--
+-- >>> p1 = patternWith "root" [pattern "a", pattern "b"]
+-- >>> p2 = patternWith "root" [pattern "a", pattern "b"]
+-- >>> compare p1 p2
+-- EQ
+--
+-- Nested patterns (recursive comparison):
+--
+-- >>> inner1 = pattern "inner1"
+-- >>> inner2 = pattern "inner2"
+-- >>> outer1 = patternWith "outer" [patternWith "middle" [inner1]]
+-- >>> outer2 = patternWith "outer" [patternWith "middle" [inner2]]
+-- >>> compare outer1 outer2
+-- LT
+--
+-- Using comparison operators:
+--
+-- >>> (pattern "a") < (pattern "b")
+-- True
+-- >>> (pattern "a") <= (pattern "b")
+-- True
+-- >>> (pattern "b") > (pattern "a")
+-- True
+--
+-- Using min and max:
+--
+-- >>> min (pattern "a") (pattern "b")
+-- Pattern {value = "a", elements = []}
+-- >>> max (pattern "a") (pattern "b")
+-- Pattern {value = "b", elements = []}
+--
+-- === Type Constraint
+--
+-- The `Ord` instance requires that the value type `v` has an `Ord` instance:
+--
+-- @
+-- instance Ord v => Ord (Pattern v)
+-- @
+--
+-- This ensures that pattern values can be compared, which is necessary for
+-- lexicographic ordering. Attempting to use `Ord` operations on patterns with
+-- non-orderable value types will result in a compile-time error.
+--
+-- === Relationship to toTuple
+--
+-- The ordering semantics are based on `toTuple()` structure-preserving
+-- representation. Comparing two patterns is equivalent to comparing their
+-- tuple representations:
+--
+-- @
+-- compare p1 p2 == compare (toTuple p1) (toTuple p2)
+-- @
+--
+-- This ensures that ordering distinguishes patterns with different structures
+-- even if they have the same flattened values.
+--
+instance Ord v => Ord (Pattern v) where
+  compare (Pattern v1 els1) (Pattern v2 els2) =
+    compare v1 v2 `mappend` compare els1 els2
 
 -- | Functor instance for Pattern.
 --
