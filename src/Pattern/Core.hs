@@ -2112,7 +2112,7 @@ size (Pattern _ els) = 1 + sum (map size els)
 -- >>> branch3 = Pattern { value = "b3", elements = [] }
 -- >>> pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
 -- >>> depth pattern
--- 2
+-- 3
 --
 -- Deeply nested pattern:
 --
