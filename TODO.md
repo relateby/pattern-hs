@@ -17,7 +17,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 1: Core Data Type (Foundation) ✅
+## Feature 1: Core Data Type (Foundation) ✅
 
 ### 1.1 Basic Pattern Type
 - [x] Define `Pattern v` data type with `value :: v` and `elements :: [Pattern v]` in `src/Pattern/Core.hs`
@@ -29,7 +29,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 2: Basic Typeclasses ✅
+## Feature 2: Basic Typeclasses ✅
 
 ### 2.1 Show Instance
 - [x] Implement `Show` instance for `Pattern v` (requires `Show v`)
@@ -46,7 +46,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 3: Construction Functions ✅
+## Feature 3: Construction Functions ✅
 
 ### 3.1 Basic Constructors
 - [x] Implement `pattern :: v -> Pattern v` (creates atomic pattern)
@@ -79,7 +79,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 5: Foldable Instance ✅
+## Feature 5: Foldable Instance ✅
 
 ### 5.1 Foldable Implementation
 - [x] Implement `Foldable` instance for `Pattern`
@@ -100,7 +100,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 6: Traversable Instance ✅
+## Feature 6: Traversable Instance ✅
 
 ### 6.1 Traversable Implementation
 - [x] Implement `Traversable` instance for `Pattern`
@@ -123,25 +123,39 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 7: Basic Query Functions
+## Feature 7: Basic Query Functions ✅
 
 ### 7.1 Size and Depth
-- [ ] Implement `length :: Pattern v -> Int` (number of elements in the sequence - equivalent to `length (elements p)`)
-- [ ] Implement `size :: Pattern v -> Int` (total number of nodes)
-- [ ] Implement `depth :: Pattern v -> Int` (maximum nesting depth)
-- [ ] Write tests: length, size and depth for various patterns
-- [ ] Write tests: edge cases (empty, single node, deep nesting)
+- [x] Implement `length :: Pattern v -> Int` (number of elements in the sequence - equivalent to `length (elements p)`)
+- [x] Implement `size :: Pattern v -> Int` (total number of nodes)
+- [x] Implement `depth :: Pattern v -> Int` (maximum nesting depth)
+- [x] Write tests: length, size and depth for various patterns
+- [x] Write tests: edge cases (empty, single node, deep nesting)
 
 ### 7.2 Value Access
-- [ ] Verify `value` field accessor works (already from data type)
-- [ ] Implement `values :: Pattern v -> [v]` (all values in pattern)
-- [ ] Write tests: extract all values from patterns
+- [x] Verify `value` field accessor works (already from data type)
+- [x] Implement `values :: Pattern v -> [v]` (all values in pattern)
+- [x] Write tests: extract all values from patterns
 
-**Goal**: Basic introspection of pattern structure.
+**Goal**: Basic introspection of pattern structure. ✅ **COMPLETE**
+
+**Basic Query Functions Added**:
+1. **`length :: Pattern v -> Int`** - Returns the number of direct elements in a pattern's sequence (O(1))
+2. **`size :: Pattern v -> Int`** - Returns the total number of nodes in a pattern structure, including all nested patterns (O(n))
+3. **`depth :: Pattern v -> Int`** - Returns the maximum nesting depth of a pattern structure (O(n))
+4. **`values :: Pattern v -> [v]`** - Extracts all values from a pattern structure as a flat list (O(n), equivalent to `toList`)
+5. **`value` field accessor** - Direct access to a pattern's decoration value (O(1), already from data type, now documented)
+6. Comprehensive tests for all query functions (333 test cases, all passing)
+7. Property-based tests verifying query function properties
+8. Integration tests with pattern constructors and type class instances
+9. Edge case tests (100+ levels nesting, 100+ elements, duplicate values)
+10. Complete Haddock documentation with examples for all functions
+11. Module-level documentation updated to include query functions
+12. All 67 tasks (T001-T067) completed across 6 phases (5 user stories + integration)
 
 ---
 
-## Feaure 8: Additional Typeclasses (As Needed)
+## Feature 8: Additional Typeclasses (As Needed)
 
 ### 8.1 Ord Instance (If Needed)
 - [ ] Consider if `Ord` instance is needed
@@ -156,7 +170,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 9: Graph Views (Underspecified)
+## Feature 9: Graph Views (Underspecified)
 
 ### 9.1 GraphView Typeclass Design
 - [ ] **STOP and REVIEW**: Is GraphView needed yet?
@@ -173,7 +187,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 10: Pattern Morphisms (Underspecified)
+## Feature 10: Pattern Morphisms (Underspecified)
 
 ### 10.1 Morphism Design
 - [ ] **STOP and REVIEW**: Are morphisms needed yet?
@@ -187,7 +201,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 11: Integration and Polish
+## Feature 11: Integration and Polish
 
 ### 17.1 Module Exports
 - [ ] Review and finalize exports from `Pattern.Core`
@@ -222,7 +236,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ## Current Status
 
-**Current Phase**: Phase 6 (Traversable Instance) - Complete ✅
+**Current Phase**: Phase 7 (Basic Query Functions) - Complete ✅
 
 **Completed**:
 - ✅ Phase 1: Core Pattern type fully implemented with comprehensive tests (25 test cases)
@@ -261,11 +275,25 @@ See [README.md](README.md#development-workflow) for complete workflow details.
   - Comprehensive Haddock documentation with examples
   - Test performance verified (<10ms for property-based tests)
   - All 80 tasks (T001-T080) completed across 6 phases
+- ✅ Phase 7: Basic Query Functions implemented with comprehensive tests:
+  - `length` function for querying direct element count (O(1))
+  - `size` function for querying total node count (O(n))
+  - `depth` function for querying maximum nesting depth (O(n))
+  - `values` function for extracting all values as flat list (O(n))
+  - `value` field accessor documented and verified (O(1))
+  - Property-based tests for all query functions
+  - Integration tests with pattern constructors and type class instances
+  - Edge case tests (100+ levels nesting, 100+ elements, duplicate values)
+  - All tests passing (333 examples, 0 failures)
+  - Comprehensive Haddock documentation with examples
+  - Module-level documentation updated
+  - Performance targets verified (length <1ms, size <10ms for 1000 nodes, depth <5ms for 100 levels, values <10ms for 1000 nodes)
+  - All 67 tasks (T001-T067) completed across 6 phases (5 user stories + integration)
 
 **Next Steps**: 
-1. Move to Phase 7 (Basic Query Functions)
-2. Implement `length`, `size`, and `depth` functions
-3. Implement `values` function for value extraction
+1. Move to Phase 8 (Additional Typeclasses) if needed
+2. Or proceed to Feature 9 (Graph Views) or Feature 10 (Pattern Morphisms) if needed
+3. Or proceed to Feature 11 (Integration and Polish)
 
 ---
 
