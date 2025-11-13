@@ -79,16 +79,24 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feaure 5: Foldable Instance
+## Feaure 5: Foldable Instance ✅
 
 ### 5.1 Foldable Implementation
-- [ ] Implement `Foldable` instance for `Pattern`
-- [ ] Write test: `foldr` collects all values
-- [ ] Write test: `foldl` collects all values (verify order)
-- [ ] Write test: `foldMap` works correctly
-- [ ] Write test: `toList` produces all values
+- [x] Implement `Foldable` instance for `Pattern`
+- [x] Write test: `foldr` collects all values
+- [x] Write test: `foldl` collects all values (verify order)
+- [x] Write test: `foldMap` works correctly
+- [x] Write test: `toList` produces all values
 
-**Goal**: Patterns can be folded/traversed for aggregation.
+**Goal**: Patterns can be folded/traversed for aggregation. ✅ **COMPLETE**
+
+**Foldable Instance Added**:
+1. **`Foldable` instance** - Enables folding over all values in pattern structures with `foldr`, `foldl`, `foldMap`, and `toList`
+2. **`flatten :: Pattern a -> [a]`** - Explicit function for extracting all values as a flat list (equivalent to `toList`)
+3. **`toTuple :: Pattern v -> (v, [Pattern v])`** - Extracts pattern as tuple preserving structure
+4. Comprehensive tests for all foldable operations (231 test cases, all passing)
+5. Property-based tests verifying foldable laws and properties
+6. Complete Haddock documentation with examples
 
 ---
 
@@ -203,7 +211,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ## Current Status
 
-**Current Phase**: Phase 4 (Functor Instance) - Complete ✅
+**Current Phase**: Phase 5 (Foldable Instance) - Complete ✅
 
 **Completed**:
 - ✅ Phase 1: Core Pattern type fully implemented with comprehensive tests (25 test cases)
@@ -223,11 +231,20 @@ See [README.md](README.md#development-workflow) for complete workflow details.
   - All tests passing (81 examples, 0 failures)
   - Comprehensive Haddock documentation with examples
   - Performance optimizations for property-based tests (~6ms total runtime)
+- ✅ Phase 5: Foldable Instance implemented with comprehensive tests:
+  - `Foldable` instance for `Pattern` with `foldr`, `foldl`, `foldMap`, and `toList`
+  - `flatten` function for explicit value extraction
+  - `toTuple` function for structure-preserving extraction
+  - Property-based tests for foldable laws and properties
+  - Unit tests for all pattern structures and edge cases
+  - All tests passing (231 examples, 0 failures)
+  - Comprehensive Haddock documentation with examples
+  - Test performance verified (<10ms for property-based tests)
 
 **Next Steps**: 
-1. Move to Phase 5 (Foldable Instance)
-2. Implement `Foldable` instance for `Pattern`
-3. Write tests for folding operations
+1. Move to Phase 6 (Traversable Instance)
+2. Implement `Traversable` instance for `Pattern`
+3. Write tests for traversal operations
 
 ---
 
