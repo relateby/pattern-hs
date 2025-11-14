@@ -1207,6 +1207,173 @@ instance Hashable v => Hashable (Pattern v) where
 instance Functor Pattern where
   fmap f (Pattern v els) = Pattern (f v) (map (fmap f) els)
 
+-- | Applicative instance for Pattern.
+--
+-- Enables applying functions stored in patterns to values stored in patterns
+-- using structure-preserving/zip-like semantics. The Applicative instance
+-- provides a way to apply functions in a structured context, extending the
+-- capabilities of the Functor instance.
+--
+-- === Structure-Preserving Semantics
+--
+-- The Applicative instance uses structure-preserving/zip-like semantics:
+--
+-- * Root function is applied to root value
+-- * Element functions are applied to element values at corresponding positions
+-- * Function application is applied recursively to nested patterns
+-- * Zip-like truncation handles mismatched element counts (applies up to minimum count)
+--
+-- This preserves pattern structure during function application, maintaining
+-- the decorated sequence model where elements form the pattern itself.
+--
+-- === Applicative Laws
+--
+-- The Applicative instance satisfies all Applicative laws:
+--
+-- **Identity Law**: @pure id <*> v = v@
+--
+-- Applying the identity function to a pattern produces the same pattern unchanged.
+--
+-- **Composition Law**: @pure (.) <*> u <*> v <*> w = u <*> (v <*> w)@
+--
+-- Applying a composition of functions is equivalent to applying each function sequentially.
+--
+-- **Homomorphism Law**: @pure f <*> pure x = pure (f x)@
+--
+-- Applying a pure function to a pure value equals pure application.
+--
+-- **Interchange Law**: @u <*> pure y = pure ($ y) <*> u@
+--
+-- Applying a function pattern to a pure value equals applying a pure function to the value pattern.
+--
+-- These laws are verified through property-based testing to ensure mathematical correctness.
+--
+-- === Consistency with Functor
+--
+-- The Applicative instance is consistent with the Functor instance:
+--
+-- @
+-- fmap f x = pure f <*> x
+-- @
+--
+-- This relationship ensures that Functor operations can be expressed using
+-- Applicative operations, maintaining categorical consistency. This consistency
+-- is verified through property-based testing to ensure it holds for all pattern
+-- structures (atomic, with elements, nested) and all value type transformations.
+--
+-- === Examples
+--
+-- Atomic patterns:
+--
+-- >>> let f = pure (+1)
+-- >>> let x = pure 5
+-- >>> f <*> x
+-- Pattern {value = 6, elements = []}
+--
+-- Patterns with elements:
+--
+-- >>> let fs = patternWith id [pure (*2), pure (+10)]
+-- >>> let xs = patternWith 5 [pure 3, pure 7]
+-- >>> fs <*> xs
+-- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}, Pattern {value = 17, elements = []}]}
+--
+-- Nested patterns:
+--
+-- >>> let fs = patternWith id [patternWith (*2) [pure (*3)], patternWith (+1) []]
+-- >>> let xs = patternWith 1 [patternWith 2 [pure 3], patternWith 4 []]
+-- >>> fs <*> xs
+-- Pattern {value = 1, elements = [Pattern {value = 4, elements = [Pattern {value = 9, elements = []}]}, Pattern {value = 5, elements = []}]}
+--
+-- Mismatched element counts (zip-like truncation):
+--
+-- >>> let fs = patternWith id [pure (*2)]  -- 1 element
+-- >>> let xs = patternWith 5 [pure 3, pure 7]   -- 2 elements
+-- >>> fs <*> xs
+-- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}]}
+--
+-- === Edge Cases
+--
+-- The Applicative instance handles all pattern structures correctly:
+--
+-- **Atomic patterns**: Function and value are both atomic, result is atomic
+-- **Patterns with elements**: Functions and values have matching elements, applied positionally
+-- **Nested patterns**: Functions and values have matching nesting, applied recursively
+-- **Mismatched structures**: Zip-like truncation applies up to minimum element count
+--
+instance Applicative Pattern where
+  -- | Wrap a value in an atomic pattern.
+  --
+  -- Creates a pattern with the provided value and an empty elements list.
+  -- This enables values to be used in applicative operations with patterns.
+  --
+  -- === Examples
+  --
+  -- >>> pure 5
+  -- Pattern {value = 5, elements = []}
+  --
+  -- >>> pure "hello"
+  -- Pattern {value = "hello", elements = []}
+  --
+  -- >>> pure (+1) <*> pure 5
+  -- Pattern {value = 6, elements = []}
+  --
+  pure x = Pattern x []
+  
+  -- | Apply functions stored in a pattern to values stored in a pattern.
+  --
+  -- Uses structure-preserving/zip-like semantics: applies functions to values
+  -- at corresponding positions (root to root, element to element). When element
+  -- counts differ, applies functions to values up to the minimum element count,
+  -- ignoring extra elements in the longer pattern.
+  --
+  -- === Structure-Preserving Semantics
+  --
+  -- The operator preserves pattern structure during function application:
+  --
+  -- * Root function is applied to root value
+  -- * Element functions are applied to element values at corresponding positions
+  -- * Function application is applied recursively to nested patterns
+  -- * Zip-like truncation handles mismatched element counts
+  --
+  -- === Examples
+  --
+  -- Atomic patterns:
+  --
+  -- >>> let f = pure (+1)
+  -- >>> let x = pure 5
+  -- >>> f <*> x
+  -- Pattern {value = 6, elements = []}
+  --
+  -- Patterns with elements:
+  --
+  -- >>> let fs = patternWith id [pure (*2), pure (+10)]
+  -- >>> let xs = patternWith 5 [pure 3, pure 7]
+  -- >>> fs <*> xs
+  -- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}, Pattern {value = 17, elements = []}]}
+  --
+  -- Mismatched element counts (truncation):
+  --
+  -- >>> let fs = patternWith id [pure (*2)]  -- 1 element
+  -- >>> let xs = patternWith 5 [pure 3, pure 7]   -- 2 elements
+  -- >>> fs <*> xs
+  -- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}]}
+  --
+  Pattern f fs <*> Pattern x xs = 
+    Pattern (f x) (applyElements fs xs)
+    where
+      -- Apply element functions to element values
+      -- If one list is empty (atomic pattern), broadcast to all elements of the other
+      -- This handles the case where pure function/value is applied to pattern with elements
+      applyElements [] ys = map (pure f <*>) ys  -- pure function broadcast to all value elements
+      applyElements ys [] = map (<*> pure x) ys  -- pure value broadcast to all function elements
+      applyElements fs' xs' = zipWith (<*>) fs' xs'  -- zip-like truncation: apply up to minimum length
+      
+      -- Edge case handling:
+      -- * Empty elements lists: Both patterns atomic, result is atomic (handled by root application)
+      -- * Mismatched element counts: Zip-like truncation applies functions to values up to minimum count
+      -- * Deeply nested patterns: Recursive application handles all nesting levels
+      -- * Atomic with elements: Broadcasting handles pure function/value with pattern elements
+
 -- | Foldable instance for Pattern.
 --
 -- Enables folding over all values in a pattern structure, including the pattern's

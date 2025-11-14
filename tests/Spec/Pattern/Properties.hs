@@ -1068,3 +1068,136 @@ spec = do
         -- Collision rate should be very low (< 1%)
         collisionRate `shouldSatisfy` (< 0.01)
 
+  describe "Applicative Laws (User Story 2)" $ do
+    
+    describe "Identity Law" $ do
+      
+      it "T022: identity law: pure id <*> v = v for Pattern Int" $ do
+        -- Property: Applying identity function produces the same pattern
+        quickProperty $ \v -> 
+          let p = v :: Pattern Int
+          in (pure id <*> p) == p
+      
+      it "T022: identity law: pure id <*> v = v for Pattern String" $ do
+        -- Property: Applying identity function produces the same pattern
+        quickProperty $ \v -> 
+          let p = v :: Pattern String
+          in (pure id <*> p) == p
+    
+    describe "Composition Law" $ do
+      
+      it "T023: composition law: pure (.) <*> u <*> v <*> w = u <*> (v <*> w) for Pattern Int" $ do
+        -- Property: Composition of functions equals sequential application
+        -- u and v are function patterns, w is a value pattern
+        quickProperty $ \w -> 
+          let u = pure ((+1) :: Int -> Int)  -- function pattern u
+              v = pure ((*2) :: Int -> Int)  -- function pattern v
+              val = pure w :: Pattern Int    -- value pattern w
+              leftSide = ((pure (.) <*> u) <*> v) <*> val
+              rightSide = u <*> (v <*> val)
+          in leftSide == rightSide
+      
+      it "T023: composition law with pattern functions having elements" $ do
+        -- Property: Composition law holds when functions are in patterns with elements
+        quickProperty $ \w -> 
+          let u = patternWith ((+1) :: Int -> Int) [pure ((*2) :: Int -> Int)]
+              v = patternWith ((*3) :: Int -> Int) [pure ((+5) :: Int -> Int)]
+              val = patternWith w [pure (w + 1)]
+              leftSide = ((pure (.) <*> u) <*> v) <*> val
+              rightSide = u <*> (v <*> val)
+          in leftSide == rightSide
+    
+    describe "Homomorphism Law" $ do
+      
+      it "T024: homomorphism law: pure f <*> pure x = pure (f x) for Int functions" $ do
+        -- Property: Applying pure function to pure value equals pure application
+        quickProperty $ \x -> 
+          let f = (+1) :: Int -> Int
+              leftSide = (pure f <*> pure x) :: Pattern Int
+              rightSide = pure (f x) :: Pattern Int
+          in leftSide == rightSide
+      
+      it "T024: homomorphism law: pure f <*> pure x = pure (f x) for String functions" $ do
+        -- Property: Applying pure function to pure value equals pure application
+        quickProperty $ \x -> 
+          let f = map toUpper :: String -> String
+              leftSide = (pure f <*> pure x) :: Pattern String
+              rightSide = pure (f x) :: Pattern String
+          in leftSide == rightSide
+    
+    describe "Interchange Law" $ do
+      
+      it "T025: interchange law: u <*> pure y = pure ($ y) <*> u for Pattern Int" $ do
+        -- Property: Applying function pattern to pure value equals applying pure function to value pattern
+        quickProperty $ \y -> 
+          let u = pure ((+1) :: Int -> Int)
+              leftSide = (u <*> pure y) :: Pattern Int
+              rightSide = (pure (\f -> f y) <*> u) :: Pattern Int
+          in leftSide == rightSide
+      
+      it "T025: interchange law with pattern function" $ do
+        -- Property: Interchange law holds with pattern functions
+        quickProperty $ \y -> 
+          let u = patternWith ((+1) :: Int -> Int) [pure ((*2) :: Int -> Int)]
+              leftSide = (u <*> pure y) :: Pattern Int
+              rightSide = (pure (\f -> f y) <*> u) :: Pattern Int
+          in leftSide == rightSide
+
+  describe "Applicative Consistency with Functor (User Story 3)" $ do
+    
+    describe "Functor Consistency Property" $ do
+      
+      it "T036: fmap f x = pure f <*> x for Pattern Int" $ do
+        -- Property: Functor operations are consistent with Applicative operations
+        quickProperty $ \x -> 
+          let f = (+1) :: Int -> Int
+              p = x :: Pattern Int
+              functorResult = fmap f p
+              applicativeResult = pure f <*> p
+          in functorResult == applicativeResult
+      
+      it "T036: fmap f x = pure f <*> x for Pattern String" $ do
+        -- Property: Functor operations are consistent with Applicative operations
+        quickProperty $ \x -> 
+          let f = map toUpper :: String -> String
+              p = x :: Pattern String
+              functorResult = fmap f p
+              applicativeResult = pure f <*> p
+          in functorResult == applicativeResult
+      
+      it "T037: consistency with atomic patterns" $ do
+        -- Property: Consistency holds for atomic patterns
+        quickProperty $ \x -> 
+          let f = (*2) :: Int -> Int
+              p = pure x :: Pattern Int
+              functorResult = fmap f p
+              applicativeResult = pure f <*> p
+          in functorResult == applicativeResult
+      
+      it "T038: consistency with patterns having elements" $ do
+        -- Property: Consistency holds for patterns with elements
+        quickProperty $ \x -> 
+          let f = (+10) :: Int -> Int
+              p = patternWith x [pure (x + 1), pure (x + 2)]
+              functorResult = fmap f p
+              applicativeResult = pure f <*> p
+          in functorResult == applicativeResult
+      
+      it "T039: consistency with nested patterns" $ do
+        -- Property: Consistency holds for nested patterns
+        quickProperty $ \x -> 
+          let f = (*3) :: Int -> Int
+              p = patternWith x [patternWith (x + 1) [pure (x + 2)]]
+              functorResult = fmap f p
+              applicativeResult = pure f <*> p
+          in functorResult == applicativeResult
+      
+      it "T040: consistency with type transformations (String -> Int)" $ do
+        -- Property: Consistency holds for type transformations
+        quickProperty $ \x -> 
+          let f = length :: String -> Int
+              p = x :: Pattern String
+              functorResult = fmap f p
+              applicativeResult = pure f <*> p
+          in functorResult == applicativeResult
+
