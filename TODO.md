@@ -272,18 +272,18 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 8. **All 50 tasks (T001-T050) completed** across 5 phases (MVP, verification, integration, polish)
 
 ### 8.6 Applicative Instance
-- [ ] **STOP and REVIEW**: Identify clear use cases for applying patterns of functions to patterns of values
-- [ ] Evaluate semantics: how should `pure` and `<*>` work for Pattern?
-- [ ] Consider: does this fit the decorated sequence model, or is Functor sufficient?
-- [ ] Document use cases before proceeding
-- [ ] If proceeding: design and implement `Applicative` instance
-- [ ] Write tests: verify applicative laws (identity, composition, homomorphism, interchange)
-- [ ] Write tests: verify consistency with Functor (`fmap f x = pure f <*> x`)
-- [ ] Write tests: edge cases (empty patterns, nested patterns, function application)
+- [x] **STOP and REVIEW**: Identify clear use cases for applying patterns of functions to patterns of values
+- [x] Evaluate semantics: how should `pure` and `<*>` work for Pattern?
+- [x] Consider: does this fit the decorated sequence model, or is Functor sufficient?
+- [x] Document use cases before proceeding
+- [x] If proceeding: design and implement `Applicative` instance
+- [x] Write tests: verify applicative laws (identity, composition, homomorphism, interchange)
+- [x] Write tests: verify consistency with Functor (`fmap f x = pure f <*> x`)
+- [x] Write tests: edge cases (empty patterns, nested patterns, function application)
 
 **Goal**: Enable applicative-style pattern operations, if use cases are clear and semantics are well-defined.
 
-**Status**: Pending use case evaluation and semantic design.
+**Status**: ✅ **COMPLETE** - Implemented with structure-preserving/zip-like semantics. All Applicative laws verified. Functor consistency verified. Edge cases handled. See `specs/013-applicative-instance/` for full specification and implementation details.
 
 ---
 
