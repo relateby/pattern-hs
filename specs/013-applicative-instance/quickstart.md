@@ -59,8 +59,8 @@ let f = pure (+1)
 -- result = Pattern {value = 6, elements = []}
 
 -- Apply multiple functions to multiple values
-let fs = patternWith id [(*2), (+10)]
-    xs = patternWith 5 [3, 7]
+let fs = patternWith id [pure (*2), pure (+10)]
+    xs = patternWith 5 [pure 3, pure 7]
     result = fs <*> xs
 -- result = Pattern {value = 5, elements = [Pattern {value = 6, elements = []}, Pattern {value = 17, elements = []}]}
 ```
@@ -99,11 +99,11 @@ Apply functions recursively to nested patterns:
 
 ```haskell
 let fs = patternWith id 
-      [ patternWith (*2) [(*3)]
+      [ patternWith (*2) [pure (*3)]
       , patternWith (+1) []
       ]
     xs = patternWith 1
-      [ patternWith 2 [3]
+      [ patternWith 2 [pure 3]
       , patternWith 4 []
       ]
     result = fs <*> xs
@@ -116,8 +116,8 @@ When function and value patterns have different element counts, zip-like truncat
 
 ```haskell
 -- Function pattern has 2 elements, value pattern has 3 elements
-let fs = patternWith id [(*2), (+10)]  -- 2 elements
-    xs = patternWith 5 [3, 7, 11]       -- 3 elements
+let fs = patternWith id [pure (*2), pure (+10)]  -- 2 elements
+    xs = patternWith 5 [pure 3, pure 7, pure 11]       -- 3 elements
     result = fs <*> xs
 -- result = Pattern {value = 5, elements = [Pattern {value = 6, elements = []}, Pattern {value = 17, elements = []}]}
 -- Note: Third element (11) is ignored due to truncation

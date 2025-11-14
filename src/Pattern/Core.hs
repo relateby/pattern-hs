@@ -1272,22 +1272,22 @@ instance Functor Pattern where
 --
 -- Patterns with elements:
 --
--- >>> let fs = patternWith id [(*2), (+10)]
--- >>> let xs = patternWith 5 [3, 7]
+-- >>> let fs = patternWith id [pure (*2), pure (+10)]
+-- >>> let xs = patternWith 5 [pure 3, pure 7]
 -- >>> fs <*> xs
 -- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}, Pattern {value = 17, elements = []}]}
 --
 -- Nested patterns:
 --
--- >>> let fs = patternWith id [patternWith (*2) [(*3)], patternWith (+1) []]
--- >>> let xs = patternWith 1 [patternWith 2 [3], patternWith 4 []]
+-- >>> let fs = patternWith id [patternWith (*2) [pure (*3)], patternWith (+1) []]
+-- >>> let xs = patternWith 1 [patternWith 2 [pure 3], patternWith 4 []]
 -- >>> fs <*> xs
 -- Pattern {value = 1, elements = [Pattern {value = 4, elements = [Pattern {value = 9, elements = []}]}, Pattern {value = 5, elements = []}]}
 --
 -- Mismatched element counts (zip-like truncation):
 --
--- >>> let fs = patternWith id [(*2)]  -- 1 element
--- >>> let xs = patternWith 5 [3, 7]   -- 2 elements
+-- >>> let fs = patternWith id [pure (*2)]  -- 1 element
+-- >>> let xs = patternWith 5 [pure 3, pure 7]   -- 2 elements
 -- >>> fs <*> xs
 -- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}]}
 --
@@ -1346,15 +1346,15 @@ instance Applicative Pattern where
   --
   -- Patterns with elements:
   --
-  -- >>> let fs = patternWith id [(*2), (+10)]
-  -- >>> let xs = patternWith 5 [3, 7]
+  -- >>> let fs = patternWith id [pure (*2), pure (+10)]
+  -- >>> let xs = patternWith 5 [pure 3, pure 7]
   -- >>> fs <*> xs
   -- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}, Pattern {value = 17, elements = []}]}
   --
   -- Mismatched element counts (truncation):
   --
-  -- >>> let fs = patternWith id [(*2)]  -- 1 element
-  -- >>> let xs = patternWith 5 [3, 7]   -- 2 elements
+  -- >>> let fs = patternWith id [pure (*2)]  -- 1 element
+  -- >>> let xs = patternWith 5 [pure 3, pure 7]   -- 2 elements
   -- >>> fs <*> xs
   -- Pattern {value = 5, elements = [Pattern {value = 6, elements = []}]}
   --
