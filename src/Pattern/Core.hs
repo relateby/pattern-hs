@@ -152,6 +152,14 @@
 -- instance requires that the value type @v@ has a Monoid instance. See the Monoid instance
 -- documentation below for details on identity semantics and laws.
 --
+-- The Pattern type has a Hashable instance that enables using patterns as keys in `HashMap`
+-- and elements in `HashSet` for efficient hash-based lookups and deduplication. The instance
+-- uses structure-preserving hashing based on value and elements recursively, ensuring that
+-- equal patterns (according to `Eq`) produce the same hash value while providing good
+-- distribution. The Hashable instance requires that the value type @v@ has a Hashable
+-- instance. See the Hashable instance documentation below for details on hash semantics and
+-- consistency with equality.
+--
 -- The Pattern type provides query functions for introspecting pattern structure:
 --
 -- * @length@ - Returns the number of direct elements in a pattern's sequence (O(1))
@@ -219,6 +227,7 @@
 module Pattern.Core where
 
 import Data.Foldable (toList)
+import Data.Hashable (Hashable(..))
 import Data.Monoid (Monoid(..))
 import Data.Traversable (Traversable(..))
 
@@ -877,6 +886,173 @@ instance Monoid v => Monoid (Pattern v) where
   mempty = pattern mempty
   -- Note: <> is inherited from Semigroup instance
   -- Implementation: mempty = Pattern { value = mempty, elements = [] }
+
+-- | Hashable instance for Pattern.
+--
+-- Enables using patterns as keys in `HashMap` and elements in `HashSet` for
+-- efficient hash-based lookups and deduplication. The instance provides O(1)
+-- average-case performance compared to O(log n) for ordered containers.
+--
+-- === Hash Semantics
+--
+-- The `Hashable` instance uses structure-preserving hashing: patterns are hashed
+-- based on their structure (value and elements recursively), ensuring that equal
+-- patterns (according to `Eq`) produce the same hash value while providing good
+-- distribution to minimize collisions.
+--
+-- **Structure-preserving**: Hash patterns based on their structure (value and elements),
+-- not flattened values. This distinguishes patterns with different structures even
+-- if they have the same flattened values.
+--
+-- **Consistent with Eq**: For all patterns `p1` and `p2`, if `p1 == p2`, then
+-- `hash p1 == hash p2`. This is a fundamental requirement for `Hashable` instances
+-- and enables correct behavior in hash-based containers.
+--
+-- **Recursive**: Nested patterns are hashed recursively, ensuring deep structures
+-- contribute to the hash value correctly.
+--
+-- **Good distribution**: Patterns with different structures produce different hash
+-- values in the majority of cases, minimizing collisions.
+--
+-- === Hash Consistency with Eq
+--
+-- The hash function is designed to be consistent with the `Eq` instance:
+--
+-- * `Eq` compares value first, then elements recursively
+-- * `Hashable` hashes value first, then elements recursively
+-- * This ensures equal patterns produce the same hash
+--
+-- === Examples
+--
+-- Hashing atomic patterns:
+--
+-- >>> hash (pattern "a" :: Pattern String)
+-- <hash value>
+--
+-- >>> hash (pattern "b" :: Pattern String)
+-- <different hash value>
+--
+-- Hashing patterns with elements:
+--
+-- >>> hash (patternWith "root" [pattern "a", pattern "b"] :: Pattern String)
+-- <hash value>
+--
+-- Hash consistency with Eq:
+--
+-- >>> let p1 = pattern "test" :: Pattern String
+-- >>> let p2 = pattern "test" :: Pattern String
+-- >>> p1 == p2
+-- True
+-- >>> hash p1 == hash p2
+-- True
+--
+-- Structure-preserving hashing (different structures produce different hashes):
+--
+-- >>> let p1 = patternWith "a" [pattern "b", pattern "c"] :: Pattern String
+-- >>> let p2 = patternWith "a" [patternWith "b" [pattern "c"]] :: Pattern String
+-- >>> hash p1 /= hash p2
+-- True
+--
+-- Using patterns in HashMap:
+--
+-- >>> import qualified Data.HashMap.Strict as HashMap
+-- >>> let m = HashMap.fromList [(pattern "a", 1), (pattern "b", 2)] :: HashMap (Pattern String) Int
+-- >>> HashMap.lookup (pattern "a") m
+-- Just 1
+--
+-- Using patterns in HashSet:
+--
+-- >>> import qualified Data.HashSet as HashSet
+-- >>> let s = HashSet.fromList [pattern "a", pattern "b", pattern "c"] :: HashSet (Pattern String)
+-- >>> HashSet.member (pattern "a") s
+-- True
+--
+-- === Edge Cases
+--
+-- **Atomic patterns** (no elements):
+--
+-- >>> hash (pattern "atom" :: Pattern String)
+-- <hash value>
+--
+-- **Patterns with many elements**:
+--
+-- >>> let elems = map pattern ["a", "b", "c", "d", "e"]
+-- >>> hash (patternWith "root" elems :: Pattern String)
+-- <hash value>
+--
+-- **Deeply nested patterns**:
+--
+-- >>> let deep = patternWith "level1" [patternWith "level2" [patternWith "level3" [pattern "value"]]]
+-- >>> hash (deep :: Pattern String)
+-- <hash value>
+--
+-- **Patterns with same flattened values but different structures**:
+--
+-- >>> let p1 = patternWith "a" [pattern "b", pattern "c"] :: Pattern String
+-- >>> let p2 = patternWith "a" [patternWith "b" [pattern "c"]] :: Pattern String
+-- >>> hash p1 /= hash p2
+-- True
+--
+-- === Type Constraint
+--
+-- The `Hashable` instance requires that the value type `v` has a `Hashable` instance:
+--
+-- >>> hash (pattern "test" :: Pattern String)  -- String has Hashable instance
+-- <hash value>
+--
+-- If the value type doesn't have a `Hashable` instance, the pattern cannot be hashed:
+--
+-- >>> -- This would fail to compile if CustomType doesn't have Hashable instance
+-- >>> -- hash (pattern customValue :: Pattern CustomType)
+--
+-- === Performance
+--
+-- Hash computation is O(n) where n is the number of nodes in the pattern structure.
+-- For patterns with up to 1000 nodes, hash computation should complete in under 10 milliseconds.
+--
+-- Hash-based container operations:
+--
+-- * `HashMap` lookups: O(1) average-case, O(n) worst-case (with collisions)
+-- * `HashSet` membership: O(1) average-case, O(n) worst-case (with collisions)
+--
+-- === Comparison with Ordered Containers
+--
+-- Hash-based containers (`HashMap`, `HashSet`) provide O(1) average-case operations
+-- but do not maintain sorted order. Ordered containers (`Data.Map`, `Data.Set`) provide
+-- O(log n) operations but maintain sorted order. Choose based on whether ordering is
+-- needed and performance requirements.
+--
+instance Hashable v => Hashable (Pattern v) where
+  -- | Hash a pattern using structure-preserving hashing.
+  --
+  -- The hash is computed by hashing the pattern's value first, then its elements
+  -- recursively. This ensures that equal patterns (according to `Eq`) produce the
+  -- same hash value while providing good distribution.
+  --
+  -- === Implementation
+  --
+  -- The implementation follows standard Haskell conventions for recursive types:
+  --
+  -- @
+  -- hashWithSalt s (Pattern v els) = s `hashWithSalt` v `hashWithSalt` els
+  -- @
+  --
+  -- Where `els` is hashed as a list, which recursively hashes each element pattern
+  -- using the `Hashable` instance for `[Pattern v]` (which requires `Hashable (Pattern v)`).
+  --
+  -- === Examples
+  --
+  -- Hashing with default salt:
+  --
+  -- >>> hash (pattern "test" :: Pattern String)
+  -- <hash value>
+  --
+  -- Hashing with custom salt:
+  --
+  -- >>> hashWithSalt 42 (pattern "test" :: Pattern String)
+  -- <hash value>
+  --
+  hashWithSalt s (Pattern v els) = s `hashWithSalt` v `hashWithSalt` els
 
 -- | Functor instance for Pattern.
 --

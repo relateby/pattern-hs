@@ -10,6 +10,7 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - Haskell (GHC 9.8.4, 9.10.3) + `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11` (005-functor-instance)
 - Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6 (008-basic-query-functions)
 - N/A (pure functional data structure) (008-basic-query-functions)
+- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4 (012-hashable-instance)
 
 - (001-pattern-data-structure)
 
@@ -29,9 +30,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 012-hashable-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4
 - 011-monoid-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 - 010-semigroup-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
-- 009-ord-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 
 
 <!-- MANUAL ADDITIONS START -->

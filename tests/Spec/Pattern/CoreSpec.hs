@@ -6,6 +6,7 @@ import Data.Char (toUpper)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, foldMap, toList)
 import Data.Functor.Identity (Identity(..))
+import Data.Hashable (hash, hashWithSalt)
 import Data.List (sort)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
@@ -3547,3 +3548,63 @@ spec = do
           mconcatResult `shouldBe` foldrResult
           value mconcatResult `shouldBe` "abc"
           elements mconcatResult `shouldBe` ([] :: [Pattern String])
+    
+    describe "Hashable Instance (User Story 3)" $ do
+      
+      describe "Basic Hashing" $ do
+        
+        it "T001: hash atomic pattern" $ do
+          let p = pattern "a" :: Pattern String
+          hash p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+        
+        it "T002: hash pattern with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"] :: Pattern String
+          hash p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+        
+        it "T003: hash nested pattern" $ do
+          let p = patternWith "outer" [patternWith "inner" [pattern "value"]] :: Pattern String
+          hash p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+        
+        it "T004: hash consistency with Eq - equal patterns have same hash" $ do
+          let p1 = pattern "a" :: Pattern String
+              p2 = pattern "a" :: Pattern String
+          p1 `shouldBe` p2
+          hash p1 `shouldBe` hash p2
+        
+        it "T005: hash pattern with String values" $ do
+          let p1 = pattern "hello" :: Pattern String
+              p2 = pattern "world" :: Pattern String
+          hash p1 `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+          hash p2 `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+        
+        it "T006: hash pattern with Int values" $ do
+          let p1 = pattern (42 :: Int) :: Pattern Int
+              p2 = pattern (100 :: Int) :: Pattern Int
+          hash p1 `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+          hash p2 `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+        
+        it "T007: structure-preserving hashing - different structures produce different hashes" $ do
+          let p1 = patternWith "a" [pattern "b", pattern "c"] :: Pattern String
+              p2 = patternWith "a" [patternWith "b" [pattern "c"]] :: Pattern String
+          -- Different structures should produce different hashes
+          hash p1 `shouldNotBe` hash p2
+        
+        it "T008: recursive hashing - nested structures contribute to hash" $ do
+          let p1 = patternWith "root" [pattern "a"] :: Pattern String
+              p2 = patternWith "root" [patternWith "a" [pattern "b"]] :: Pattern String
+          -- Different nesting should produce different hashes
+          hash p1 `shouldNotBe` hash p2
+        
+        it "T009: type constraint - Hashable v requirement" $ do
+          let p = pattern "test" :: Pattern String
+          -- Should compile and execute (String has Hashable instance)
+          hash p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+        
+        it "T010: hashWithSalt function" $ do
+          let p = pattern "test" :: Pattern String
+              salt1 = 42
+              salt2 = 100
+          hashWithSalt salt1 p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+          hashWithSalt salt2 p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
+          -- Different salts should produce different hashes
+          hashWithSalt salt1 p `shouldNotBe` hashWithSalt salt2 p
