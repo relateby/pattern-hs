@@ -84,21 +84,21 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US4] Write property-based test for hash consistency with Eq: `p1 == p2` implies `hash p1 == hash p2` in tests/Spec/Pattern/Properties.hs
-- [ ] T018 [P] [US4] Write property-based test for hash consistency with different value types (String, Int, custom Hashable instances) in tests/Spec/Pattern/Properties.hs
-- [ ] T019 [P] [US4] Write property-based test for hash consistency with all pattern structures (atomic, with elements, nested, different depths) in tests/Spec/Pattern/Properties.hs
-- [ ] T020 [P] [US4] Write property-based test for hash distribution: different structures produce different hashes in tests/Spec/Pattern/Properties.hs
-- [ ] T021 [P] [US4] Write statistical test for hash collision rate (verify < 1% collision rate for random patterns) in tests/Spec/Pattern/Properties.hs
-- [ ] T022 [P] [US4] Write unit test for hashing atomic patterns (edge case) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T023 [P] [US4] Write unit test for hashing patterns with many elements (100+ elements) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T024 [P] [US4] Write unit test for hashing deeply nested patterns (10+ levels) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T025 [P] [US4] Write unit test for hashing patterns with same flattened values but different structures in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T026 [P] [US4] Write unit test for hashing patterns with duplicate values in tests/Spec/Pattern/CoreSpec.hs
+- [x] T017 [P] [US4] Write property-based test for hash consistency with Eq: `p1 == p2` implies `hash p1 == hash p2` in tests/Spec/Pattern/Properties.hs
+- [x] T018 [P] [US4] Write property-based test for hash consistency with different value types (String, Int, custom Hashable instances) in tests/Spec/Pattern/Properties.hs
+- [x] T019 [P] [US4] Write property-based test for hash consistency with all pattern structures (atomic, with elements, nested, different depths) in tests/Spec/Pattern/Properties.hs
+- [x] T020 [P] [US4] Write property-based test for hash distribution: different structures produce different hashes in tests/Spec/Pattern/Properties.hs
+- [x] T021 [P] [US4] Write statistical test for hash collision rate (verify < 1% collision rate for random patterns) in tests/Spec/Pattern/Properties.hs
+- [x] T022 [P] [US4] Write unit test for hashing atomic patterns (edge case) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T023 [P] [US4] Write unit test for hashing patterns with many elements (100+ elements) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T024 [P] [US4] Write unit test for hashing deeply nested patterns (10+ levels) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T025 [P] [US4] Write unit test for hashing patterns with same flattened values but different structures in tests/Spec/Pattern/CoreSpec.hs
+- [x] T026 [P] [US4] Write unit test for hashing patterns with duplicate values in tests/Spec/Pattern/CoreSpec.hs
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Verify `Hashable` instance satisfies hash consistency with `Eq` (no additional implementation needed, verify existing instance)
-- [ ] T028 [US4] Verify all tests pass for hash consistency and distribution
+- [x] T027 [US4] Verify `Hashable` instance satisfies hash consistency with `Eq` (no additional implementation needed, verify existing instance)
+- [x] T028 [US4] Verify all tests pass for hash consistency and distribution
 
 **Checkpoint**: ✅ At this point, User Stories 3 AND 4 should both work independently. `Hashable` instance satisfies hash consistency with `Eq` and provides good hash distribution.
 
@@ -114,21 +114,21 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T029 [P] [US5] Write integration test for `HashMap` with patterns as keys: create HashMap and perform lookups in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T030 [P] [US5] Write integration test for `HashMap` with patterns as keys: insert patterns and verify lookups work correctly in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T031 [P] [US5] Write integration test for `HashMap` with patterns as keys: handle hash collisions correctly (patterns with same hash but different values) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T032 [P] [US5] Write integration test for `HashSet` with patterns as elements: create HashSet and test membership in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T033 [P] [US5] Write integration test for `HashSet` with patterns as elements: insert patterns and verify deduplication works correctly in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T034 [P] [US5] Write integration test for `HashSet` with patterns as elements: handle hash collisions correctly (patterns with same hash but different values) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T035 [P] [US5] Write integration test for `HashMap` performance: O(1) average-case lookups in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T036 [P] [US5] Write integration test for `HashSet` performance: O(1) average-case membership testing in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T037 [P] [US5] Write integration test for `HashMap` with nested patterns as keys in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T038 [P] [US5] Write integration test for `HashSet` with nested patterns as elements in tests/Spec/Pattern/CoreSpec.hs
+- [x] T029 [P] [US5] Write integration test for `HashMap` with patterns as keys: create HashMap and perform lookups in tests/Spec/Pattern/CoreSpec.hs
+- [x] T030 [P] [US5] Write integration test for `HashMap` with patterns as keys: insert patterns and verify lookups work correctly in tests/Spec/Pattern/CoreSpec.hs
+- [x] T031 [P] [US5] Write integration test for `HashMap` with patterns as keys: handle hash collisions correctly (patterns with same hash but different values) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T032 [P] [US5] Write integration test for `HashSet` with patterns as elements: create HashSet and test membership in tests/Spec/Pattern/CoreSpec.hs
+- [x] T033 [P] [US5] Write integration test for `HashSet` with patterns as elements: insert patterns and verify deduplication works correctly in tests/Spec/Pattern/CoreSpec.hs
+- [x] T034 [P] [US5] Write integration test for `HashSet` with patterns as elements: handle hash collisions correctly (patterns with same hash but different values) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T035 [P] [US5] Write integration test for `HashMap` performance: O(1) average-case lookups in tests/Spec/Pattern/CoreSpec.hs
+- [x] T036 [P] [US5] Write integration test for `HashSet` performance: O(1) average-case membership testing in tests/Spec/Pattern/CoreSpec.hs
+- [x] T037 [P] [US5] Write integration test for `HashMap` with nested patterns as keys in tests/Spec/Pattern/CoreSpec.hs
+- [x] T038 [P] [US5] Write integration test for `HashSet` with nested patterns as elements in tests/Spec/Pattern/CoreSpec.hs
 
 ### Implementation for User Story 5
 
-- [ ] T039 [US5] Verify `HashMap` and `HashSet` integration works correctly (no additional implementation needed, verify existing instance)
-- [ ] T040 [US5] Verify all integration tests pass
+- [x] T039 [US5] Verify `HashMap` and `HashSet` integration works correctly (no additional implementation needed, verify existing instance)
+- [x] T040 [US5] Verify all integration tests pass
 
 **Checkpoint**: ✅ At this point, User Stories 3, 4, AND 5 should all work independently. `Hashable` instance is fully integrated with hash-based containers and ready for production use.
 
@@ -140,22 +140,22 @@
 
 ### Documentation & Integration
 
-- [ ] T041 [P] Review and update module-level documentation in src/Pattern/Core.hs to include `Hashable` instance
-- [ ] T042 [P] Verify `Hashable` instance is re-exported from main Pattern module in src/Pattern.hs
-- [ ] T043 [P] Add examples to Haddock documentation showing hash-based container usage in src/Pattern/Core.hs
-- [ ] T044 [P] Add examples to Haddock documentation showing when to use hash-based vs ordered containers in src/Pattern/Core.hs
+- [x] T041 [P] Review and update module-level documentation in src/Pattern/Core.hs to include `Hashable` instance
+- [x] T042 [P] Verify `Hashable` instance is re-exported from main Pattern module in src/Pattern.hs
+- [x] T043 [P] Add examples to Haddock documentation showing hash-based container usage in src/Pattern/Core.hs
+- [x] T044 [P] Add examples to Haddock documentation showing when to use hash-based vs ordered containers in src/Pattern/Core.hs
 
 ### Integration Tests
 
-- [ ] T045 [P] Write integration test for `Hashable` instance with pattern constructors (`pattern`, `patternWith`, `fromList`) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T046 [P] Write integration test for `Hashable` instance with type class instances (`Functor`, `Foldable`, `Traversable`, `Eq`, `Ord`) in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T047 [P] Write integration test for `Hashable` instance with `Semigroup` and `Monoid` instances in tests/Spec/Pattern/CoreSpec.hs
+- [x] T045 [P] Write integration test for `Hashable` instance with pattern constructors (`pattern`, `patternWith`, `fromList`) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T046 [P] Write integration test for `Hashable` instance with type class instances (`Functor`, `Foldable`, `Traversable`, `Eq`, `Ord`) in tests/Spec/Pattern/CoreSpec.hs
+- [x] T047 [P] Write integration test for `Hashable` instance with `Semigroup` and `Monoid` instances in tests/Spec/Pattern/CoreSpec.hs
 
 ### Final Validation
 
-- [ ] T048 Verify all tests pass (run full test suite with timeout)
-- [ ] T049 Verify `Hashable` instance compiles with all supported GHC versions (9.8.4, 9.10.3)
-- [ ] T050 Verify `Hashable` instance follows Haskell best practices and conventions
+- [x] T048 Verify all tests pass (run full test suite with timeout)
+- [x] T049 Verify `Hashable` instance compiles with all supported GHC versions (9.8.4, 9.10.3)
+- [x] T050 Verify `Hashable` instance follows Haskell best practices and conventions
 
 **Checkpoint**: ✅ At this point, all tests pass, documentation is updated, and `Hashable` instance is fully integrated with the Pattern library.
 

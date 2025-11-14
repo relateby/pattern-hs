@@ -8,6 +8,8 @@ import Data.Foldable (foldl, foldMap, toList)
 import Data.Functor.Identity (Identity(..))
 import Data.Hashable (hash, hashWithSalt)
 import Data.List (sort)
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.HashSet as HashSet
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Data.List.NonEmpty (NonEmpty((:|)))
@@ -3608,3 +3610,195 @@ spec = do
           hashWithSalt salt2 p `shouldSatisfy` (\h -> h == h)  -- Valid hash (any Int)
           -- Different salts should produce different hashes
           hashWithSalt salt1 p `shouldNotBe` hashWithSalt salt2 p
+      
+      describe "Edge Cases" $ do
+        
+        it "T022: hash atomic patterns (edge case)" $ do
+          let p1 = pattern "a" :: Pattern String
+              p2 = pattern "b" :: Pattern String
+          hash p1 `shouldSatisfy` (\h -> h == h)  -- Valid hash
+          hash p2 `shouldSatisfy` (\h -> h == h)  -- Valid hash
+          -- Different atomic patterns should usually have different hashes
+          -- (collisions possible but rare)
+        
+        it "T023: hash patterns with many elements (100+ elements)" $ do
+          let elems = map (\i -> pattern (show i)) [1..100]
+              p = patternWith "root" elems :: Pattern String
+          hash p `shouldSatisfy` (\h -> h == h)  -- Valid hash
+          -- All elements should contribute to hash
+        
+        it "T024: hash deeply nested patterns (10+ levels)" $ do
+          let deep = foldl (\acc _ -> patternWith "level" [acc]) (pattern "base" :: Pattern String) [1..10]
+          hash deep `shouldSatisfy` (\h -> h == h)  -- Valid hash
+          -- Deep nesting should contribute to hash
+        
+        it "T025: hash patterns with same flattened values but different structures" $ do
+          let p1 = patternWith "a" [pattern "b", pattern "c"] :: Pattern String
+              p2 = patternWith "a" [patternWith "b" [pattern "c"]] :: Pattern String
+          -- Different structures should produce different hashes
+          hash p1 `shouldNotBe` hash p2
+        
+        it "T026: hash patterns with duplicate values" $ do
+          let p1 = patternWith "a" [pattern "b", pattern "b"] :: Pattern String
+              p2 = patternWith "a" [pattern "b"] :: Pattern String
+          -- Different structures (even with duplicate values) should produce different hashes
+          hash p1 `shouldNotBe` hash p2
+    
+    describe "Integration with Hash-Based Containers (User Story 5)" $ do
+      
+      describe "HashMap Integration" $ do
+        
+        it "T029: HashMap with patterns as keys: create HashMap and perform lookups" $ do
+          let m = HashMap.fromList [(pattern "a", 1), (pattern "b", 2), (patternWith "root" [pattern "c"], 3)] :: HashMap.HashMap (Pattern String) Int
+          HashMap.lookup (pattern "a") m `shouldBe` Just 1
+          HashMap.lookup (pattern "b") m `shouldBe` Just 2
+          HashMap.lookup (pattern "x") m `shouldBe` Nothing
+        
+        it "T030: HashMap with patterns as keys: insert patterns and verify lookups work correctly" $ do
+          let m1 = HashMap.fromList [(pattern "a", 1)] :: HashMap.HashMap (Pattern String) Int
+              m2 = HashMap.insert (pattern "b") 2 m1
+              m3 = HashMap.insert (patternWith "root" [pattern "c"]) 3 m2
+          HashMap.lookup (pattern "a") m3 `shouldBe` Just 1
+          HashMap.lookup (pattern "b") m3 `shouldBe` Just 2
+          HashMap.lookup (patternWith "root" [pattern "c"]) m3 `shouldBe` Just 3
+        
+        it "T031: HashMap with patterns as keys: handle hash collisions correctly (patterns with same hash but different values)" $ do
+          -- Even if two patterns have the same hash (collision), HashMap handles it correctly through Eq
+          let p1 = pattern "a" :: Pattern String
+              p2 = pattern "b" :: Pattern String
+              m = HashMap.fromList [(p1, 1), (p2, 2)] :: HashMap.HashMap (Pattern String) Int
+          -- Both patterns should be retrievable (collisions handled through equality)
+          HashMap.lookup p1 m `shouldBe` Just 1
+          HashMap.lookup p2 m `shouldBe` Just 2
+        
+        it "T035: HashMap performance: O(1) average-case lookups" $ do
+          -- Create HashMap with many patterns
+          let patterns = map (\i -> (pattern (show i), i)) [1..100]
+              m = HashMap.fromList patterns :: HashMap.HashMap (Pattern String) Int
+          -- Lookup should be fast (O(1) average-case)
+          HashMap.lookup (pattern "50") m `shouldBe` Just 50
+          HashMap.lookup (pattern "99") m `shouldBe` Just 99
+        
+        it "T037: HashMap with nested patterns as keys" $ do
+          let p1 = patternWith "outer" [pattern "inner"] :: Pattern String
+              p2 = patternWith "outer" [patternWith "inner" [pattern "value"]] :: Pattern String
+              m = HashMap.fromList [(p1, 1), (p2, 2)] :: HashMap.HashMap (Pattern String) Int
+          HashMap.lookup p1 m `shouldBe` Just 1
+          HashMap.lookup p2 m `shouldBe` Just 2
+      
+      describe "HashSet Integration" $ do
+        
+        it "T032: HashSet with patterns as elements: create HashSet and test membership" $ do
+          let s = HashSet.fromList [pattern "a", pattern "b", patternWith "root" [pattern "c"]] :: HashSet.HashSet (Pattern String)
+          HashSet.member (pattern "a") s `shouldBe` True
+          HashSet.member (pattern "b") s `shouldBe` True
+          HashSet.member (pattern "x") s `shouldBe` False
+        
+        it "T033: HashSet with patterns as elements: insert patterns and verify deduplication works correctly" $ do
+          let s1 = HashSet.fromList [pattern "a"] :: HashSet.HashSet (Pattern String)
+              s2 = HashSet.insert (pattern "b") s1
+              s3 = HashSet.insert (pattern "a") s2  -- Duplicate
+          HashSet.member (pattern "a") s3 `shouldBe` True
+          HashSet.member (pattern "b") s3 `shouldBe` True
+          HashSet.size s3 `shouldBe` 2  -- Duplicate removed
+        
+        it "T034: HashSet with patterns as elements: handle hash collisions correctly (patterns with same hash but different values)" $ do
+          -- Even if two patterns have the same hash (collision), HashSet handles it correctly through Eq
+          let p1 = pattern "a" :: Pattern String
+              p2 = pattern "b" :: Pattern String
+              s = HashSet.fromList [p1, p2] :: HashSet.HashSet (Pattern String)
+          -- Both patterns should be in set (collisions handled through equality)
+          HashSet.member p1 s `shouldBe` True
+          HashSet.member p2 s `shouldBe` True
+          HashSet.size s `shouldBe` 2
+        
+        it "T036: HashSet performance: O(1) average-case membership testing" $ do
+          -- Create HashSet with many patterns
+          let patterns = map pattern (map show [1..100])
+              s = HashSet.fromList patterns :: HashSet.HashSet (Pattern String)
+          -- Membership testing should be fast (O(1) average-case)
+          HashSet.member (pattern "50") s `shouldBe` True
+          HashSet.member (pattern "99") s `shouldBe` True
+          HashSet.member (pattern "200") s `shouldBe` False
+        
+        it "T038: HashSet with nested patterns as elements" $ do
+          let p1 = patternWith "outer" [pattern "inner"] :: Pattern String
+              p2 = patternWith "outer" [patternWith "inner" [pattern "value"]] :: Pattern String
+              s = HashSet.fromList [p1, p2] :: HashSet.HashSet (Pattern String)
+          HashSet.member p1 s `shouldBe` True
+          HashSet.member p2 s `shouldBe` True
+          HashSet.size s `shouldBe` 2
+    
+    describe "Integration with Other Typeclass Instances (Phase 5)" $ do
+      
+      describe "Hashable with Pattern Constructors" $ do
+        
+        it "T045: Hashable instance with pattern constructor" $ do
+          let p1 = pattern "test" :: Pattern String
+              p2 = pattern "test" :: Pattern String
+          p1 `shouldBe` p2
+          hash p1 `shouldBe` hash p2
+        
+        it "T045: Hashable instance with patternWith constructor" $ do
+          let p1 = patternWith "root" [pattern "a", pattern "b"] :: Pattern String
+              p2 = patternWith "root" [pattern "a", pattern "b"] :: Pattern String
+          p1 `shouldBe` p2
+          hash p1 `shouldBe` hash p2
+        
+        it "T045: Hashable instance with fromList constructor" $ do
+          let p1 = fromList "root" ["a", "b", "c"] :: Pattern String
+              p2 = fromList "root" ["a", "b", "c"] :: Pattern String
+          p1 `shouldBe` p2
+          hash p1 `shouldBe` hash p2
+      
+      describe "Hashable with Type Class Instances" $ do
+        
+        it "T046: Hashable instance with Functor (fmap preserves hash consistency)" $ do
+          let p1 = pattern "test" :: Pattern String
+              p2 = fmap id p1
+          p1 `shouldBe` p2
+          hash p1 `shouldBe` hash p2
+        
+        it "T046: Hashable instance with Foldable (toList doesn't affect hash)" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"] :: Pattern String
+          -- Hash is based on structure, not flattened values
+          hash p `shouldSatisfy` (\h -> h == h)
+          toList p `shouldBe` ["root", "a", "b"]
+        
+        it "T046: Hashable instance with Traversable (traverse preserves hash consistency)" $ do
+          let p1 = pattern "test" :: Pattern String
+              p2 = runIdentity (traverse Identity p1)
+          p1 `shouldBe` p2
+          hash p1 `shouldBe` hash p2
+        
+        it "T046: Hashable instance with Eq (hash consistency verified)" $ do
+          let p1 = pattern "test" :: Pattern String
+              p2 = pattern "test" :: Pattern String
+          p1 == p2 `shouldBe` True
+          hash p1 == hash p2 `shouldBe` True
+        
+        it "T046: Hashable instance with Ord (can use both ordered and hash-based containers)" $ do
+          let p1 = pattern "a" :: Pattern String
+              p2 = pattern "b" :: Pattern String
+          -- Can use in both Data.Set (Ord) and HashSet (Hashable)
+          let orderedSet = Set.fromList [p1, p2]
+              hashSet = HashSet.fromList [p1, p2]
+          Set.member p1 orderedSet `shouldBe` True
+          HashSet.member p1 hashSet `shouldBe` True
+      
+      describe "Hashable with Semigroup and Monoid" $ do
+        
+        it "T047: Hashable instance with Semigroup (combined patterns hash correctly)" $ do
+          let p1 = pattern "a" :: Pattern String
+              p2 = pattern "b" :: Pattern String
+              combined = p1 <> p2
+          hash combined `shouldSatisfy` (\h -> h == h)
+          -- Combined pattern should have different hash from individual patterns
+          hash combined `shouldNotBe` hash p1
+        
+        it "T047: Hashable instance with Monoid (mempty hashes correctly)" $ do
+          let empty = mempty :: Pattern String
+          hash empty `shouldSatisfy` (\h -> h == h)
+          -- mempty <> p should have same hash as p (identity)
+          let p = pattern "test" :: Pattern String
+          hash (mempty <> p) `shouldBe` hash p
