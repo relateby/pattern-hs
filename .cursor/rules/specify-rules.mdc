@@ -29,9 +29,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 011-monoid-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 - 010-semigroup-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 - 009-ord-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
-- 008-basic-query-functions: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 
 
 <!-- MANUAL ADDITIONS START -->

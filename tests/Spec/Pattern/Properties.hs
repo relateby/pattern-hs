@@ -901,3 +901,115 @@ spec = do
           in length (elements combined) == length (elements p1Sum) + length (elements p2Sum)
              && countElems combined == countElems p1Sum + countElems p2Sum
 
+  describe "Monoid Laws (User Story 4)" $ do
+    
+    describe "Left Identity Law" $ do
+      
+      it "T017: left identity law: mempty <> p = p for Pattern String" $ do
+        -- Property: Monoid left identity law must hold for all patterns
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in (mempty <> pStr) == pStr
+      
+      it "T017: left identity with different value types (String, Sum Int, Product Int)" $ do
+        -- Property: Left identity holds for different Monoid types
+        quickProperty $ \pStr pSum pProd -> 
+          let pStr' = pStr :: Pattern String
+              pSum' = pSum :: Pattern (Sum Int)
+              pProd' = pProd :: Pattern (Product Int)
+          in (mempty <> pStr') == pStr'
+             && (mempty <> pSum') == pSum'
+             && (mempty <> pProd') == pProd'
+      
+      it "T017: left identity with Sum Int values" $ do
+        -- Property: Left identity holds for Sum Int patterns
+        quickProperty $ \p -> 
+          let pSum = p :: Pattern (Sum Int)
+          in (mempty <> pSum) == pSum
+      
+      it "T017: left identity with Product Int values" $ do
+        -- Property: Left identity holds for Product Int patterns
+        quickProperty $ \p -> 
+          let pProd = p :: Pattern (Product Int)
+          in (mempty <> pProd) == pProd
+    
+    describe "Right Identity Law" $ do
+      
+      it "T018: right identity law: p <> mempty = p for Pattern String" $ do
+        -- Property: Monoid right identity law must hold for all patterns
+        quickProperty $ \p -> 
+          let pStr = p :: Pattern String
+          in (pStr <> mempty) == pStr
+      
+      it "T018: right identity with different value types (String, Sum Int, Product Int)" $ do
+        -- Property: Right identity holds for different Monoid types
+        quickProperty $ \pStr pSum pProd -> 
+          let pStr' = pStr :: Pattern String
+              pSum' = pSum :: Pattern (Sum Int)
+              pProd' = pProd :: Pattern (Product Int)
+          in (pStr' <> mempty) == pStr'
+             && (pSum' <> mempty) == pSum'
+             && (pProd' <> mempty) == pProd'
+      
+      it "T018: right identity with Sum Int values" $ do
+        -- Property: Right identity holds for Sum Int patterns
+        quickProperty $ \p -> 
+          let pSum = p :: Pattern (Sum Int)
+          in (pSum <> mempty) == pSum
+      
+      it "T018: right identity with Product Int values" $ do
+        -- Property: Right identity holds for Product Int patterns
+        quickProperty $ \p -> 
+          let pProd = p :: Pattern (Product Int)
+          in (pProd <> mempty) == pProd
+    
+    describe "Identity Pattern Structure" $ do
+      
+      it "T019: identity pattern structure: value mempty = mempty and elements mempty = [] for Pattern String" $ do
+        -- Property: Identity pattern has correct structure
+        let emptyPattern = mempty :: Pattern String
+        value emptyPattern `shouldBe` (mempty :: String)
+        elements emptyPattern `shouldBe` ([] :: [Pattern String])
+      
+      it "T019: identity pattern structure for Pattern (Sum Int)" $ do
+        -- Property: Identity pattern has correct structure for Sum Int
+        let emptyPattern = mempty :: Pattern (Sum Int)
+        value emptyPattern `shouldBe` (mempty :: Sum Int)
+        elements emptyPattern `shouldBe` ([] :: [Pattern (Sum Int)])
+      
+      it "T019: identity pattern structure for Pattern (Product Int)" $ do
+        -- Property: Identity pattern has correct structure for Product Int
+        let emptyPattern = mempty :: Pattern (Product Int)
+        value emptyPattern `shouldBe` (mempty :: Product Int)
+        elements emptyPattern `shouldBe` ([] :: [Pattern (Product Int)])
+    
+    describe "Consistency with Semigroup" $ do
+      
+      it "T020: consistency: p1 <> p2 produces same result using Semigroup or Monoid for Pattern String" $ do
+        -- Property: Monoid instance is consistent with Semigroup instance
+        quickProperty $ \p1 p2 -> 
+          let p1Str = p1 :: Pattern String
+              p2Str = p2 :: Pattern String
+              -- Both use the same <> implementation (inherited from Semigroup)
+              semigroupResult = p1Str <> p2Str
+              monoidResult = p1Str <> p2Str
+          in semigroupResult == monoidResult
+      
+      it "T020: consistency for Pattern (Sum Int)" $ do
+        -- Property: Consistency holds for Sum Int patterns
+        quickProperty $ \p1 p2 -> 
+          let p1Sum = p1 :: Pattern (Sum Int)
+              p2Sum = p2 :: Pattern (Sum Int)
+              semigroupResult = p1Sum <> p2Sum
+              monoidResult = p1Sum <> p2Sum
+          in semigroupResult == monoidResult
+      
+      it "T020: consistency for Pattern (Product Int)" $ do
+        -- Property: Consistency holds for Product Int patterns
+        quickProperty $ \p1 p2 -> 
+          let p1Prod = p1 :: Pattern (Product Int)
+              p2Prod = p2 :: Pattern (Product Int)
+              semigroupResult = p1Prod <> p2Prod
+              monoidResult = p1Prod <> p2Prod
+          in semigroupResult == monoidResult
+

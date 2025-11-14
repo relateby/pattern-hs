@@ -145,6 +145,13 @@
 -- value type @v@ has a Semigroup instance. See the Semigroup instance documentation below
 -- for details on combination semantics and associativity.
 --
+-- The Pattern type has a Monoid instance that extends the Semigroup instance by providing
+-- an identity element (`mempty`). The identity pattern has `mempty` value (from value type's
+-- Monoid) and empty elements list, enabling identity-based operations and standard Monoid
+-- combinators (e.g., `mconcat`) while preserving the decorated sequence model. The Monoid
+-- instance requires that the value type @v@ has a Monoid instance. See the Monoid instance
+-- documentation below for details on identity semantics and laws.
+--
 -- The Pattern type provides query functions for introspecting pattern structure:
 --
 -- * @length@ - Returns the number of direct elements in a pattern's sequence (O(1))
@@ -160,7 +167,7 @@
 --
 -- Atomic pattern:
 --
--- >>> atom = Pattern { value = "atom1", elements = [] }
+-- >>> atom = pattern "atom1"
 -- >>> value atom
 -- "atom1"
 -- >>> elements atom
@@ -168,9 +175,9 @@
 --
 -- Pattern with elements:
 --
--- >>> elem1 = Pattern { value = "elem1", elements = [] }
--- >>> elem2 = Pattern { value = "elem2", elements = [] }
--- >>> pattern = Pattern { value = "pattern", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "elem1"
+-- >>> elem2 = pattern "elem2"
+-- >>> pattern = patternWith "pattern" [elem1, elem2]
 -- >>> value pattern
 -- "pattern"
 -- >>> length (elements pattern)
@@ -180,10 +187,10 @@
 --
 -- Nested patterns (arbitrary depth):
 --
--- >>> level3 = Pattern { value = "level3", elements = [] }
--- >>> level2 = Pattern { value = "level2", elements = [level3] }
--- >>> level1 = Pattern { value = "level1", elements = [level2] }
--- >>> nested = Pattern { value = "root", elements = [level1] }
+-- >>> level3 = pattern "level3"
+-- >>> level2 = patternWith "level2" [level3]
+-- >>> level1 = patternWith "level1" [level2]
+-- >>> nested = patternWith "root" [level1]
 -- >>> value nested
 -- "root"
 -- >>> value (head (elements nested))
@@ -191,8 +198,8 @@
 --
 -- Atomic patterns with different value types:
 --
--- >>> leafString = Pattern { value = "text", elements = [] }
--- >>> leafInt = Pattern { value = 42, elements = [] }
+-- >>> leafString = pattern "text"
+-- >>> leafInt = pattern 42
 -- >>> value leafString
 -- "text"
 -- >>> value leafInt
@@ -200,9 +207,9 @@
 --
 -- Patterns with varying numbers of elements:
 --
--- >>> zeroElements = Pattern { value = "zero", elements = [] }
--- >>> oneElement = Pattern { value = "one", elements = [Pattern { value = "elem", elements = [] }] }
--- >>> manyElements = Pattern { value = "many", elements = [Pattern { value = "e1", elements = [] }, Pattern { value = "e2", elements = [] }] }
+-- >>> zeroElements = pattern "zero"
+-- >>> oneElement = patternWith "one" [pattern "elem"]
+-- >>> manyElements = patternWith "many" [pattern "e1", pattern "e2"]
 -- >>> length (elements zeroElements)
 -- 0
 -- >>> length (elements oneElement)
@@ -212,6 +219,7 @@
 module Pattern.Core where
 
 import Data.Foldable (toList)
+import Data.Monoid (Monoid(..))
 import Data.Traversable (Traversable(..))
 
 -- | A recursive structure representing a decorated sequence pattern.
@@ -270,17 +278,17 @@ import Data.Traversable (Traversable(..))
 --
 -- Creating an atomic pattern:
 --
--- >>> atom = Pattern { value = "A", elements = [] }
+-- >>> atom = pattern "A"
 --
 -- Creating a pattern with elements (can be interpreted as a relationship):
 --
--- >>> elem1 = Pattern { value = "A", elements = [] }
--- >>> elem2 = Pattern { value = "B", elements = [] }
--- >>> pattern = Pattern { value = "knows", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "A"
+-- >>> elem2 = pattern "B"
+-- >>> pattern = patternWith "knows" [elem1, elem2]
 --
 -- Creating a pattern with multiple elements (can be interpreted as a subgraph):
 --
--- >>> graph = Pattern { value = "myGraph", elements = [elem1, elem2, pattern] }
+-- >>> graph = patternWith "myGraph" [elem1, elem2, pattern]
 --
 data Pattern v = Pattern 
   { -- | The decoration (value) associated with this pattern.
@@ -307,25 +315,25 @@ data Pattern v = Pattern
     --
     -- Atomic pattern with string value:
     --
-    -- >>> value (Pattern { value = "test", elements = [] })
+    -- >>> value (pattern "test")
     -- "test"
     --
     -- Atomic pattern with integer value:
     --
-    -- >>> value (Pattern { value = 42, elements = [] })
+    -- >>> value (pattern 42)
     -- 42
     --
     -- Pattern with elements (accesses root value):
     --
-    -- >>> value (Pattern { value = "group", elements = [Pattern { value = "atom", elements = [] }] })
+    -- >>> value (patternWith "group" [pattern "atom"])
     -- "group"
     --
     -- Accessing values at different nesting levels:
     --
-    -- >>> inner = Pattern { value = "inner", elements = [] }
-    -- >>> middle = Pattern { value = "middle", elements = [inner] }
-    -- >>> outer = Pattern { value = "outer", elements = [middle] }
-    -- >>> pattern = Pattern { value = "root", elements = [outer] }
+    -- >>> inner = pattern "inner"
+    -- >>> middle = patternWith "middle" [inner]
+    -- >>> outer = patternWith "outer" [middle]
+    -- >>> pattern = patternWith "root" [outer]
     -- >>> value pattern
     -- "root"
     -- >>> value outer
@@ -339,7 +347,7 @@ data Pattern v = Pattern
     --
     -- >>> data Person = Person { name :: String, age :: Maybe Int } deriving (Show)
     -- >>> person = Person "Alice" (Just 30)
-    -- >>> value (Pattern { value = person, elements = [] })
+    -- >>> value (pattern person)
     -- Person {name = "Alice", age = Just 30}
     --
     -- === Relationship to values function
@@ -363,9 +371,9 @@ data Pattern v = Pattern
     --
     -- The @value@ field accessor works with patterns of any value type @v@:
     --
-    -- >>> value (Pattern { value = "test", elements = [] } :: Pattern String)
+    -- >>> value (pattern "test" :: Pattern String)
     -- "test"
-    -- >>> value (Pattern { value = 42, elements = [] } :: Pattern Int)
+    -- >>> value (pattern 42 :: Pattern Int)
     -- 42
     --
     value    :: v
@@ -387,20 +395,20 @@ data Pattern v = Pattern
     --
     -- Pattern with no elements (empty sequence):
     --
-    -- >>> elements (Pattern { value = "empty", elements = [] })
+    -- >>> elements (pattern "empty")
     -- []
     --
     -- Singular pattern (one element):
     --
-    -- >>> elem = Pattern { value = "elem", elements = [] }
-    -- >>> elements (Pattern { value = "pattern", elements = [elem] })
+    -- >>> elem = pattern "elem"
+    -- >>> elements (patternWith "pattern" [elem])
     -- [Pattern {value = "elem", elements = []}]
     --
     -- Pattern with multiple elements:
     --
-    -- >>> elem1 = Pattern { value = "elem1", elements = [] }
-    -- >>> elem2 = Pattern { value = "elem2", elements = [] }
-    -- >>> elements (Pattern { value = "pattern", elements = [elem1, elem2] })
+    -- >>> elem1 = pattern "elem1"
+    -- >>> elem2 = pattern "elem2"
+    -- >>> elements (patternWith "pattern" [elem1, elem2])
     -- [Pattern {value = "elem1", elements = []},Pattern {value = "elem2", elements = []}]
   , elements :: [Pattern v]
   }
@@ -415,10 +423,10 @@ data Pattern v = Pattern
 --
 -- === Examples
 --
--- >>> show (Pattern { value = "test", elements = [] })
+-- >>> show (pattern "test")
 -- "Pattern {value = \"test\", elements = []}"
 --
--- >>> show (Pattern { value = 42, elements = [] })
+-- >>> show (pattern 42)
 -- "Pattern {value = 42, elements = []}"
 --
 instance Show v => Show (Pattern v) where
@@ -721,6 +729,155 @@ instance Semigroup v => Semigroup (Pattern v) where
   --
   Pattern v1 els1 <> Pattern v2 els2 = Pattern (v1 <> v2) (els1 ++ els2)
 
+-- | Monoid instance for Pattern.
+--
+-- Extends the Semigroup instance by providing an identity element (`mempty`).
+-- The identity pattern has `mempty` value (from value type's Monoid) and empty
+-- elements list, enabling identity-based operations and standard Monoid combinators
+-- (e.g., `mconcat`) while preserving the decorated sequence model.
+--
+-- === Identity Semantics
+--
+-- The Monoid instance provides an identity pattern:
+--
+-- * **Identity pattern**: `mempty = pattern mempty` (equivalent to `Pattern { value = mempty, elements = [] }`)
+--   where `mempty` on the right side is from the value type's Monoid instance
+--
+-- * **Left identity**: `mempty <> p = p` for all patterns `p`
+--
+-- * **Right identity**: `p <> mempty = p` for all patterns `p`
+--
+-- * **Consistency**: Uses same `<>` implementation as Semigroup instance
+--
+-- === Monoid Laws
+--
+-- The Monoid instance satisfies the standard monoid laws, which are verified
+-- through property-based testing in the test suite:
+--
+-- **Left Identity Law**: For all patterns @p :: Pattern v@ where @Monoid v@,
+--
+-- @
+-- mempty <> p = p
+-- @
+--
+-- **Right Identity Law**: For all patterns @p :: Pattern v@ where @Monoid v@,
+--
+-- @
+-- p <> mempty = p
+-- @
+--
+-- Both laws hold for all pattern structures (atomic, with elements, nested)
+-- and all value types, as verified by property-based tests.
+--
+-- === Type Constraint
+--
+-- The Monoid instance requires that the value type @v@ has a Monoid instance:
+--
+-- @
+-- instance Monoid v => Monoid (Pattern v)
+-- @
+--
+-- This ensures that pattern values can provide identity elements, which is
+-- necessary for the identity pattern. Attempting to use `mempty` on patterns
+-- with non-monoid value types will result in a compile-time error.
+--
+-- === Examples
+--
+-- Identity pattern with String values (empty string):
+--
+-- >>> mempty :: Pattern String
+-- Pattern {value = "", elements = []}
+--
+-- Identity pattern with Sum Int values (Sum 0):
+--
+-- >>> mempty :: Pattern (Sum Int)
+-- Pattern {value = Sum 0, elements = []}
+--
+-- Left identity law:
+--
+-- >>> mempty <> pattern "test"
+-- Pattern {value = "test", elements = []}
+--
+-- Right identity law:
+--
+-- >>> pattern "test" <> mempty
+-- Pattern {value = "test", elements = []}
+--
+-- Using mconcat to combine patterns:
+--
+-- >>> mconcat [pattern "a", pattern "b", pattern "c"]
+-- Pattern {value = "abc", elements = [Pattern {value = "a", elements = []},Pattern {value = "b", elements = []},Pattern {value = "c", elements = []}]}
+--
+-- Using mconcat with empty list:
+--
+-- >>> mconcat [] :: Pattern String
+-- Pattern {value = "", elements = []}
+--
+-- === Consistency with Semigroup
+--
+-- The Monoid instance is consistent with the Semigroup instance:
+--
+-- * The `<>` operation is inherited from Semigroup
+-- * `p1 <> p2` produces the same result whether using Semigroup or Monoid instance
+-- * The identity pattern naturally extends Semigroup semantics
+--
+-- === Relationship to Decorated Sequence Model
+--
+-- The Monoid instance aligns with the decorated sequence conceptual model:
+--
+-- * **Elements form the pattern**: Identity has empty elements (no pattern sequence)
+-- * **Value is decoration**: Identity has `mempty` value (no decoration)
+--
+-- When combining with identity, the pattern sequence and decoration remain unchanged,
+-- which is the expected behavior for an identity element.
+--
+-- === Standard Monoid Combinators
+--
+-- The Monoid instance enables standard Monoid combinators:
+--
+-- * `mconcat :: [Pattern v] -> Pattern v`: Combines a list of patterns (returns `mempty` for empty list)
+-- * `mappend :: Pattern v -> Pattern v -> Pattern v`: Alias for `<>` (inherited from Semigroup)
+--
+-- These combinators work correctly with Pattern types and follow standard Monoid semantics.
+--
+instance Monoid v => Monoid (Pattern v) where
+  -- | The identity element for pattern combination.
+  --
+  -- Returns a pattern with `mempty` value (from value type's Monoid) and empty
+  -- elements list. This serves as the identity element for the `<>` operation,
+  -- satisfying both left and right identity laws.
+  --
+  -- === Identity Laws
+  --
+  -- The identity pattern satisfies:
+  --
+  -- * **Left identity**: `mempty <> p = p` for all patterns `p`
+  -- * **Right identity**: `p <> mempty = p` for all patterns `p`
+  --
+  -- === Examples
+  --
+  -- Identity pattern for String values:
+  --
+  -- >>> mempty :: Pattern String
+  -- Pattern {value = "", elements = []}
+  --
+  -- Identity pattern for Sum Int values:
+  --
+  -- >>> mempty :: Pattern (Sum Int)
+  -- Pattern {value = Sum 0, elements = []}
+  --
+  -- Using identity in combination:
+  --
+  -- >>> mempty <> pattern "test"
+  -- Pattern {value = "test", elements = []}
+  --
+  -- >>> pattern "test" <> mempty
+  -- Pattern {value = "test", elements = []}
+  --
+  mempty = pattern mempty
+  -- Note: <> is inherited from Semigroup instance
+  -- Implementation: mempty = Pattern { value = mempty, elements = [] }
+
 -- | Functor instance for Pattern.
 --
 -- Transforms values in patterns while preserving pattern structure (element count,
@@ -775,59 +932,59 @@ instance Semigroup v => Semigroup (Pattern v) where
 --
 -- Transforming atomic pattern with string value:
 --
--- >>> atom = Pattern { value = "test", elements = [] }
+-- >>> atom = pattern "test"
 -- >>> fmap (map toUpper) atom
 -- Pattern {value = "TEST", elements = []}
 --
 -- Transforming pattern with multiple elements:
 --
--- >>> elem1 = Pattern { value = "hello", elements = [] }
--- >>> elem2 = Pattern { value = "world", elements = [] }
--- >>> pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "hello"
+-- >>> elem2 = pattern "world"
+-- >>> pattern = patternWith "greeting" [elem1, elem2]
 -- >>> fmap (map toUpper) pattern
 -- Pattern {value = "GREETING", elements = [Pattern {value = "HELLO", elements = []},Pattern {value = "WORLD", elements = []}]}
 --
 -- Transforming pattern with integer values:
 --
--- >>> elem1 = Pattern { value = 5, elements = [] }
--- >>> elem2 = Pattern { value = 10, elements = [] }
--- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+-- >>> elem1 = pattern 5
+-- >>> elem2 = pattern 10
+-- >>> pattern = patternWith 20 [elem1, elem2]
 -- >>> fmap (* 2) pattern
 -- Pattern {value = 40, elements = [Pattern {value = 10, elements = []},Pattern {value = 20, elements = []}]}
 --
 -- Transforming nested pattern structure (3 levels):
 --
--- >>> inner = Pattern { value = "inner", elements = [] }
--- >>> middle = Pattern { value = "middle", elements = [inner] }
--- >>> outer = Pattern { value = "outer", elements = [middle] }
--- >>> pattern = Pattern { value = "root", elements = [outer] }
+-- >>> inner = pattern "inner"
+-- >>> middle = patternWith "middle" [inner]
+-- >>> outer = patternWith "outer" [middle]
+-- >>> pattern = patternWith "root" [outer]
 -- >>> fmap (map toUpper) pattern
 -- Pattern {value = "ROOT", elements = [Pattern {value = "OUTER", elements = [Pattern {value = "MIDDLE", elements = [Pattern {value = "INNER", elements = []}]}]}]}
 --
 -- Transforming deeply nested pattern structure (4+ levels):
 --
--- >>> level4 = Pattern { value = "level4", elements = [] }
--- >>> level3 = Pattern { value = "level3", elements = [level4] }
--- >>> level2 = Pattern { value = "level2", elements = [level3] }
--- >>> level1 = Pattern { value = "level1", elements = [level2] }
--- >>> pattern = Pattern { value = "root", elements = [level1] }
+-- >>> level4 = pattern "level4"
+-- >>> level3 = patternWith "level3" [level4]
+-- >>> level2 = patternWith "level2" [level3]
+-- >>> level1 = patternWith "level1" [level2]
+-- >>> pattern = patternWith "root" [level1]
 -- >>> fmap (map toUpper) pattern
 -- Pattern {value = "ROOT", elements = [Pattern {value = "LEVEL1", elements = [Pattern {value = "LEVEL2", elements = [Pattern {value = "LEVEL3", elements = [Pattern {value = "LEVEL4", elements = []}]}]}]}]}
 --
 -- Transforming pattern with varying nesting depths in different branches:
 --
--- >>> branch1 = Pattern { value = "b1", elements = [Pattern { value = "b1leaf", elements = [] }] }
--- >>> branch2 = Pattern { value = "b2", elements = [Pattern { value = "b2mid", elements = [Pattern { value = "b2leaf", elements = [] }] }] }
--- >>> branch3 = Pattern { value = "b3", elements = [] }
--- >>> pattern = Pattern { value = "root", elements = [branch1, branch2, branch3] }
+-- >>> branch1 = patternWith "b1" [pattern "b1leaf"]
+-- >>> branch2 = patternWith "b2" [patternWith "b2mid" [pattern "b2leaf"]]
+-- >>> branch3 = pattern "b3"
+-- >>> pattern = patternWith "root" [branch1, branch2, branch3]
 -- >>> fmap (map toUpper) pattern
 -- Pattern {value = "ROOT", elements = [Pattern {value = "B1", elements = [Pattern {value = "B1LEAF", elements = []}]},Pattern {value = "B2", elements = [Pattern {value = "B2MID", elements = [Pattern {value = "B2LEAF", elements = []}]}]},Pattern {value = "B3", elements = []}]}
 --
 -- Type transformation (String to Int):
 --
--- >>> elem1 = Pattern { value = "5", elements = [] }
--- >>> elem2 = Pattern { value = "10", elements = [] }
--- >>> pattern = Pattern { value = "20", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "5"
+-- >>> elem2 = pattern "10"
+-- >>> pattern = patternWith "20" [elem1, elem2]
 -- >>> fmap (read :: String -> Int) pattern
 -- Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]}
 --
@@ -1012,40 +1169,40 @@ instance Functor Pattern where
 --
 -- Summing integer values from an atomic pattern:
 --
--- >>> atom = Pattern { value = 5, elements = [] }
+-- >>> atom = pattern 5
 -- >>> foldr (+) 0 atom
 -- 5
 --
 -- Summing integer values from a pattern with multiple elements:
 --
--- >>> elem1 = Pattern { value = 10, elements = [] }
--- >>> elem2 = Pattern { value = 20, elements = [] }
--- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+-- >>> elem1 = pattern 10
+-- >>> elem2 = pattern 20
+-- >>> pattern = patternWith 100 [elem1, elem2]
 -- >>> foldr (+) 0 pattern
 -- 130
 --
 -- Concatenating string values from a pattern:
 --
--- >>> elem1 = Pattern { value = "hello", elements = [] }
--- >>> elem2 = Pattern { value = "world", elements = [] }
--- >>> pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "hello"
+-- >>> elem2 = pattern "world"
+-- >>> pattern = patternWith "greeting" [elem1, elem2]
 -- >>> foldr (++) "" pattern
 -- "greetinghelloworld"
 --
 -- Summing values from a nested pattern structure:
 --
--- >>> inner = Pattern { value = 1, elements = [] }
--- >>> middle = Pattern { value = 2, elements = [inner] }
--- >>> outer = Pattern { value = 3, elements = [middle] }
--- >>> pattern = Pattern { value = 4, elements = [outer] }
+-- >>> inner = pattern 1
+-- >>> middle = patternWith 2 [inner]
+-- >>> outer = patternWith 3 [middle]
+-- >>> pattern = patternWith 4 [outer]
 -- >>> foldr (+) 0 pattern
 -- 10
 --
 -- Counting all values in a pattern:
 --
--- >>> elem1 = Pattern { value = "a", elements = [] }
--- >>> elem2 = Pattern { value = "b", elements = [] }
--- >>> pattern = Pattern { value = "root", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "a"
+-- >>> elem2 = pattern "b"
+-- >>> pattern = patternWith "root" [elem1, elem2]
 -- >>> foldr (\_ acc -> acc + 1) 0 pattern
 -- 3
 --
@@ -1055,7 +1212,7 @@ instance Functor Pattern where
 --
 -- **Atomic patterns** (no elements):
 --
--- >>> atom = Pattern { value = 42, elements = [] }
+-- >>> atom = pattern 42
 -- >>> foldr (+) 0 atom
 -- 42
 -- >>> toList atom
@@ -1067,7 +1224,7 @@ instance Functor Pattern where
 --
 -- **Patterns with empty elements list**:
 --
--- >>> pattern = Pattern { value = 10, elements = [] }
+-- >>> pattern = pattern 10
 -- >>> foldr (+) 0 pattern
 -- 10
 -- >>> toList pattern
@@ -1077,8 +1234,8 @@ instance Functor Pattern where
 --
 -- **Singular patterns** (one element):
 --
--- >>> elem = Pattern { value = 5, elements = [] }
--- >>> pattern = Pattern { value = 10, elements = [elem] }
+-- >>> elem = pattern 5
+-- >>> pattern = patternWith 10 [elem]
 -- >>> foldr (+) 0 pattern
 -- 15
 -- >>> toList pattern
@@ -1088,8 +1245,8 @@ instance Functor Pattern where
 --
 -- **Patterns with many elements**:
 --
--- >>> elems = map (\i -> Pattern { value = i, elements = [] }) [1..5]
--- >>> pattern = Pattern { value = 100, elements = elems }
+-- >>> elems = map pattern [1..5]
+-- >>> pattern = patternWith 100 elems
 -- >>> foldr (+) 0 pattern
 -- 115
 -- >>> length (toList pattern)
@@ -1099,10 +1256,10 @@ instance Functor Pattern where
 --
 -- **Nested patterns** (multiple levels):
 --
--- >>> level3 = Pattern { value = 1, elements = [] }
--- >>> level2 = Pattern { value = 2, elements = [level3] }
--- >>> level1 = Pattern { value = 3, elements = [level2] }
--- >>> pattern = Pattern { value = 4, elements = [level1] }
+-- >>> level3 = pattern 1
+-- >>> level2 = patternWith 2 [level3]
+-- >>> level1 = patternWith 3 [level2]
+-- >>> pattern = patternWith 4 [level1]
 -- >>> foldr (+) 0 pattern
 -- 10
 -- >>> toList pattern
@@ -1110,11 +1267,11 @@ instance Functor Pattern where
 --
 -- **Deep nesting** (3+ levels):
 --
--- >>> level4 = Pattern { value = 1, elements = [] }
--- >>> level3 = Pattern { value = 2, elements = [level4] }
--- >>> level2 = Pattern { value = 3, elements = [level3] }
--- >>> level1 = Pattern { value = 4, elements = [level2] }
--- >>> pattern = Pattern { value = 5, elements = [level1] }
+-- >>> level4 = pattern 1
+-- >>> level3 = patternWith 2 [level4]
+-- >>> level2 = patternWith 3 [level3]
+-- >>> level1 = patternWith 4 [level2]
+-- >>> pattern = patternWith 5 [level1]
 -- >>> foldr (+) 0 pattern
 -- 15
 -- >>> toList pattern
@@ -1124,9 +1281,9 @@ instance Functor Pattern where
 --
 -- String values:
 --
--- >>> elem1 = Pattern { value = "hello", elements = [] }
--- >>> elem2 = Pattern { value = "world", elements = [] }
--- >>> pattern = Pattern { value = "greeting", elements = [elem1, elem2] }
+-- >>> elem1 = pattern "hello"
+-- >>> elem2 = pattern "world"
+-- >>> pattern = patternWith "greeting" [elem1, elem2]
 -- >>> foldr (++) "" pattern
 -- "greetinghelloworld"
 -- >>> toList pattern
@@ -1134,9 +1291,9 @@ instance Functor Pattern where
 --
 -- Integer values:
 --
--- >>> elem1 = Pattern { value = 10, elements = [] }
--- >>> elem2 = Pattern { value = 20, elements = [] }
--- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+-- >>> elem1 = pattern 10
+-- >>> elem2 = pattern 20
+-- >>> pattern = patternWith 100 [elem1, elem2]
 -- >>> foldr (+) 0 pattern
 -- 130
 -- >>> getSum (foldMap Sum pattern)
@@ -1144,10 +1301,10 @@ instance Functor Pattern where
 --
 -- **Order preservation**:
 --
--- >>> elem1 = Pattern { value = "first", elements = [] }
--- >>> elem2 = Pattern { value = "second", elements = [] }
--- >>> elem3 = Pattern { value = "third", elements = [] }
--- >>> pattern = Pattern { value = "root", elements = [elem1, elem2, elem3] }
+-- >>> elem1 = pattern "first"
+-- >>> elem2 = pattern "second"
+-- >>> elem3 = pattern "third"
+-- >>> pattern = patternWith "root" [elem1, elem2, elem3]
 -- >>> toList pattern
 -- ["root", "first", "second", "third"]
 -- >>> foldr (:) [] pattern
@@ -1155,10 +1312,10 @@ instance Functor Pattern where
 --
 -- **Nested patterns with varying depths**:
 --
--- >>> branch1 = Pattern { value = 10, elements = [Pattern { value = 1, elements = [] }] }
--- >>> branch2 = Pattern { value = 20, elements = [Pattern { value = 2, elements = [Pattern { value = 3, elements = [] }] }] }
--- >>> branch3 = Pattern { value = 30, elements = [] }
--- >>> pattern = Pattern { value = 100, elements = [branch1, branch2, branch3] }
+-- >>> branch1 = patternWith 10 [pattern 1]
+-- >>> branch2 = patternWith 20 [patternWith 2 [pattern 3]]
+-- >>> branch3 = pattern 30
+-- >>> pattern = patternWith 100 [branch1, branch2, branch3]
 -- >>> foldr (+) 0 pattern
 -- 166
 -- >>> length (toList pattern)
@@ -1186,15 +1343,15 @@ instance Foldable Pattern where
   --
   -- Atomic pattern:
   --
-  -- >>> atom = Pattern { value = 5, elements = [] }
+  -- >>> atom = pattern 5
   -- >>> foldr (+) 0 atom
   -- 5
   --
   -- Pattern with multiple elements (order: elements first, then pattern's value):
   --
-  -- >>> elem1 = Pattern { value = 10, elements = [] }
-  -- >>> elem2 = Pattern { value = 20, elements = [] }
-  -- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern 10
+  -- >>> elem2 = pattern 20
+  -- >>> pattern = patternWith 100 [elem1, elem2]
   -- >>> foldr (+) 0 pattern
   -- 130
   --
@@ -1205,9 +1362,9 @@ instance Foldable Pattern where
   --
   -- Nested pattern structure:
   --
-  -- >>> inner = Pattern { value = 1, elements = [] }
-  -- >>> middle = Pattern { value = 2, elements = [inner] }
-  -- >>> pattern = Pattern { value = 3, elements = [middle] }
+  -- >>> inner = pattern 1
+  -- >>> middle = patternWith 2 [inner]
+  -- >>> pattern = patternWith 3 [middle]
   -- >>> foldr (+) 0 pattern
   -- 6
   --
@@ -1225,9 +1382,9 @@ instance Foldable Pattern where
   --
   -- Example with commutative operation (addition):
   --
-  -- >>> elem1 = Pattern { value = 10, elements = [] }
-  -- >>> elem2 = Pattern { value = 20, elements = [] }
-  -- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern 10
+  -- >>> elem2 = pattern 20
+  -- >>> pattern = patternWith 100 [elem1, elem2]
   -- >>> foldr (+) 0 pattern
   -- 130
   -- >>> foldr (+) 0 (toList pattern)
@@ -1235,9 +1392,9 @@ instance Foldable Pattern where
   --
   -- Example with non-commutative operation (list building):
   --
-  -- >>> elem1 = Pattern { value = "a", elements = [] }
-  -- >>> elem2 = Pattern { value = "b", elements = [] }
-  -- >>> pattern = Pattern { value = "root", elements = [elem1, elem2] }
+  -- >>> elem1 = pattern "a"
+  -- >>> elem2 = pattern "b"
+  -- >>> pattern = patternWith "root" [elem1, elem2]
   -- >>> toList pattern
   -- ["root", "a", "b"]
   --
@@ -1265,15 +1422,15 @@ instance Foldable Pattern where
   --
   -- Atomic pattern:
   --
-  -- >>> atom = Pattern { value = 5, elements = [] }
+  -- >>> atom = pattern 5
   -- >>> foldl (+) 0 atom
   -- 5
   --
   -- Pattern with multiple elements (order: pattern's value first, then elements left-to-right):
   --
-  -- >>> elem1 = Pattern { value = 10, elements = [] }
-  -- >>> elem2 = Pattern { value = 20, elements = [] }
-  -- >>> pattern = Pattern { value = 100, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern 10
+  -- >>> elem2 = pattern 20
+  -- >>> pattern = patternWith 100 [elem1, elem2]
   -- >>> foldl (+) 0 pattern
   -- 130
   --
@@ -1284,9 +1441,9 @@ instance Foldable Pattern where
   --
   -- Nested pattern structure:
   --
-  -- >>> inner = Pattern { value = 1, elements = [] }
-  -- >>> middle = Pattern { value = 2, elements = [inner] }
-  -- >>> pattern = Pattern { value = 3, elements = [middle] }
+  -- >>> inner = pattern 1
+  -- >>> middle = patternWith 2 [inner]
+  -- >>> pattern = patternWith 3 [middle]
   -- >>> foldl (+) 0 pattern
   -- 6
   --
@@ -1644,24 +1801,24 @@ instance Traversable Pattern where
   --
   -- Atomic pattern:
   --
-  -- >>> traverse Identity (Pattern { value = 5, elements = [] })
+  -- >>> traverse Identity (pattern 5)
   -- Identity (Pattern {value = 5, elements = []})
   --
   -- Pattern with multiple elements:
   --
   -- >>> let validate x = if x > 0 then Just x else Nothing
-  -- >>> elem1 = Pattern { value = 5, elements = [] }
-  -- >>> elem2 = Pattern { value = 10, elements = [] }
-  -- >>> pattern = Pattern { value = 20, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern 5
+  -- >>> elem2 = pattern 10
+  -- >>> pattern = patternWith 20 [elem1, elem2]
   -- >>> traverse validate pattern
   -- Just (Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]})
   --
   -- Nested pattern structure:
   --
   -- >>> let validate x = if x > 0 then Just x else Nothing
-  -- >>> inner = Pattern { value = 1, elements = [] }
-  -- >>> middle = Pattern { value = 2, elements = [inner] }
-  -- >>> pattern = Pattern { value = 3, elements = [middle] }
+  -- >>> inner = pattern 1
+  -- >>> middle = patternWith 2 [inner]
+  -- >>> pattern = patternWith 3 [middle]
   -- >>> traverse validate pattern
   -- Just (Pattern {value = 3, elements = [Pattern {value = 2, elements = [Pattern {value = 1, elements = []}]}]})
   --
@@ -1723,48 +1880,48 @@ instance Traversable Pattern where
   --
   -- Sequencing pattern containing Identity values:
   --
-  -- >>> atom = Pattern { value = Identity "test", elements = [] }
+  -- >>> atom = pattern (Identity "test")
   -- >>> sequenceA atom
   -- Identity (Pattern {value = "test", elements = []})
   --
   -- Sequencing pattern containing Maybe values (all Just):
   --
-  -- >>> elem1 = Pattern { value = Just 5, elements = [] }
-  -- >>> elem2 = Pattern { value = Just 10, elements = [] }
-  -- >>> pattern = Pattern { value = Just 20, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern (Just 5)
+  -- >>> elem2 = pattern (Just 10)
+  -- >>> pattern = patternWith (Just 20) [elem1, elem2]
   -- >>> sequenceA pattern
   -- Just (Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]})
   --
   -- Sequencing pattern containing Maybe values (one Nothing):
   --
-  -- >>> elem1 = Pattern { value = Just 5, elements = [] }
-  -- >>> elem2 = Pattern { value = Nothing, elements = [] }
-  -- >>> pattern = Pattern { value = Just 20, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern (Just 5)
+  -- >>> elem2 = pattern Nothing
+  -- >>> pattern = patternWith (Just 20) [elem1, elem2]
   -- >>> sequenceA pattern
   -- Nothing
   --
   -- Sequencing pattern containing Either values (all Right):
   --
-  -- >>> elem1 = Pattern { value = Right 5, elements = [] }
-  -- >>> elem2 = Pattern { value = Right 10, elements = [] }
-  -- >>> pattern = Pattern { value = Right 20, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern (Right 5)
+  -- >>> elem2 = pattern (Right 10)
+  -- >>> pattern = patternWith (Right 20) [elem1, elem2]
   -- >>> sequenceA pattern
   -- Right (Pattern {value = 20, elements = [Pattern {value = 5, elements = []},Pattern {value = 10, elements = []}]})
   --
   -- Sequencing pattern containing Either values (one Left):
   --
-  -- >>> elem1 = Pattern { value = Right 5, elements = [] }
-  -- >>> elem2 = Pattern { value = Left "error", elements = [] }
-  -- >>> pattern = Pattern { value = Right 20, elements = [elem1, elem2] }
+  -- >>> elem1 = pattern (Right 5)
+  -- >>> elem2 = pattern (Left "error")
+  -- >>> pattern = patternWith (Right 20) [elem1, elem2]
   -- >>> sequenceA pattern
   -- Left "error"
   --
   -- Sequencing nested pattern structure:
   --
-  -- >>> inner = Pattern { value = Just 1, elements = [] }
-  -- >>> middle = Pattern { value = Just 2, elements = [inner] }
-  -- >>> outer = Pattern { value = Just 3, elements = [middle] }
-  -- >>> pattern = Pattern { value = Just 4, elements = [outer] }
+  -- >>> inner = pattern (Just 1)
+  -- >>> middle = patternWith (Just 2) [inner]
+  -- >>> outer = patternWith (Just 3) [middle]
+  -- >>> pattern = patternWith (Just 4) [outer]
   -- >>> sequenceA pattern
   -- Just (Pattern {value = 4, elements = [Pattern {value = 3, elements = [Pattern {value = 2, elements = [Pattern {value = 1, elements = []}]}]}]})
   --
@@ -1774,29 +1931,29 @@ instance Traversable Pattern where
   --
   -- **Atomic patterns** (no elements):
   --
-  -- >>> sequenceA (Pattern { value = Just 5, elements = [] })
+  -- >>> sequenceA (pattern (Just 5))
   -- Just (Pattern {value = 5, elements = []})
   --
   -- **Singular patterns** (one element):
   --
-  -- >>> elem = Pattern { value = Just 5, elements = [] }
-  -- >>> pattern = Pattern { value = Just 10, elements = [elem] }
+  -- >>> elem = pattern (Just 5)
+  -- >>> pattern = patternWith (Just 10) [elem]
   -- >>> sequenceA pattern
   -- Just (Pattern {value = 10, elements = [Pattern {value = 5, elements = []}]})
   --
   -- **Patterns with many elements**:
   --
-  -- >>> elems = [Pattern { value = Just 1, elements = [] }, Pattern { value = Just 2, elements = [] }]
-  -- >>> pattern = Pattern { value = Just 100, elements = elems }
+  -- >>> elems = [pattern (Just 1), pattern (Just 2)]
+  -- >>> pattern = patternWith (Just 100) elems
   -- >>> sequenceA pattern
   -- Just (Pattern {value = 100, elements = [Pattern {value = 1, elements = []},Pattern {value = 2, elements = []}]})
   --
   -- **Deep nesting** (3+ levels):
   --
-  -- >>> level3 = Pattern { value = Just 1, elements = [] }
-  -- >>> level2 = Pattern { value = Just 2, elements = [level3] }
-  -- >>> level1 = Pattern { value = Just 3, elements = [level2] }
-  -- >>> pattern = Pattern { value = Just 4, elements = [level1] }
+  -- >>> level3 = pattern (Just 1)
+  -- >>> level2 = patternWith (Just 2) [level3]
+  -- >>> level1 = patternWith (Just 3) [level2]
+  -- >>> pattern = patternWith (Just 4) [level1]
   -- >>> sequenceA pattern
   -- Just (Pattern {value = 4, elements = [Pattern {value = 3, elements = [Pattern {value = 2, elements = [Pattern {value = 1, elements = []}]}]}]})
   --

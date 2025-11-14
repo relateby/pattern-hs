@@ -10,7 +10,7 @@ import Data.List (sort)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Data.List.NonEmpty (NonEmpty((:|)))
-import Data.Monoid (All(..), Endo(..), Product(..), Sum(..))
+import Data.Monoid (All(..), Any(..), Endo(..), Product(..), Sum(..), mconcat)
 import Data.Semigroup (sconcat, stimes)
 import qualified Data.Set as Set
 import Test.Hspec
@@ -3393,3 +3393,157 @@ spec = do
           reverseComposed `shouldBe` 12  -- (5 + 1) * 2 = 12
           -- This demonstrates non-commutativity - verify they produce different results
           composed `shouldNotBe` reverseComposed
+
+    describe "Monoid Instance (User Story 3)" $ do
+      
+      describe "Identity Pattern Structure" $ do
+        
+        it "T007: mempty has correct structure for String values" $ do
+          let emptyPattern = mempty :: Pattern String
+          value emptyPattern `shouldBe` ""
+          elements emptyPattern `shouldBe` ([] :: [Pattern String])
+        
+        it "T007: mempty has correct structure for Sum Int values" $ do
+          let emptyPattern = mempty :: Pattern (Sum Int)
+          value emptyPattern `shouldBe` Sum 0
+          elements emptyPattern `shouldBe` ([] :: [Pattern (Sum Int)])
+        
+        it "T007: mempty has correct structure for Product Int values" $ do
+          let emptyPattern = mempty :: Pattern (Product Int)
+          value emptyPattern `shouldBe` Product 1
+          elements emptyPattern `shouldBe` ([] :: [Pattern (Product Int)])
+      
+      describe "Left Identity Law" $ do
+        
+        it "T008: mempty <> p = p for atomic patterns" $ do
+          let p = pattern "test"
+          (mempty <> p) `shouldBe` p
+        
+        it "T008: mempty <> p = p for patterns with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          (mempty <> p) `shouldBe` p
+        
+        it "T008: mempty <> p = p for nested patterns" $ do
+          let inner = pattern "inner"
+              middle = patternWith "middle" [inner]
+              p = patternWith "outer" [middle]
+          (mempty <> p) `shouldBe` p
+      
+      describe "Right Identity Law" $ do
+        
+        it "T009: p <> mempty = p for atomic patterns" $ do
+          let p = pattern "test"
+          (p <> mempty) `shouldBe` p
+        
+        it "T009: p <> mempty = p for patterns with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          (p <> mempty) `shouldBe` p
+        
+        it "T009: p <> mempty = p for nested patterns" $ do
+          let inner = pattern "inner"
+              middle = patternWith "middle" [inner]
+              p = patternWith "outer" [middle]
+          (p <> mempty) `shouldBe` p
+      
+      describe "Standard Monoid Combinators" $ do
+        
+        it "T010: mconcat with empty list returns mempty" $ do
+          let result = mconcat [] :: Pattern String
+          value result `shouldBe` ""
+          elements result `shouldBe` ([] :: [Pattern String])
+        
+        it "T011: mconcat with list of patterns combines them correctly" $ do
+          let patterns = [pattern "a", pattern "b", pattern "c"]
+              result = mconcat patterns
+          value result `shouldBe` "abc"
+          elements result `shouldBe` ([] :: [Pattern String])
+        
+        it "T011: mconcat preserves element order" $ do
+          let p1 = patternWith "root" [pattern "x"]
+              p2 = patternWith "root" [pattern "y"]
+              patterns = [p1, p2]
+              result = mconcat patterns
+          value result `shouldBe` "rootroot"
+          length (elements result) `shouldBe` 2
+          map value (elements result) `shouldBe` ["x", "y"]
+
+    describe "Monoid Instance - Edge Cases and Consistency (User Story 4)" $ do
+      
+      describe "Identity with different pattern structures" $ do
+        
+        it "T021: identity with atomic patterns" $ do
+          let p = pattern "a"
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+        
+        it "T022: identity with patterns having elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b", pattern "c"]
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+        
+        it "T023: identity with nested patterns" $ do
+          let level3 = pattern "level3"
+              level2 = patternWith "level2" [level3]
+              level1 = patternWith "level1" [level2]
+              p = patternWith "root" [level1]
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+      
+      describe "Identity with different value types" $ do
+        
+        it "T024: identity with String values" $ do
+          let p = pattern "test" :: Pattern String
+          value (mempty :: Pattern String) `shouldBe` ""
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+        
+        it "T024: identity with Sum Int values" $ do
+          let p = pattern (Sum 5) :: Pattern (Sum Int)
+          value (mempty :: Pattern (Sum Int)) `shouldBe` Sum 0
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+        
+        it "T024: identity with Product Int values" $ do
+          let p = pattern (Product 5) :: Pattern (Product Int)
+          value (mempty :: Pattern (Product Int)) `shouldBe` Product 1
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+        
+        it "T024: identity with All values" $ do
+          let p = pattern (All False) :: Pattern All
+          value (mempty :: Pattern All) `shouldBe` All True
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+        
+        it "T024: identity with Any values" $ do
+          let p = pattern (Any True) :: Pattern Any
+          value (mempty :: Pattern Any) `shouldBe` Any False
+          (mempty <> p) `shouldBe` p
+          (p <> mempty) `shouldBe` p
+      
+      describe "Standard Monoid Combinators - Edge Cases" $ do
+        
+        it "T025: mconcat with list containing only mempty" $ do
+          let result = mconcat [mempty, mempty, mempty] :: Pattern String
+          value result `shouldBe` ""
+          elements result `shouldBe` ([] :: [Pattern String])
+          result `shouldBe` (mempty :: Pattern String)
+      
+      describe "Consistency with Semigroup" $ do
+        
+        it "T026: p1 <> p2 produces same result using Semigroup or Monoid" $ do
+          let p1 = pattern "a"
+              p2 = pattern "b"
+              semigroupResult = p1 <> p2
+              monoidResult = p1 <> p2
+          semigroupResult `shouldBe` monoidResult
+          value semigroupResult `shouldBe` value monoidResult
+          elements semigroupResult `shouldBe` elements monoidResult
+        
+        it "T026: integration test for standard Monoid combinators" $ do
+          let patterns = [pattern "a", pattern "b", pattern "c"]
+              mconcatResult = mconcat patterns
+              foldrResult = foldr (<>) mempty patterns
+          mconcatResult `shouldBe` foldrResult
+          value mconcatResult `shouldBe` "abc"
+          elements mconcatResult `shouldBe` ([] :: [Pattern String])
