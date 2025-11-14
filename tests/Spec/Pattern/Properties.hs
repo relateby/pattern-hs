@@ -965,7 +965,7 @@ spec = do
     
     describe "Identity Pattern Structure" $ do
       
-      it "T019: identity pattern structure: value mempty = mempty and elements mempty = [] for Pattern String" $ do
+      it "T019: identity pattern structure: value mempty == mempty && elements mempty == []" $ do
         -- Property: Identity pattern has correct structure
         let emptyPattern = mempty :: Pattern String
         value emptyPattern `shouldBe` (mempty :: String)
