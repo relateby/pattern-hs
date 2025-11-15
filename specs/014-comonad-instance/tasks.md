@@ -219,15 +219,15 @@
 - [X] T059 [P] [US5] Add unit test for `depthAt` with nested pattern structure in tests/Spec/Pattern/CoreSpec.hs
 - [X] T060 [P] [US5] Add unit test for `sizeAt` with pattern with elements in tests/Spec/Pattern/CoreSpec.hs
 - [X] T061 [P] [US5] Add unit test for `sizeAt` with nested pattern structure in tests/Spec/Pattern/CoreSpec.hs
-- [ ] T062 [P] [US5] Add unit test for `indicesAt` with pattern with elements in tests/Spec/Pattern/CoreSpec.hs (if indicesFromRoot helper exists) - SKIPPED: indicesFromRoot does not exist
-- [ ] T063 [P] [US5] Add unit test for `indicesAt` with nested pattern structure in tests/Spec/Pattern/CoreSpec.hs (if indicesFromRoot helper exists) - SKIPPED: indicesFromRoot does not exist
+- [X] T062 [P] [US5] Add unit test for `indicesAt` with pattern with elements in tests/Spec/Pattern/CoreSpec.hs
+- [X] T063 [P] [US5] Add unit test for `indicesAt` with nested pattern structure in tests/Spec/Pattern/CoreSpec.hs
 - [X] T064 [US5] Run tests to verify they fail: `timeout 60 cabal test` in project root
 
 ### Implementation for User Story 5
 
 - [X] T065 [US5] Implement `depthAt :: Pattern v -> Pattern Int` helper function in src/Pattern/Core.hs (uses `extend (\p -> depth p)`)
 - [X] T066 [US5] Implement `sizeAt :: Pattern v -> Pattern Int` helper function in src/Pattern/Core.hs (uses `extend (\p -> size p)`)
-- [ ] T067 [US5] Implement `indicesAt :: Pattern v -> Pattern [Int]` helper function in src/Pattern/Core.hs (uses `extend (\p -> indicesFromRoot p)`) if indicesFromRoot helper exists - SKIPPED: indicesFromRoot does not exist
+- [X] T067 [US5] Implement `indicesAt :: Pattern v -> Pattern [Int]` helper function in src/Pattern/Core.hs (uses `extend (\p -> indicesFromRoot p pos)`)
 - [X] T068 [US5] Add Haddock documentation for helper functions in src/Pattern/Core.hs (explain convenience functions, include examples)
 - [X] T069 [US5] Run tests to verify implementation: `timeout 60 cabal test` in project root
 - [X] T070 [US5] Verify all User Story 5 tests pass independently

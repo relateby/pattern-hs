@@ -3935,3 +3935,116 @@ depthAt = extend depth
 -- giving each position access to its full structural context.
 sizeAt :: Pattern v -> Pattern Int
 sizeAt = extend size
+
+-- | Compute indices from root to current position.
+--
+-- This helper function finds the path (list of indices) from the root pattern
+-- to the current pattern position. The root position has an empty list of indices,
+-- and each element position has indices indicating its path from the root.
+--
+-- === Indices Representation
+--
+-- Indices are represented as a list of integers, where each integer represents
+-- the index of an element at that level. For example:
+--
+-- * Root position: `[]` (empty list)
+-- * First element: `[0]` (first element at root level)
+-- * Second element: `[1]` (second element at root level)
+-- * First element of first element: `[0, 0]` (first element of first element)
+--
+-- === Examples
+--
+-- Atomic pattern (root position):
+--
+-- >>> indicesFromRoot (pattern 5) (pattern 5)
+-- []
+--
+-- Pattern with elements:
+--
+-- >>> let root = patternWith "root" [pattern "a", pattern "b"]
+-- >>> indicesFromRoot root (pattern "a")
+-- [0]
+-- >>> indicesFromRoot root (pattern "b")
+-- [1]
+--
+-- Nested pattern:
+--
+-- >>> let root = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+-- >>> indicesFromRoot root (pattern "x")
+-- [0, 0]
+--
+-- === Implementation Note
+--
+-- This function searches for the target pattern within the root pattern structure
+-- by doing a structural comparison. It returns the first matching path found.
+-- If the target pattern appears multiple times, it returns the path to the first
+-- occurrence.
+--
+-- === Performance
+--
+-- The function completes in O(n) time where n is the total number of nodes in
+-- the root pattern, as it must search through all positions to find the target.
+indicesFromRoot :: (Eq v) => Pattern v -> Pattern v -> [Int]
+indicesFromRoot root target
+  | root == target = []
+  | otherwise = findPath root target []
+
+-- Helper function to find path from root to target
+findPath :: (Eq v) => Pattern v -> Pattern v -> [Int] -> [Int]
+findPath current target acc
+  | current == target = reverse acc
+  | otherwise = searchElements (elements current) target acc 0
+
+-- Helper function to search through elements
+searchElements :: (Eq v) => [Pattern v] -> Pattern v -> [Int] -> Int -> [Int]
+searchElements [] _ _ _ = []  -- Not found
+searchElements (elem:rest) target acc idx
+  | found /= [] = found
+  | otherwise = searchElements rest target acc (idx + 1)
+  where
+    found = findPath elem target (idx : acc)
+
+-- | Compute indices from root to each position in the pattern structure.
+--
+-- This helper function uses the Comonad instance to compute the indices (list of
+-- indices) from the root to each position. The root position has an empty list
+-- of indices, and each element position has indices indicating its path from
+-- the root.
+--
+-- === Examples
+--
+-- Atomic pattern:
+--
+-- >>> indicesAt (pattern 5)
+-- Pattern {value = [], elements = []}
+--
+-- Pattern with elements:
+--
+-- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+-- >>> indicesAt p
+-- Pattern {value = [], elements = [Pattern {value = [0], elements = []}, Pattern {value = [1], elements = []}]}
+--
+-- Nested pattern:
+--
+-- >>> let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+-- >>> indicesAt p
+-- Pattern {value = [], elements = [Pattern {value = [0], elements = [Pattern {value = [0, 0], elements = []}]}, Pattern {value = [1], elements = []}]}
+--
+-- === Relationship to Comonad
+--
+-- This function demonstrates the power of the Comonad instance by providing
+-- convenient access to context-aware computations. It is equivalent to:
+--
+-- @
+-- indicesAt p = extend (\pos -> indicesFromRoot p pos) p
+-- @
+--
+-- The function uses `extend` to apply `indicesFromRoot` at each position,
+-- giving each position access to its path from the root.
+--
+-- === Type Constraint
+--
+-- This function requires that the value type @v@ has an `Eq` instance, as
+-- `indicesFromRoot` uses structural equality to find the target pattern.
+indicesAt :: (Eq v) => Pattern v -> Pattern [Int]
+indicesAt p = extend (\pos -> indicesFromRoot p pos) p

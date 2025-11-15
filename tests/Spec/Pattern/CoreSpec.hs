@@ -18,7 +18,7 @@ import Data.Semigroup (sconcat, stimes)
 import qualified Data.Set as Set
 import Test.Hspec
 import Control.Comonad (extract, extend, duplicate)
-import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt)
+import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt, indicesAt)
 import qualified Pattern.Core as PC
 
 -- Custom type for testing
@@ -4359,3 +4359,18 @@ spec = do
           extract (elements result !! 0) `shouldBe` (2 :: Int)  -- "a": 2 nodes (a + x)
           extract (elements result !! 1) `shouldBe` (1 :: Int)  -- "b": 1 node
           extract (elements (elements result !! 0) !! 0) `shouldBe` (1 :: Int)  -- "x": 1 node
+        
+        it "T062: indicesAt with pattern with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = indicesAt p
+          extract result `shouldBe` ([] :: [Int])  -- Root: empty indices
+          extract (elements result !! 0) `shouldBe` ([0] :: [Int])  -- "a": [0]
+          extract (elements result !! 1) `shouldBe` ([1] :: [Int])  -- "b": [1]
+        
+        it "T063: indicesAt with nested pattern structure" $ do
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = indicesAt p
+          extract result `shouldBe` ([] :: [Int])  -- Root: empty indices
+          extract (elements result !! 0) `shouldBe` ([0] :: [Int])  -- "a": [0]
+          extract (elements result !! 1) `shouldBe` ([1] :: [Int])  -- "b": [1]
+          extract (elements (elements result !! 0) !! 0) `shouldBe` ([0, 0] :: [Int])  -- "x": [0, 0]
