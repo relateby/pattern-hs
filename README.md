@@ -1,6 +1,6 @@
-# Pattern HS
+# Gram HS
 
-A Haskell library providing a generalized representation of graph elements using category theory. Pattern is a recursive data structure that can be interpreted as different graph elements (nodes, relationships, subgraphs, paths) through categorical views.
+A multi-library Haskell mono-repo providing tools for working with patterns, subjects, and graph structures. The primary library, `pattern`, offers a generalized representation of graph elements using category theory. Pattern is a recursive data structure that can be interpreted as different graph elements (nodes, relationships, subgraphs, paths) through categorical views.
 
 ## Design Goals
 
@@ -63,32 +63,49 @@ This dual view enables:
 
 ## Project Structure
 
+This is a multi-library mono-repo containing:
+
+- **`pattern`**: Core pattern data structure library (recursive, decorated sequences)
+- **`subject`**: Special data structure with index, labels, and property record (planned)
+- **`gram`**: Serialization/deserialization for "Subject Patterns" (planned)
+
 ```
-pattern-hs/
-├── src/
-│   ├── Pattern.hs          # Main module (re-exports)
-│   └── Pattern/
-│       ├── Core.hs         # Core Pattern type ✅
-│       ├── Views.hs        # GraphView typeclass (planned)
-│       ├── Graph.hs        # Graph operations (planned)
-│       └── Morphisms.hs    # Pattern morphisms (planned)
-├── tests/
-│   ├── Test.hs             # Test runner
-│   └── Spec/
-│       └── Pattern/
-│           ├── CoreSpec.hs     # Core tests ✅
-│           ├── ViewsSpec.hs    # Views tests (planned)
-│           ├── GraphSpec.hs    # Graph tests (planned)
-│           └── Properties.hs    # Property-based tests (planned)
-├── specs/                   # Feature specifications
+gram-hs/
+├── libs/
+│   ├── pattern/             # Pattern library
+│   │   ├── src/
+│   │   │   ├── Pattern.hs          # Main module (re-exports)
+│   │   │   └── Pattern/
+│   │   │       ├── Core.hs         # Core Pattern type ✅
+│   │   │       ├── Views.hs        # GraphView typeclass (planned)
+│   │   │       ├── Graph.hs        # Graph operations (planned)
+│   │   │       └── Morphisms.hs    # Pattern morphisms (planned)
+│   │   ├── tests/
+│   │   │   ├── Test.hs             # Test runner
+│   │   │   └── Spec/
+│   │   │       └── Pattern/
+│   │   │           ├── CoreSpec.hs     # Core tests ✅
+│   │   │           ├── ViewsSpec.hs    # Views tests (planned)
+│   │   │           ├── GraphSpec.hs    # Graph tests (planned)
+│   │   │           └── Properties.hs    # Property-based tests (planned)
+│   │   ├── examples/        # Pattern library examples
+│   │   ├── pattern.cabal    # Pattern library build configuration
+│   │   └── CHANGELOG.md     # Pattern library changelog
+│   ├── subject/             # Subject library (planned)
+│   └── gram/                # Gram library (planned)
+├── specs/                   # Shared feature specifications
 │   ├── 001-pattern-data-structure/
 │   └── 002-basic-pattern-type/
-├── DESIGN.md                 # Design documentation
-├── TODO.md                   # Implementation roadmap
-└── pattern.cabal            # Cabal build configuration
+├── design/                  # Shared design documentation
+│   ├── DESIGN.md
+│   └── pattern-matching-dsl-design.md
+├── cabal.project            # Root-level build configuration
+├── README.md                # This file
+├── LICENSE                   # Project license
+└── TODO.md                   # Implementation roadmap
 ```
 
-**Status**: ✅ Core Pattern type implemented | 🔄 Views and Graph operations (planned)
+**Status**: ✅ Core Pattern type implemented | 🔄 Views and Graph operations (planned) | 📋 Subject and Gram libraries (planned)
 
 ## Developer Section
 
@@ -162,8 +179,8 @@ cabal --version  # Should show 3.6.2.0 or later
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
-   cd pattern-hs
+   git clone git@github.com:gram-data/gram-hs.git
+   cd gram-hs
    ```
 
 2. **Update Cabal package index** (if needed):
@@ -173,8 +190,8 @@ cabal --version  # Should show 3.6.2.0 or later
 
 3. **Verify project structure**:
    ```bash
-   ls -la src/Pattern/Core.hs    # Should exist
-   ls -la tests/Spec/Pattern/CoreSpec.hs  # Should exist
+   ls -la libs/pattern/src/Pattern/Core.hs    # Should exist
+   ls -la libs/pattern/tests/Spec/Pattern/CoreSpec.hs  # Should exist
    ```
 
 4. **Create a feature branch for your work**:
@@ -196,9 +213,16 @@ cabal build
 cabal build --verbose
 ```
 
-**Build only the library (skip tests)**:
+**Build only a specific library (skip tests)**:
 ```bash
-cabal build lib:pattern
+cabal build lib:pattern  # Build pattern library
+# Future: cabal build lib:subject  # Build subject library
+# Future: cabal build lib:gram     # Build gram library
+```
+
+**Build all libraries**:
+```bash
+cabal build all
 ```
 
 **Build with specific GHC version**:
@@ -272,7 +296,7 @@ The workflow runs automatically on pushes to `main` branch when source files or 
    ```
 
 3. **Documentation will be available at**:
-   `https://<username>.github.io/pattern-hs/` (or your repository's Pages URL)
+   `https://<username>.github.io/gram-hs/` (or your repository's Pages URL)
 
 ### Manual Deployment
 
@@ -299,8 +323,8 @@ git checkout main
 
 **Format code** (if using `ormolu` or `brittany`):
 ```bash
-# Example with ormolu
-find src tests -name "*.hs" -exec ormolu -m inplace {} \;
+# Example with ormolu - format all libraries
+find libs -name "*.hs" -exec ormolu -m inplace {} \;
 ```
 
 ### Troubleshooting

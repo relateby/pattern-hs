@@ -1,7 +1,11 @@
 -- Cabal project configuration
 -- Specifies GHC version and project-wide settings
+-- Multi-library mono-repo structure
 
-packages: .
+packages:
+  libs/pattern/
+  -- libs/subject/  -- Future library: special data structure with index, labels, and property record
+  -- libs/gram/     -- Future library: serialization/deserialization for "Subject Patterns"
 
 -- Use GHC 9.10.3 (latest stable version with good tooling support)
 with-compiler: ghc-9.10.3
