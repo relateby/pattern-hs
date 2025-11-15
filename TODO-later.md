@@ -50,6 +50,119 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
+## Feature 13: Zipper for Interactive Navigation and Editing
+
+**Reference**: See `design/DESIGN.md` (section "Zipper for Focus") for initial design specification.
+
+**Use Case**: The Zipper type enables efficient interactive navigation and editing of Pattern structures, particularly useful for building user interfaces where users need to:
+- Navigate through pattern structures (up/down/left/right)
+- Focus on specific pattern elements
+- Edit patterns at the focus point efficiently
+- Access parent/sibling context for UI features (breadcrumbs, context menus)
+- Support undo/redo operations through zipper state history
+
+**Relationship to Comonad**: The Comonad instance (Feature 10) provides context-aware computations across all positions, while the Zipper provides explicit focus management and efficient navigation/editing operations. They complement each other:
+- **Comonad**: Batch context-aware transformations (e.g., "compute depth at every position")
+- **Zipper**: Interactive editing with explicit focus and efficient navigation
+
+### 13.1 Core Zipper Data Structure
+
+- [ ] Review design document `design/DESIGN.md` (Zipper section)
+- [ ] Implement `Zipper v` type with `focus` and `context` fields
+- [ ] Implement `Context v` type with `parent`, `left`, `right`, and `above` fields
+- [ ] Implement `fromPattern :: Pattern v -> Zipper v` (create zipper at root)
+- [ ] Implement `toPattern :: Zipper v -> Pattern v` (reconstruct pattern from zipper)
+- [ ] Write tests: verify zipper creation from patterns
+- [ ] Write tests: verify pattern reconstruction from zipper
+- [ ] Write tests: verify zipper preserves pattern structure and values
+
+**Goal**: Core zipper data structure that maintains focus point and full context for efficient navigation and editing.
+
+### 13.2 Navigation Operations
+
+- [ ] Implement `moveDown :: Int -> Zipper v -> Maybe (Zipper v)` (move to nth child)
+- [ ] Implement `moveUp :: Zipper v -> Maybe (Zipper v)` (move to parent)
+- [ ] Implement `moveLeft :: Zipper v -> Maybe (Zipper v)` (move to previous sibling)
+- [ ] Implement `moveRight :: Zipper v -> Maybe (Zipper v)` (move to next sibling)
+- [ ] Implement `moveToFirst :: Zipper v -> Maybe (Zipper v)` (move to first child)
+- [ ] Implement `moveToLast :: Zipper v -> Maybe (Zipper v)` (move to last child)
+- [ ] Implement `moveToRoot :: Zipper v -> Zipper v` (move to root)
+- [ ] Implement `canMoveDown`, `canMoveUp`, `canMoveLeft`, `canMoveRight` predicates
+- [ ] Write tests: verify all navigation operations work correctly
+- [ ] Write tests: verify navigation handles edge cases (root, atomic patterns, boundaries)
+- [ ] Write tests: verify navigation preserves pattern structure
+
+**Goal**: Complete set of navigation operations for moving focus through pattern structures.
+
+### 13.3 Context Access Operations
+
+- [ ] Implement `parents :: Zipper v -> [v]` (list of parent values from immediate parent to root)
+- [ ] Implement `ancestors :: Zipper v -> [Pattern v]` (list of parent Patterns from immediate parent to root)
+- [ ] Implement `siblings :: Zipper v -> ([Pattern v], Pattern v, [Pattern v])` (left siblings, focus, right siblings)
+- [ ] Implement `path :: Zipper v -> [Int]` (indices from root to focus)
+- [ ] Implement `depth :: Zipper v -> Int` (depth of focus from root)
+- [ ] Write tests: verify context access operations return correct values
+- [ ] Write tests: verify `parents` and `ancestors` handle root correctly (empty lists)
+- [ ] Write tests: verify context operations work at all nesting levels
+
+**Goal**: Operations for accessing parent, sibling, and path context information useful for UI features.
+
+### 13.4 Editing Operations
+
+- [ ] Implement `modifyFocus :: (Pattern v -> Pattern v) -> Zipper v -> Zipper v` (modify focused pattern)
+- [ ] Implement `replaceFocus :: Pattern v -> Zipper v -> Zipper v` (replace focused pattern)
+- [ ] Implement `insertBefore :: Pattern v -> Zipper v -> Zipper v` (insert before focus)
+- [ ] Implement `insertAfter :: Pattern v -> Zipper v -> Zipper v` (insert after focus)
+- [ ] Implement `insertChild :: Pattern v -> Zipper v -> Zipper v` (insert as first child)
+- [ ] Implement `appendChild :: Pattern v -> Zipper v -> Zipper v` (append as last child)
+- [ ] Implement `deleteFocus :: Zipper v -> Maybe (Zipper v)` (delete focus, move to parent or sibling)
+- [ ] Implement `deleteChild :: Int -> Zipper v -> Maybe (Zipper v)` (delete nth child)
+- [ ] Write tests: verify all editing operations work correctly
+- [ ] Write tests: verify editing operations preserve pattern structure
+- [ ] Write tests: verify editing operations handle edge cases (root deletion, empty patterns)
+- [ ] Write tests: verify editing operations maintain zipper validity
+
+**Goal**: Complete set of editing operations for modifying patterns at the focus point efficiently.
+
+### 13.5 Zipper Query Operations
+
+- [ ] Implement `isRoot :: Zipper v -> Bool` (check if at root)
+- [ ] Implement `isAtomic :: Zipper v -> Bool` (check if focus is atomic)
+- [ ] Implement `hasChildren :: Zipper v -> Bool` (check if focus has elements)
+- [ ] Implement `childCount :: Zipper v -> Int` (number of children at focus)
+- [ ] Implement `position :: Zipper v -> Maybe Int` (position among siblings, Nothing if root)
+- [ ] Write tests: verify all query operations return correct values
+- [ ] Write tests: verify query operations handle edge cases
+
+**Goal**: Query operations for inspecting zipper state and focus properties.
+
+### 13.6 Integration and Utilities
+
+- [ ] Implement `findFocus :: (Pattern v -> Bool) -> Pattern v -> Maybe (Zipper v)` (find first matching pattern)
+- [ ] Implement `findAllFocus :: (Pattern v -> Bool) -> Pattern v -> [Zipper v]` (find all matching patterns)
+- [ ] Implement `focusAt :: [Int] -> Pattern v -> Maybe (Zipper v)` (navigate to position by path)
+- [ ] Consider: `Zipper` instances for common typeclasses (Functor, Foldable, Traversable)
+- [ ] Consider: Conversion utilities between Zipper and Comonad operations
+- [ ] Write tests: verify find operations work correctly
+- [ ] Write tests: verify path-based navigation works correctly
+- [ ] Write documentation: comprehensive examples showing zipper usage patterns
+- [ ] Write documentation: relationship between Zipper and Comonad instances
+
+**Goal**: Utility functions and integrations for common zipper use cases.
+
+**Note**: The Zipper type provides explicit focus management and efficient navigation/editing operations, making it ideal for interactive user interfaces. Unlike the Comonad instance which provides context-aware computations across all positions, the Zipper maintains a single focus point with full context, enabling efficient O(1) to O(depth) editing operations and natural UI navigation patterns.
+
+**Implementation Strategy**:
+1. **Phase 1**: Core data structure and basic navigation (moveDown, moveUp, moveLeft, moveRight)
+2. **Phase 2**: Context access operations (parents, ancestors, siblings, path)
+3. **Phase 3**: Editing operations (modify, insert, delete)
+4. **Phase 4**: Query operations and utilities
+5. **Phase 5**: Integration with existing Pattern operations and typeclass instances
+
+**See `design/DESIGN.md`** (section "Zipper for Focus") for initial design specification and type definitions.
+
+---
+
 ## Feature 14: Pattern Matching DSL (PatternExpr Library)
 
 **Reference**: See `design/pattern-matching-dsl-design.md` for complete design specification.
