@@ -10,6 +10,7 @@
 module Spec.Pattern.Properties where
 
 import Control.Applicative (liftA2)
+import Control.Comonad (extract, extend, duplicate)
 import Data.Char (toUpper)
 import Data.Foldable (foldl, foldMap, foldr, toList)
 import Data.Functor.Compose (Compose(..))
@@ -1275,4 +1276,52 @@ spec = do
           if contains p1 p2 && contains p2 p3
           then contains p1 p3
           else True  -- If premise is false, property holds vacuously
+  
+  describe "Comonad Laws Properties (User Story 4)" $ do
+    
+    describe "extract-extend law" $ do
+      
+      it "T046: extract . extend f = f" $ do
+        -- Property: Extracting from an extended computation gives the original result
+        -- This law states that: extract . extend f = f
+        quickProperty $ \(p :: Pattern Int) -> 
+          let f p' = size p'  -- Context-aware function: compute size
+          in extract (extend f p) == f p
+      
+      it "T046b: extract . extend f = f (with depth function)" $ do
+        -- Property: Extract-extend law holds for depth computation
+        quickProperty $ \(p :: Pattern Int) -> 
+          let f p' = depth p'  -- Context-aware function: compute depth
+          in extract (extend f p) == f p
+      
+      it "T046c: extract . extend f = f (with custom function)" $ do
+        -- Property: Extract-extend law holds for custom context-aware functions
+        quickProperty $ \(p :: Pattern Int) -> 
+          let f p' = length (values p')  -- Context-aware function: count values
+          in extract (extend f p) == f p
+    
+    describe "extend-extract law" $ do
+      
+      it "T047: extend extract = id" $ do
+        -- Property: Extending with extract is identity
+        -- This law states that: extend extract = id
+        quickProperty $ \(p :: Pattern Int) -> 
+          extend extract p == p
+    
+    describe "extend composition law" $ do
+      
+      it "T048: extend f . extend g = extend (f . extend g)" $ do
+        -- Property: Extend is associative
+        -- This law states that: extend f . extend g = extend (f . extend g)
+        quickProperty $ \(p :: Pattern Int) -> 
+          let f p' = size p'      -- Context-aware function: compute size
+              g p' = depth p'     -- Context-aware function: compute depth
+          in (extend f . extend g) p == extend (f . extend g) p
+      
+      it "T048b: extend composition law (with different functions)" $ do
+        -- Property: Extend composition law holds for different function combinations
+        quickProperty $ \(p :: Pattern Int) -> 
+          let f p' = length (values p')  -- Context-aware function: count values
+              g p' = size p'             -- Context-aware function: compute size
+          in (extend f . extend g) p == extend (f . extend g) p
 

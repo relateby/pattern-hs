@@ -369,62 +369,80 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
-## Feature 10: Comonad Instance
+## Feature 10: Comonad Instance ✅
 
 ### 10.1 Comonad Design
-- [ ] **STOP and REVIEW**: Identify clear use cases for context-aware computations
-- [ ] Evaluate semantics: what does "context" mean for Pattern? (full structure, position, depth?)
-- [ ] Consider: how does Comonad relate to existing `Foldable` and `Traversable` instances?
-- [ ] Research: review comonad implementations for tree structures (e.g., `Data.Tree`)
-- [ ] Document use cases before proceeding
-- [ ] Design `extract :: Pattern v -> v` semantics (extract decoration value)
-- [ ] Design `extend :: (Pattern v -> w) -> Pattern v -> Pattern w` semantics (context-aware computation)
-- [ ] Design `duplicate :: Pattern v -> Pattern (Pattern v)` semantics (create context at each position)
+- [x] **STOP and REVIEW**: Identify clear use cases for context-aware computations
+- [x] Evaluate semantics: what does "context" mean for Pattern? (full structure, position, depth?)
+- [x] Consider: how does Comonad relate to existing `Foldable` and `Traversable` instances?
+- [x] Research: review comonad implementations for tree structures (e.g., `Data.Tree`)
+- [x] Document use cases before proceeding
+- [x] Design `extract :: Pattern v -> v` semantics (extract decoration value)
+- [x] Design `extend :: (Pattern v -> w) -> Pattern v -> Pattern w` semantics (context-aware computation)
+- [x] Design `duplicate :: Pattern v -> Pattern (Pattern v)` semantics (create context at each position)
 
-**Goal**: Enable context-aware computations that have access to full structural context.
+**Goal**: Enable context-aware computations that have access to full structural context. ✅ **COMPLETE**
 
 ### 10.2 Comonad Implementation
-- [ ] Implement `extract :: Pattern v -> v` (extract value at focus)
-- [ ] Implement `duplicate :: Pattern v -> Pattern (Pattern v)` (create pattern of contexts)
-- [ ] Implement `extend :: (Pattern v -> w) -> Pattern v -> Pattern w` (context-aware transformation)
-- [ ] Verify: `extract . extend f = f` (comonad law 1)
-- [ ] Verify: `extend extract = id` (comonad law 2)
-- [ ] Verify: `extend f . extend g = extend (f . extend g)` (comonad law 3)
-- [ ] Write tests: verify all comonad laws with property-based testing
-- [ ] Write tests: verify extract on atomic patterns
-- [ ] Write tests: verify extract on nested patterns
-- [ ] Write tests: verify extend with context-aware functions
-- [ ] Write tests: verify duplicate creates correct context structures
-- [ ] Write tests: edge cases (empty patterns, deeply nested, single element)
+- [x] Implement `extract :: Pattern v -> v` (extract value at focus)
+- [x] Implement `duplicate :: Pattern v -> Pattern (Pattern v)` (create pattern of contexts)
+- [x] Implement `extend :: (Pattern v -> w) -> Pattern v -> Pattern w` (context-aware transformation)
+- [x] Verify: `extract . extend f = f` (comonad law 1)
+- [x] Verify: `extend extract = id` (comonad law 2)
+- [x] Verify: `extend f . extend g = extend (f . extend g)` (comonad law 3)
+- [x] Write tests: verify all comonad laws with property-based testing
+- [x] Write tests: verify extract on atomic patterns
+- [x] Write tests: verify extract on nested patterns
+- [x] Write tests: verify extend with context-aware functions
+- [x] Write tests: verify duplicate creates correct context structures
+- [x] Write tests: edge cases (empty patterns, deeply nested, single element)
 
-**Goal**: Implement Comonad instance with verified laws and comprehensive tests.
+**Goal**: Implement Comonad instance with verified laws and comprehensive tests. ✅ **COMPLETE**
 
 ### 10.3 Context-Aware Operations
-- [ ] **STOP and REVIEW**: Identify useful context-aware operations enabled by Comonad
-- [ ] Evaluate: what context information is most useful? (depth, path, parent, siblings, size?)
-- [ ] Consider: should we provide helper functions for common context queries?
-- [ ] Document use cases before proceeding
-- [ ] If proceeding: implement `depthAt :: Pattern v -> Pattern Int` (depth at each position)
-- [ ] If proceeding: implement `sizeAt :: Pattern v -> Pattern Int` (size of subtree at each position)
-- [ ] If proceeding: implement `pathAt :: Pattern v -> Pattern [Int]` (path from root at each position)
-- [ ] Write tests: verify context-aware operations produce correct results
-- [ ] Write tests: verify context operations on various structures
-- [ ] Write tests: edge cases (root position, leaf positions, nested structures)
+- [x] **STOP and REVIEW**: Identify useful context-aware operations enabled by Comonad
+- [x] Evaluate: what context information is most useful? (depth, path, parent, siblings, size?)
+- [x] Consider: should we provide helper functions for common context queries?
+- [x] Document use cases before proceeding
+- [x] If proceeding: implement `depthAt :: Pattern v -> Pattern Int` (depth at each position)
+- [x] If proceeding: implement `sizeAt :: Pattern v -> Pattern Int` (size of subtree at each position)
+- [x] If proceeding: implement `indicesAt :: Pattern v -> Pattern [Int]` (indices from root at each position)
+- [x] Write tests: verify context-aware operations produce correct results
+- [x] Write tests: verify context operations on various structures
+- [x] Write tests: edge cases (root position, leaf positions, nested structures)
 
-**Goal**: Provide useful context-aware operations enabled by Comonad instance.
+**Goal**: Provide useful context-aware operations enabled by Comonad instance. ✅ **COMPLETE**
 
-**Note**: Comonad enables context-aware folding where computations have access to the full structural context (parent, siblings, depth, path) around each value, not just the value itself. This extends beyond `Foldable` which only provides values in sequence.
+**Note**: Comonad enables context-aware folding where computations have access to the full structural context (parent, siblings, depth, indices) around each value, not just the value itself. This extends beyond `Foldable` which only provides values in sequence.
 
 **Comonad Laws**:
-- **Law 1**: `extract . extend f = f` - Extracting from an extended computation gives the original result
-- **Law 2**: `extend extract = id` - Extending with extract is identity
-- **Law 3**: `extend f . extend g = extend (f . extend g)` - Extend is associative
+- **Law 1**: `extract . extend f = f` - Extracting from an extended computation gives the original result ✅ Verified
+- **Law 2**: `extend extract = id` - Extending with extract is identity ✅ Verified
+- **Law 3**: `extend f . extend g = extend (f . extend g)` - Extend is associative ✅ Verified
 
 **Use Cases**:
 - Depth-aware aggregations (compute based on nesting level)
 - Position-aware transformations (transform based on location in structure)
 - Context-sensitive queries (find patterns based on structural context)
-- Structural metadata computation (compute depth, size, path at each position)
+- Structural metadata computation (compute depth, size, indices at each position)
+
+**Comonad Instance Added**:
+1. **`Comonad` instance** - Enables context-aware computations where functions have access to the full structural context (parent, siblings, depth, indices) around each value, not just the value itself
+2. **`extract :: Pattern v -> v`** - Extracts the decoration value from a pattern (root value)
+3. **`duplicate :: Pattern v -> Pattern (Pattern v)`** - Creates a pattern where each position contains the full pattern structure focused at that position
+4. **`extend :: (Pattern v -> w) -> Pattern v -> Pattern w`** - Applies a context-aware function to each position in a pattern
+5. **Helper functions** - Convenience functions for common context-aware operations:
+   - **`depthAt :: Pattern v -> Pattern Int`** - Computes depth at each position
+   - **`sizeAt :: Pattern v -> Pattern Int`** - Computes size of subtree at each position
+   - **`indicesAt :: (Eq v) => Pattern v -> Pattern [Int]`** - Computes indices from root at each position
+6. **Comprehensive tests** - All tests passing (579 examples, 0 failures):
+   - Unit tests for extract, extend, duplicate (T009-T038)
+   - Property-based tests for all Comonad laws (T046-T048)
+   - Unit tests for helper functions (T058-T063)
+7. **Complete Haddock documentation** - Module-level and instance-level documentation with examples
+8. **Type constraint** - `indicesAt` requires `Eq v` constraint for structural equality
+9. **All core tasks (T001-T071) completed** across 6 phases (5 user stories + helper functions)
+10. **See `specs/014-comonad-instance/`** for full specification and implementation details
 
 ---
 
@@ -463,7 +481,7 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ## Current Status
 
-**Current Phase**: Phase 8.2 (Other Instances Evaluation) - Semigroup complete ✅, Monoid complete ✅, Hashable complete ✅, Applicative complete ✅. All planned typeclass instances complete.
+**Current Phase**: Feature 10 (Comonad Instance) - Complete ✅. All planned typeclass instances complete.
 
 **Completed**:
 - ✅ Phase 1: Core Pattern type fully implemented with comprehensive tests (25 test cases)
@@ -586,11 +604,21 @@ See [README.md](README.md#development-workflow) for complete workflow details.
   - Complete Haddock documentation with examples
   - All 69 tasks (T001-T069) completed across 4 phases (3 user stories + polish)
   - See `specs/012-predicate-matching/` for full specification and implementation details
+- ✅ Phase 10: Comonad Instance implemented with comprehensive tests:
+  - `Comonad` instance for `Pattern` with `extract`, `duplicate`, and `extend` operations
+  - Context-aware computations with access to full structural context (parent, siblings, depth, indices)
+  - Property-based tests for all Comonad laws (extract-extend, extend-extract, extend composition)
+  - Helper functions (`depthAt`, `sizeAt`, `indicesAt`) for common context-aware operations
+  - Unit tests for all Comonad operations and helper functions
+  - All tests passing (579 examples, 0 failures)
+  - Complete Haddock documentation with examples
+  - Module-level documentation updated
+  - All core tasks (T001-T071) completed across 6 phases (5 user stories + helper functions)
+  - See `specs/014-comonad-instance/` for full specification and implementation details
 
 **Next Steps**: 
-1. Feature 10 (Comonad Instance) - identify use cases and design semantics before proceeding
-2. Feature 11 (Integration and Polish) - finalize exports, documentation, and testing
-3. See `TODO-later.md` for deferred features (Graph Views, Pattern Morphisms, Pattern Matching DSL)
+1. Feature 11 (Integration and Polish) - finalize exports, documentation, and testing
+2. See `TODO-later.md` for deferred features (Graph Views, Pattern Morphisms, Pattern Matching DSL)
 
 ---
 

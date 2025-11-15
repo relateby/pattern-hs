@@ -160,6 +160,16 @@
 -- instance. See the Hashable instance documentation below for details on hash semantics and
 -- consistency with equality.
 --
+-- The Pattern type has a Comonad instance that enables context-aware computations where
+-- functions have access to the full structural context (parent, siblings, depth, indices) around
+-- each value, not just the value itself. This extends beyond Foldable (which only provides
+-- values) to enable computations that consider structural context, depth, position, and
+-- relationships between pattern elements. The instance provides @extract@ (extract decoration
+-- value), @duplicate@ (create pattern of contexts), and @extend@ (context-aware transformation),
+-- satisfying all Comonad laws (extract-extend, extend-extract, extend composition). See the
+-- Comonad instance documentation below for details on context-aware computation and relationship
+-- to zippers.
+--
 -- The Pattern type provides query functions for introspecting pattern structure:
 --
 -- * @length@ - Returns the number of direct elements in a pattern's sequence (O(1))
@@ -231,8 +241,10 @@
 -- 1
 -- >>> length (elements manyElements)
 -- 2
+{-# LANGUAGE InstanceSigs #-}
 module Pattern.Core where
 
+import Control.Comonad (Comonad(..))
 import Data.Foldable (toList)
 import Data.Hashable (Hashable(..))
 import Data.Monoid (Monoid(..))
@@ -3702,3 +3714,337 @@ matches = (==)
 contains :: (Eq v) => Pattern v -> Pattern v -> Bool
 contains p subpat = 
   matches p subpat || any (\elemPat -> contains elemPat subpat) (elements p)
+
+-- | Comonad instance for Pattern.
+--
+-- The Comonad instance enables context-aware computations where functions have
+-- access to the full structural context (parent, siblings, depth, path) around
+-- each value, not just the value itself. This extends beyond Foldable (which
+-- only provides values) to enable computations that consider structural context,
+-- depth, position, and relationships between pattern elements.
+--
+-- == Categorical Interpretation
+--
+-- From a category theory perspective, `Pattern` is a comonad that provides a way
+-- to perform context-aware computations. The Comonad instance provides:
+--
+-- * **Context Access**: Functions have access to the full pattern structure at each
+--   position, not just the value
+-- * **Structure Preservation**: The pattern structure (element count, nesting depth,
+--   element order) is preserved during context-aware transformations
+-- * **Recursive Context**: Context is created recursively at all positions in the
+--   pattern structure
+-- * **Dual to Monad**: Comonad is the dual of Monad - while Monad builds structure,
+--   Comonad breaks it down to access context
+--
+-- == Relationship to Zippers
+--
+-- Comonads are closely related to zippers. A zipper is a data structure that
+-- represents a data structure with a focus point and its context. The Comonad
+-- instance for Pattern provides zipper-like capabilities:
+--
+-- * **Focus**: `extract` gets the value at the current focus (root)
+-- * **Context**: `duplicate` creates contexts at every position (like having a zipper
+--   at each position)
+-- * **Navigation**: `extend` lets you compute based on full context (like zipper
+--   navigation)
+--
+-- The Comonad instance enables zipper-like operations without requiring an explicit
+-- `Zipper` type, providing context-aware computations that need the full structural
+-- context at each position.
+--
+-- == Comonad Laws
+--
+-- The Comonad instance must satisfy three mathematical laws:
+--
+-- 1. **Extract-Extend Law**: `extract . extend f = f`
+--    Extracting from an extended computation gives the original result.
+--
+-- 2. **Extend-Extract Law**: `extend extract = id`
+--    Extending with extract is identity.
+--
+-- 3. **Extend Composition Law**: `extend f . extend g = extend (f . extend g)`
+--    Extend is associative.
+--
+-- These laws are verified through property-based testing in the test suite.
+--
+instance Comonad Pattern where
+  -- | Extract the decoration value from a pattern.
+  --
+  -- Returns the pattern's decoration value (root value), which is the value
+  -- at the focus point in the comonadic context. This is the fundamental
+  -- operation of the Comonad instance, providing access to the value at
+  -- the current focus.
+  --
+  -- === Examples
+  --
+  -- >>> extract (pattern 5)
+  -- 5
+  --
+  -- >>> extract (patternWith "test" [pattern "a", pattern "b"])
+  -- "test"
+  --
+  -- >>> extract (patternWith "root" [patternWith "a" [pattern "x"]])
+  -- "root"
+  extract :: Pattern v -> v
+  extract (Pattern v _) = v
+  
+  -- | Create a pattern where each position contains the full pattern structure focused at that position.
+  --
+  -- This operation creates a pattern of contexts, where each position contains
+  -- the full pattern structure focused at that position. This enables context-aware
+  -- computations by providing the full structural context at each position.
+  --
+  -- === Context Creation
+  --
+  -- The duplicate operation creates contexts recursively:
+  --
+  -- * Root position contains the full original pattern
+  -- * Each element position contains the pattern structure focused at that element
+  -- * Contexts are created recursively for all nested positions
+  --
+  -- === Examples
+  --
+  -- Atomic pattern:
+  --
+  -- >>> duplicate (pattern 5)
+  -- Pattern {value = Pattern {value = 5, elements = []}, elements = []}
+  --
+  -- Pattern with elements:
+  --
+  -- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+  -- >>> duplicate p
+  -- Pattern {
+  --   value = Pattern {value = "root", elements = [pattern "a", pattern "b"]},
+  --   elements = [
+  --     Pattern {value = Pattern {value = "a", elements = []}, elements = []},
+  --     Pattern {value = Pattern {value = "b", elements = []}, elements = []}
+  --   ]
+  -- }
+  duplicate :: Pattern v -> Pattern (Pattern v)
+  duplicate p@(Pattern _ els) = 
+    Pattern p (map duplicate els)
+  
+  -- | Apply a context-aware function to each position in a pattern.
+  --
+  -- This operation applies a function that receives the full pattern structure
+  -- at each position, not just the value. The function is applied recursively
+  -- to all positions in the pattern structure, creating a new pattern where
+  -- each position contains the result of applying the function to the pattern
+  -- structure at that position.
+  --
+  -- === Context-Aware Computation
+  --
+  -- The extend operation enables context-aware computations where functions have
+  -- access to the full structural context (parent, siblings, depth, indices) around
+  -- each value, not just the value itself. This extends beyond Foldable (which
+  -- only provides values) to enable computations based on structural context.
+  --
+  -- === Examples
+  --
+  -- Compute depth at each position:
+  --
+  -- >>> let depthFunc p = depth p
+  -- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+  -- >>> extend depthFunc p
+  -- Pattern {value = 0, elements = [Pattern {value = 1, elements = []}, Pattern {value = 1, elements = []}]}
+  --
+  -- Compute size at each position:
+  --
+  -- >>> let sizeFunc p = size p
+  -- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+  -- >>> extend sizeFunc p
+  -- Pattern {value = 3, elements = [Pattern {value = 1, elements = []}, Pattern {value = 1, elements = []}]}
+  extend :: (Pattern v -> w) -> Pattern v -> Pattern w
+  extend f = fmap f . duplicate
+
+-- | Compute depth (nesting level) at each position in the pattern structure.
+--
+-- This helper function uses the Comonad instance to compute the depth of the
+-- pattern structure at each position. The depth represents the maximum nesting
+-- level from the current position to the deepest nested pattern.
+--
+-- === Examples
+--
+-- Atomic pattern:
+--
+-- >>> depthAt (pattern 5)
+-- Pattern {value = 0, elements = []}
+--
+-- Pattern with elements:
+--
+-- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+-- >>> depthAt p
+-- Pattern {value = 1, elements = [Pattern {value = 0, elements = []}, Pattern {value = 0, elements = []}]}
+--
+-- Nested pattern:
+--
+-- >>> let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+-- >>> depthAt p
+-- Pattern {value = 2, elements = [Pattern {value = 1, elements = [Pattern {value = 0, elements = []}]}, Pattern {value = 0, elements = []}]}
+--
+-- === Relationship to Comonad
+--
+-- This function demonstrates the power of the Comonad instance by providing
+-- convenient access to context-aware computations. It is equivalent to:
+--
+-- @
+-- depthAt = extend depth
+-- @
+--
+-- The function uses `extend` to apply the `depth` function at each position,
+-- giving each position access to its full structural context.
+depthAt :: Pattern v -> Pattern Int
+depthAt = extend depth
+
+-- | Compute size (total nodes) of subtree at each position.
+--
+-- This helper function uses the Comonad instance to compute the size of the
+-- pattern structure (total number of nodes) at each position. The size includes
+-- the current node and all nodes in its subtree.
+--
+-- === Examples
+--
+-- Atomic pattern:
+--
+-- >>> sizeAt (pattern 5)
+-- Pattern {value = 1, elements = []}
+--
+-- Pattern with elements:
+--
+-- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+-- >>> sizeAt p
+-- Pattern {value = 3, elements = [Pattern {value = 1, elements = []}, Pattern {value = 1, elements = []}]}
+--
+-- Nested pattern:
+--
+-- >>> let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+-- >>> sizeAt p
+-- Pattern {value = 4, elements = [Pattern {value = 2, elements = [Pattern {value = 1, elements = []}]}, Pattern {value = 1, elements = []}]}
+--
+-- === Relationship to Comonad
+--
+-- This function demonstrates the power of the Comonad instance by providing
+-- convenient access to context-aware computations. It is equivalent to:
+--
+-- @
+-- sizeAt = extend size
+-- @
+--
+-- The function uses `extend` to apply the `size` function at each position,
+-- giving each position access to its full structural context.
+sizeAt :: Pattern v -> Pattern Int
+sizeAt = extend size
+
+-- | Compute indices from root to current position.
+--
+-- This helper function finds the path (list of indices) from the root pattern
+-- to the current pattern position. The root position has an empty list of indices,
+-- and each element position has indices indicating its path from the root.
+--
+-- === Indices Representation
+--
+-- Indices are represented as a list of integers, where each integer represents
+-- the index of an element at that level. For example:
+--
+-- * Root position: `[]` (empty list)
+-- * First element: `[0]` (first element at root level)
+-- * Second element: `[1]` (second element at root level)
+-- * First element of first element: `[0, 0]` (first element of first element)
+--
+-- === Examples
+--
+-- Atomic pattern (root position):
+--
+-- >>> indicesFromRoot (pattern 5) (pattern 5)
+-- []
+--
+-- Pattern with elements:
+--
+-- >>> let root = patternWith "root" [pattern "a", pattern "b"]
+-- >>> indicesFromRoot root (pattern "a")
+-- [0]
+-- >>> indicesFromRoot root (pattern "b")
+-- [1]
+--
+-- Nested pattern:
+--
+-- >>> let root = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+-- >>> indicesFromRoot root (pattern "x")
+-- [0, 0]
+--
+-- === Implementation Note
+--
+-- This function searches for the target pattern within the root pattern structure
+-- by doing a structural comparison. It returns the first matching path found.
+-- If the target pattern appears multiple times, it returns the path to the first
+-- occurrence.
+--
+-- === Performance
+--
+-- The function completes in O(n) time where n is the total number of nodes in
+-- the root pattern, as it must search through all positions to find the target.
+indicesFromRoot :: (Eq v) => Pattern v -> Pattern v -> [Int]
+indicesFromRoot root target
+  | root == target = []
+  | otherwise = findPath root target []
+
+-- Helper function to find path from root to target
+findPath :: (Eq v) => Pattern v -> Pattern v -> [Int] -> [Int]
+findPath current target acc
+  | current == target = reverse acc
+  | otherwise = searchElements (elements current) target acc 0
+
+-- Helper function to search through elements
+searchElements :: (Eq v) => [Pattern v] -> Pattern v -> [Int] -> Int -> [Int]
+searchElements [] _ _ _ = []  -- Not found
+searchElements (elem:rest) target acc idx
+  | found /= [] = found
+  | otherwise = searchElements rest target acc (idx + 1)
+  where
+    found = findPath elem target (idx : acc)
+
+-- | Compute indices from root to each position in the pattern structure.
+--
+-- This helper function uses the Comonad instance to compute the indices (list of
+-- indices) from the root to each position. The root position has an empty list
+-- of indices, and each element position has indices indicating its path from
+-- the root.
+--
+-- === Examples
+--
+-- Atomic pattern:
+--
+-- >>> indicesAt (pattern 5)
+-- Pattern {value = [], elements = []}
+--
+-- Pattern with elements:
+--
+-- >>> let p = patternWith "root" [pattern "a", pattern "b"]
+-- >>> indicesAt p
+-- Pattern {value = [], elements = [Pattern {value = [0], elements = []}, Pattern {value = [1], elements = []}]}
+--
+-- Nested pattern:
+--
+-- >>> let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+-- >>> indicesAt p
+-- Pattern {value = [], elements = [Pattern {value = [0], elements = [Pattern {value = [0, 0], elements = []}]}, Pattern {value = [1], elements = []}]}
+--
+-- === Relationship to Comonad
+--
+-- This function demonstrates the power of the Comonad instance by providing
+-- convenient access to context-aware computations. It is equivalent to:
+--
+-- @
+-- indicesAt p = extend (\pos -> indicesFromRoot p pos) p
+-- @
+--
+-- The function uses `extend` to apply `indicesFromRoot` at each position,
+-- giving each position access to its path from the root.
+--
+-- === Type Constraint
+--
+-- This function requires that the value type @v@ has an `Eq` instance, as
+-- `indicesFromRoot` uses structural equality to find the target pattern.
+indicesAt :: (Eq v) => Pattern v -> Pattern [Int]
+indicesAt p = extend (\pos -> indicesFromRoot p pos) p

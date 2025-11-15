@@ -242,9 +242,34 @@ data Context v = Context
   , right   :: [Pattern v]  
   , above   :: Maybe (Context v)
   }
+
+-- DOM-like parent chain access
+-- Returns list of parent values from immediate parent to root
+-- Similar to DOM's parentElement.parentElement... chain
+parents :: Zipper v -> [v]
+parents (Zipper _ ctx) = 
+  parent ctx : case above ctx of
+    Nothing -> []
+    Just parentCtx -> parents (Zipper (Pattern (parent ctx) []) parentCtx)
+
+-- Alternative name: 'ancestors' (more tree-theoretic terminology)
+-- Returns list of parent Patterns from immediate parent to root
+ancestors :: Zipper v -> [Pattern v]
+ancestors (Zipper focus ctx) = 
+  let parentPattern = Pattern (parent ctx) (left ctx ++ [focus] ++ right ctx)
+  in parentPattern : case above ctx of
+    Nothing -> []
+    Just parentCtx -> ancestors (Zipper parentPattern parentCtx)
 ```
 
 **Status**: ⏳ Planned (future work)
+
+**Note on `parents()` / `ancestors()`**: 
+- `parents :: Zipper v -> [v]` returns a list of parent **values** (decoration values) from immediate parent to root, similar to DOM's `parentElement.parentElement...` chain
+- `ancestors :: Zipper v -> [Pattern v]` returns a list of parent **Patterns** (full structures) from immediate parent to root
+- Both functions walk up the `above :: Maybe (Context v)` chain
+- **Naming consideration**: `parents` is familiar from DOM APIs, while `ancestors` is more tree-theoretic. Both are valid; choose based on API style preference.
+- This functionality belongs in Zipper (not Comonad) because it requires explicit parent context storage, which Zipper provides via the `above` field
 
 ### Pattern Morphisms (Planned)
 

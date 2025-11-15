@@ -12,6 +12,7 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - N/A (pure functional data structure) (008-basic-query-functions)
 - Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4 (012-hashable-instance)
 - Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, QuickCheck (for property-based testing), Hspec (for test framework) (013-applicative-instance)
+- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, comonad (for Comonad typeclass), QuickCheck (for property-based testing), Hspec (for test framework) (014-comonad-instance)
 
 - (001-pattern-data-structure)
 
@@ -31,9 +32,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 014-comonad-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, comonad (for Comonad typeclass), QuickCheck (for property-based testing), Hspec (for test framework)
 - 012-predicate-matching: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6
 - 013-applicative-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, QuickCheck (for property-based testing), Hspec (for test framework)
-- 012-hashable-instance: Added Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4
 
 
 <!-- MANUAL ADDITIONS START -->

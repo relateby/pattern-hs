@@ -17,7 +17,8 @@ import Data.Monoid (All(..), Any(..), Endo(..), Product(..), Sum(..), mconcat)
 import Data.Semigroup (sconcat, stimes)
 import qualified Data.Set as Set
 import Test.Hspec
-import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains)
+import Control.Comonad (extract, extend, duplicate)
+import Pattern.Core (Pattern(..), pattern, patternWith, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt, indicesAt)
 import qualified Pattern.Core as PC
 
 -- Custom type for testing
@@ -4211,3 +4212,165 @@ spec = do
           allValues (>= 0) pat `shouldBe` True
           allValues (> 0) pat `shouldBe` False  -- root value is 0
           length (filterPatterns (\p -> length (elements p) == 0) pat) `shouldBe` 1000
+    
+    describe "Comonad Instance" $ do
+      
+      describe "extract function (User Story 1)" $ do
+        
+        it "T009: extract with atomic pattern (integer value)" $ do
+          let p = pattern 5
+          extract p `shouldBe` (5 :: Int)
+        
+        it "T010: extract with atomic pattern (string value)" $ do
+          let p = pattern "test"
+          extract p `shouldBe` "test"
+        
+        it "T011: extract with pattern with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          extract p `shouldBe` "root"
+        
+        it "T012: extract with nested pattern structure" $ do
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          extract p `shouldBe` "root"
+        
+        it "T013: extract with different value types" $ do
+          let pInt = pattern 42
+          let pString = pattern "hello"
+          let pCustom = pattern (Person "Alice" (Just 30))
+          extract pInt `shouldBe` (42 :: Int)
+          extract pString `shouldBe` "hello"
+          extract pCustom `shouldBe` Person "Alice" (Just 30)
+      
+      describe "extend function (User Story 2)" $ do
+        
+        it "T021: extend with depth computation function on atomic pattern" $ do
+          let depthFunc p = depth p
+          let p = pattern 5
+          let result = extend depthFunc p
+          extract result `shouldBe` (0 :: Int)
+        
+        it "T022: extend with depth computation function on pattern with elements" $ do
+          let depthFunc p = depth p
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = extend depthFunc p
+          extract result `shouldBe` (1 :: Int)  -- Root has depth 1 (has elements)
+          length (elements result) `shouldBe` 2
+          extract (elements result !! 0) `shouldBe` (0 :: Int)  -- Atomic patterns have depth 0
+          extract (elements result !! 1) `shouldBe` (0 :: Int)  -- Atomic patterns have depth 0
+        
+        it "T023: extend with size computation function on nested pattern" $ do
+          let sizeFunc p = size p
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = extend sizeFunc p
+          extract result `shouldBe` (4 :: Int)  -- Root (1) + "a" (1) + "x" (1) + "b" (1) = 4
+          length (elements result) `shouldBe` 2
+          extract (elements result !! 0) `shouldBe` (2 :: Int)  -- "a" (1) + "x" (1) = 2
+          extract (elements result !! 1) `shouldBe` (1 :: Int)  -- "b" (1) = 1
+        
+        it "T024: extend with custom context-aware function (length of values)" $ do
+          let customFunc p = length (values p)
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = extend customFunc p
+          extract result `shouldBe` (3 :: Int)
+          extract (elements result !! 0) `shouldBe` (1 :: Int)
+          extract (elements result !! 1) `shouldBe` (1 :: Int)
+        
+        it "T025: extend with function that transforms value types (Pattern Int -> String)" $ do
+          let transformFunc p = show (size p)
+          let p = patternWith 10 [pattern 20, pattern 30]
+          let result = extend transformFunc p
+          extract result `shouldBe` "3"
+          extract (elements result !! 0) `shouldBe` "1"
+          extract (elements result !! 1) `shouldBe` "1"
+        
+        it "T026: extend with nested pattern structure (verify recursive application)" $ do
+          let depthFunc p = depth p
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = extend depthFunc p
+          extract result `shouldBe` (2 :: Int)  -- Root has depth 2 (nested structure)
+          extract (elements result !! 0) `shouldBe` (1 :: Int)  -- "a" has depth 1 (has "x")
+          extract (elements result !! 1) `shouldBe` (0 :: Int)  -- "b" has depth 0 (atomic)
+          extract (elements (elements result !! 0) !! 0) `shouldBe` (0 :: Int)  -- "x" has depth 0 (atomic)
+      
+      describe "duplicate function (User Story 3)" $ do
+        
+        it "T034: duplicate with atomic pattern" $ do
+          let p = pattern 5
+          let result = duplicate p
+          extract result `shouldBe` p
+          elements result `shouldBe` ([] :: [Pattern (Pattern Int)])
+        
+        it "T035: duplicate with pattern with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = duplicate p
+          extract result `shouldBe` p
+          length (elements result) `shouldBe` 2
+          extract (elements result !! 0) `shouldBe` pattern "a"
+          extract (elements result !! 1) `shouldBe` pattern "b"
+        
+        it "T036: duplicate with nested pattern structure" $ do
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = duplicate p
+          extract result `shouldBe` p
+          length (elements result) `shouldBe` 2
+          extract (elements result !! 0) `shouldBe` patternWith "a" [pattern "x"]
+          extract (elements result !! 1) `shouldBe` pattern "b"
+          length (elements (elements result !! 0)) `shouldBe` 1
+          extract (elements (elements result !! 0) !! 0) `shouldBe` pattern "x"
+        
+        it "T037: extract . duplicate = id (verifying context structure)" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = duplicate p
+          extract result `shouldBe` p
+        
+        it "T038: duplicate with deeply nested patterns (10+ levels)" $ do
+          let deepPat = foldl (\acc _ -> patternWith "level" [acc]) (pattern "leaf") [1..10]
+          let result = duplicate deepPat
+          extract result `shouldBe` deepPat
+          depth result `shouldBe` depth deepPat
+      
+      describe "context-aware helper functions (User Story 5)" $ do
+        
+        it "T058: depthAt with atomic pattern" $ do
+          let p = pattern 5
+          let result = depthAt p
+          extract result `shouldBe` (0 :: Int)
+          elements result `shouldBe` ([] :: [Pattern Int])
+        
+        it "T059: depthAt with nested pattern structure" $ do
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = depthAt p
+          extract result `shouldBe` (2 :: Int)  -- Root has depth 2
+          extract (elements result !! 0) `shouldBe` (1 :: Int)  -- "a" has depth 1
+          extract (elements result !! 1) `shouldBe` (0 :: Int)  -- "b" has depth 0
+          extract (elements (elements result !! 0) !! 0) `shouldBe` (0 :: Int)  -- "x" has depth 0
+        
+        it "T060: sizeAt with pattern with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = sizeAt p
+          extract result `shouldBe` (3 :: Int)  -- Root: 3 nodes (root + a + b)
+          extract (elements result !! 0) `shouldBe` (1 :: Int)  -- "a": 1 node
+          extract (elements result !! 1) `shouldBe` (1 :: Int)  -- "b": 1 node
+        
+        it "T061: sizeAt with nested pattern structure" $ do
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = sizeAt p
+          extract result `shouldBe` (4 :: Int)  -- Root: 4 nodes (root + a + x + b)
+          extract (elements result !! 0) `shouldBe` (2 :: Int)  -- "a": 2 nodes (a + x)
+          extract (elements result !! 1) `shouldBe` (1 :: Int)  -- "b": 1 node
+          extract (elements (elements result !! 0) !! 0) `shouldBe` (1 :: Int)  -- "x": 1 node
+        
+        it "T062: indicesAt with pattern with elements" $ do
+          let p = patternWith "root" [pattern "a", pattern "b"]
+          let result = indicesAt p
+          extract result `shouldBe` ([] :: [Int])  -- Root: empty indices
+          extract (elements result !! 0) `shouldBe` ([0] :: [Int])  -- "a": [0]
+          extract (elements result !! 1) `shouldBe` ([1] :: [Int])  -- "b": [1]
+        
+        it "T063: indicesAt with nested pattern structure" $ do
+          let p = patternWith "root" [patternWith "a" [pattern "x"], pattern "b"]
+          let result = indicesAt p
+          extract result `shouldBe` ([] :: [Int])  -- Root: empty indices
+          extract (elements result !! 0) `shouldBe` ([0] :: [Int])  -- "a": [0]
+          extract (elements result !! 1) `shouldBe` ([1] :: [Int])  -- "b": [1]
+          extract (elements (elements result !! 0) !! 0) `shouldBe` ([0, 0] :: [Int])  -- "x": [0, 0]
