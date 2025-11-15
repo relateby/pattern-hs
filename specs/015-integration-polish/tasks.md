@@ -52,25 +52,25 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Review existing Haddock documentation in `src/Pattern/Core.hs` to identify gaps in function documentation
-- [ ] T013 [US2] Enhance module-level documentation in `src/Pattern/Core.hs` with conceptual overview, usage patterns, and examples
-- [ ] T014 [P] [US2] Add or enhance Haddock documentation for construction functions (pattern, patternWith, fromList) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
-- [ ] T015 [P] [US2] Add or enhance Haddock documentation for query functions (length, size, depth, values, value) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
-- [ ] T016 [P] [US2] Add or enhance Haddock documentation for predicate functions (anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
-- [ ] T017 [P] [US2] Add or enhance Haddock documentation for helper functions (flatten, toTuple) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
-- [ ] T018 [P] [US2] Add or enhance Haddock documentation for Comonad helper functions (depthAt, sizeAt, indicesAt) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
-- [ ] T019 [US2] Add or enhance Haddock documentation for Functor instance in `src/Pattern/Core.hs` explaining functor laws (identity: `fmap id = id`, composition: `fmap (f . g) = fmap f . fmap g`) and how they apply to Pattern
-- [ ] T020 [US2] Add or enhance Haddock documentation for Applicative instance in `src/Pattern/Core.hs` explaining applicative laws (identity, composition, homomorphism, interchange) and how they apply to Pattern
-- [ ] T021 [US2] Add or enhance Haddock documentation for Comonad instance in `src/Pattern/Core.hs` explaining comonad laws (extract-extend: `extract . extend f = f`, extend-extract: `extend extract = id`, extend composition: `extend f . extend g = extend (f . extend g)`) and how they apply to Pattern
-- [ ] T022 [US2] Add or enhance Haddock documentation for Semigroup instance in `src/Pattern/Core.hs` explaining associativity law and combination semantics
-- [ ] T023 [US2] Add or enhance Haddock documentation for Monoid instance in `src/Pattern/Core.hs` explaining identity laws and identity pattern semantics
-- [ ] T024 [US2] Add or enhance Haddock documentation for other typeclass instances (Ord, Hashable, Foldable, Traversable) in `src/Pattern/Core.hs` with explanations of their properties and laws
-- [ ] T025 [US2] Ensure all documentation examples use doctest-compatible format (starting with `>>>`) in `src/Pattern/Core.hs`
-- [ ] T026 [US2] Verify all documentation examples compile and execute correctly by running `cabal haddock` and checking for errors
-- [ ] T027 [US2] Update `src/Pattern.hs` module-level documentation to explain library organization and re-export structure
-- [ ] T028 [US2] Generate Haddock documentation: `cabal haddock` and verify all public functions have documentation
-- [ ] T029 [US2] Review generated Haddock documentation to ensure examples are clear and mathematical properties are explained
-- [ ] T030 [US2] Run tests with timeout: `timeout 60 cabal test` to verify all tests still pass after documentation updates
+- [x] T012 [US2] Review existing Haddock documentation in `src/Pattern/Core.hs` to identify gaps in function documentation
+- [x] T013 [US2] Enhance module-level documentation in `src/Pattern/Core.hs` with conceptual overview, usage patterns, and examples
+- [x] T014 [P] [US2] Add or enhance Haddock documentation for construction functions (pattern, patternWith, fromList) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
+- [x] T015 [P] [US2] Add or enhance Haddock documentation for query functions (length, size, depth, values, value) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
+- [x] T016 [P] [US2] Add or enhance Haddock documentation for predicate functions (anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
+- [x] T017 [P] [US2] Add or enhance Haddock documentation for helper functions (flatten, toTuple) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
+- [x] T018 [P] [US2] Add or enhance Haddock documentation for Comonad helper functions (depthAt, sizeAt, indicesAt) in `src/Pattern/Core.hs` with purpose, parameters, return value, and usage examples
+- [x] T019 [US2] Add or enhance Haddock documentation for Functor instance in `src/Pattern/Core.hs` explaining functor laws (identity: `fmap id = id`, composition: `fmap (f . g) = fmap f . fmap g`) and how they apply to Pattern
+- [x] T020 [US2] Add or enhance Haddock documentation for Applicative instance in `src/Pattern/Core.hs` explaining applicative laws (identity, composition, homomorphism, interchange) and how they apply to Pattern
+- [x] T021 [US2] Add or enhance Haddock documentation for Comonad instance in `src/Pattern/Core.hs` explaining comonad laws (extract-extend: `extract . extend f = f`, extend-extract: `extend extract = id`, extend composition: `extend f . extend g = extend (f . extend g)`) and how they apply to Pattern
+- [x] T022 [US2] Add or enhance Haddock documentation for Semigroup instance in `src/Pattern/Core.hs` explaining associativity law and combination semantics
+- [x] T023 [US2] Add or enhance Haddock documentation for Monoid instance in `src/Pattern/Core.hs` explaining identity laws and identity pattern semantics
+- [x] T024 [US2] Add or enhance Haddock documentation for other typeclass instances (Ord, Hashable, Foldable, Traversable) in `src/Pattern/Core.hs` with explanations of their properties and laws
+- [x] T025 [US2] Ensure all documentation examples use doctest-compatible format (starting with `>>>`) in `src/Pattern/Core.hs`
+- [x] T026 [US2] Verify all documentation examples compile and execute correctly by running `cabal haddock` and checking for errors
+- [x] T027 [US2] Update `src/Pattern.hs` module-level documentation to explain library organization and re-export structure
+- [x] T028 [US2] Generate Haddock documentation: `cabal haddock` and verify all public functions have documentation
+- [x] T029 [US2] Review generated Haddock documentation to ensure examples are clear and mathematical properties are explained
+- [x] T030 [US2] Run tests with timeout: `timeout 60 cabal test` to verify all tests still pass after documentation updates
 - [ ] T031 [US2] Git commit: "docs: add comprehensive Haddock documentation - US2"
 
 **Checkpoint**: At this point, User Story 2 should be complete. All public functions have comprehensive documentation with examples, typeclass laws are documented, and module-level documentation explains concepts and usage patterns.
