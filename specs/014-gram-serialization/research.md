@@ -19,19 +19,47 @@ This research document addresses the technical decisions required for implementi
 - Compare syntax coverage, performance, maintainability, and integration complexity
 - Consider long-term maintainability and development velocity
 
-**Decision**: NEEDS EVALUATION - Decision will be made during implementation planning based on:
-- Syntax coverage: Can the library handle all gram notation features?
-- Integration complexity: How difficult is it to integrate with the Haskell project?
-- Stability: Are Haskell bindings stable and well-maintained?
-- Performance: Does it meet performance requirements (1 second for 1MB files)?
-- Maintainability: Long-term support and community
+**Decision**: **Megaparsec** - Selected as the parsing library for gram notation.
+
+**Evaluation Criteria**:
+1. **Syntax Coverage**: Must handle all gram notation features (subjects, properties, values, nested patterns, relationships, comments)
+2. **Integration Complexity**: Should integrate easily with Haskell project (native Haskell preferred)
+3. **Stability**: Library should be stable and well-maintained
+4. **Performance**: Must meet performance requirements (1 second for 1MB files)
+5. **Error Messages**: Must provide clear, actionable error messages (FR-015 requirement)
+6. **Maintainability**: Long-term support and active community
+
+**Evaluation Results**:
+
+| Criterion | tree-sitter-gram | Parsec | Megaparsec |
+|-----------|------------------|--------|------------|
+| Syntax Coverage | ✅ Excellent (designed for gram) | ✅ Can handle all syntax | ✅ Can handle all syntax |
+| Integration Complexity | ❌ High (FFI, C bindings) | ✅ Low (native Haskell) | ✅ Low (native Haskell) |
+| Stability | ⚠️ Unknown (bindings may be unstable) | ✅ Very stable | ✅ Stable, active development |
+| Performance | ✅ Excellent (incremental parsing) | ✅ Good | ✅ Good |
+| Error Messages | ⚠️ Unknown | ⚠️ Basic | ✅ Excellent (better than Parsec) |
+| Maintainability | ⚠️ Depends on bindings | ✅ Mature, stable | ✅ Active development |
+
+**Selected Option: Megaparsec**
+
+**Rationale**:
+1. **Native Haskell**: No FFI complexity, easier integration and maintenance
+2. **Superior Error Messages**: Megaparsec provides better error messages than Parsec, which is critical for FR-015 (clear, actionable error messages)
+3. **Active Development**: Megaparsec is actively maintained with regular updates
+4. **Syntax Coverage**: Can handle all gram notation syntax features through parser combinators
+5. **Performance**: Meets performance requirements for files up to 1MB
+6. **Reference Implementation Alignment**: Native Haskell aligns with the goal of creating a translatable reference implementation
+7. **Well-Documented**: Comprehensive documentation and examples available
 
 **Alternatives Considered**:
-- **tree-sitter-gram with Haskell bindings**: Pros: Comprehensive syntax support (designed for gram notation), incremental parsing capabilities. Cons: FFI complexity, potentially unstable Haskell bindings, C-based core.
-- **Parsec**: Pros: Mature, stable, native Haskell, well-documented. Cons: May require manual grammar implementation, no incremental parsing, potentially slower for large files.
-- **Megaparsec**: Pros: Better error messages than Parsec, active development, native Haskell. Cons: Similar to Parsec, requires manual grammar implementation.
+- **tree-sitter-gram with Haskell bindings**: Pros: Comprehensive syntax support (designed for gram notation), incremental parsing capabilities. Cons: FFI complexity, potentially unstable Haskell bindings, C-based core, unknown error message quality. **Rejected**: FFI complexity and unknown binding stability outweigh benefits for a reference implementation.
+- **Parsec**: Pros: Mature, stable, native Haskell, well-documented, already installed in project. Cons: Basic error messages, no incremental parsing. **Rejected**: Error message quality is insufficient for FR-015 requirements. Megaparsec provides better error messages with similar benefits.
 
-**Rationale**: The evaluation must be completed before final implementation to avoid rework. The decision will be documented with clear justification based on evaluation criteria.
+**Implementation Notes**:
+- Megaparsec parser combinators will be used to implement gram notation grammar
+- Error messages will include position information and context
+- Parser will handle all value types, nested patterns, and relationship patterns
+- Comment stripping will be implemented as a preprocessing step
 
 ### 2. Tree-Sitter-Gram Test Corpus Integration
 
@@ -160,7 +188,7 @@ This research document addresses the technical decisions required for implementi
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Parsing Library | NEEDS EVALUATION | Must evaluate tree-sitter-gram vs. Parsec/Megaparsec before implementation |
+| Parsing Library | **Megaparsec** | Native Haskell, superior error messages, active development, can handle all syntax features |
 | Test Corpus Integration | Test data files | Direct integration ensures comprehensive coverage, easy to maintain |
 | Anonymous Subjects | Empty Symbol ("") | Maintains Subject data type requirements while supporting gram notation |
 | Comment Handling | Strip comments | Comments are formatting, not data; specification allows stripping |

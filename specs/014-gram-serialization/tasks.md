@@ -39,16 +39,16 @@
 
 ### Phase 2A: Parsing Library Evaluation (US4) - Blocks US2 and US3
 
-- [ ] T005 [US4] Research tree-sitter-gram Haskell bindings availability and stability
-- [ ] T006 [US4] Research Parsec library for gram notation syntax coverage
-- [ ] T007 [US4] Research Megaparsec library for gram notation syntax coverage
-- [ ] T008 [US4] Create evaluation criteria document in specs/014-gram-serialization/research.md (syntax coverage, performance, maintainability, integration complexity, stability)
-- [ ] T009 [US4] Evaluate tree-sitter-gram Haskell bindings against criteria (FFI complexity, binding stability, integration requirements)
-- [ ] T010 [US4] Evaluate Parsec against criteria (syntax coverage, performance, maintainability)
-- [ ] T011 [US4] Evaluate Megaparsec against criteria (syntax coverage, performance, maintainability, error messages)
-- [ ] T012 [US4] Create comparison document with pros and cons for each option in specs/014-gram-serialization/research.md
-- [ ] T013 [US4] Document parsing library selection decision with clear rationale in specs/014-gram-serialization/research.md
-- [ ] T014 [US4] Update gram.cabal with selected parsing library dependency
+- [x] T005 [US4] Research tree-sitter-gram Haskell bindings availability and stability
+- [x] T006 [US4] Research Parsec library for gram notation syntax coverage
+- [x] T007 [US4] Research Megaparsec library for gram notation syntax coverage
+- [x] T008 [US4] Create evaluation criteria document in specs/014-gram-serialization/research.md (syntax coverage, performance, maintainability, integration complexity, stability)
+- [x] T009 [US4] Evaluate tree-sitter-gram Haskell bindings against criteria (FFI complexity, binding stability, integration requirements)
+- [x] T010 [US4] Evaluate Parsec against criteria (syntax coverage, performance, maintainability)
+- [x] T011 [US4] Evaluate Megaparsec against criteria (syntax coverage, performance, maintainability, error messages)
+- [x] T012 [US4] Create comparison document with pros and cons for each option in specs/014-gram-serialization/research.md
+- [x] T013 [US4] Document parsing library selection decision with clear rationale in specs/014-gram-serialization/research.md
+- [x] T014 [US4] Update gram.cabal with selected parsing library dependency
 
 **Checkpoint**: Parsing library selected and documented. US2 and US3 can now begin. US1 can proceed in parallel.
 
