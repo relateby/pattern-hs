@@ -19,6 +19,27 @@ See [README.md](README.md#development-workflow) for complete workflow details.
 
 ---
 
+## Feature 10: Gram Serialization for Subject Library
+
+### 10.1 Serialization Design
+- [ ] Design serialization format for Subject to gram notation
+- [ ] Handle anonymous subjects: gram syntax allows anonymous (unidentified) subjects, but Subject data type requires identity
+- [ ] Design strategy for assigning identity to anonymous subjects during serialization
+  - [ ] Option: Generate unique identifiers (e.g., UUIDs, sequential IDs)
+  - [ ] Option: Use placeholder identifiers that can be omitted in output
+  - [ ] Option: Track identity mapping for round-trip serialization
+- [ ] Implement `toGram :: Subject -> String` (serialize Subject to gram notation)
+- [ ] Implement `fromGram :: String -> Either ParseError Subject` (parse gram notation to Subject)
+- [ ] Write tests: verify serialization of subjects with all components
+- [ ] Write tests: verify parsing of gram notation with anonymous subjects
+- [ ] Write tests: verify round-trip serialization (parse . serialize = id, with identity handling)
+
+**Goal**: Serialize Subject instances to gram notation and parse gram notation to Subject instances, handling the identity requirement (Subject requires identity, but gram allows anonymous subjects).
+
+**Note**: The Subject data type requires identity to be mandatory, but gram notation allows anonymous subjects. During serialization, we need to decide how to handle anonymous subjects - either generate identities for them or use a placeholder system. This design decision should be made when implementing serialization.
+
+---
+
 ## Feature 11: Graph Views (Underspecified)
 
 ### 11.1 GraphView Typeclass Design
