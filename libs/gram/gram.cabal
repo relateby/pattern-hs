@@ -43,6 +43,8 @@ test-suite gram-test
     other-modules:
         Spec.Gram.SerializeSpec
         Spec.Gram.ParseSpec
+        Spec.Gram.ParseMinimalRepro
+        Spec.Gram.ParseRangeRepro
 
     build-depends:
         base >=4.17.0.0 && <5,
@@ -51,6 +53,7 @@ test-suite gram-test
         subject,
         containers ^>=0.6,
         text >=2.0,
+        megaparsec ^>=9.6,
         hspec ^>=2.11
 
     hs-source-dirs:   tests
