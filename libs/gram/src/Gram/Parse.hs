@@ -38,7 +38,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Text.Megaparsec (Parsec, parse, eof, optional, try, lookAhead, many, manyTill, some, sepBy, sepBy1, (<|>), satisfy)
+import Text.Megaparsec (Parsec, parse, eof, optional, try, lookAhead, many, manyTill, some, sepBy, sepBy1, (<|>), satisfy, choice)
 import Text.Megaparsec hiding (ParseError)
 import Text.Megaparsec.Char (char, string, digitChar)
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -83,10 +83,11 @@ optionalSpaceWithNewlines = void $ many (char ' ' <|> char '\t' <|> char '\n' <|
 
 -- | Parse a symbol identifier.
 parseSymbol :: Parser Symbol
-parseSymbol = do
-  first <- satisfy (\c -> isAlphaNum c || c == '_')
-  rest <- many (satisfy (\c -> isAlphaNum c || c == '_' || c == '-' || c == '.' || c == '@'))
-  return $ Symbol (first : rest)
+parseSymbol = 
+  (Symbol <$> try parseBacktickedIdentifier) <|> do
+    first <- satisfy (\c -> isAlphaNum c || c == '_')
+    rest <- many (satisfy (\c -> isAlphaNum c || c == '_' || c == '-' || c == '.' || c == '@'))
+    return $ Symbol (first : rest)
 
 -- | Check if next character is a symbol start character.
 isSymbolStart :: Char -> Bool
@@ -116,20 +117,43 @@ parseBoolean =
   (string "true" >> return True) <|>
   (string "false" >> return False)
 
--- | Parse a string value (double-quoted).
+-- | Parse a string value (double-quoted or single-quoted).
 parseString :: Parser String
-parseString = do
+parseString = parseDoubleQuotedString <|> parseSingleQuotedString
+
+-- | Parse a double-quoted string value.
+parseDoubleQuotedString :: Parser String
+parseDoubleQuotedString = do
   void $ char '"'
-  content <- manyTill (escapedChar <|> satisfy (\c -> c /= '"' && c /= '\\')) (char '"')
+  content <- manyTill (escapedChar '"') (char '"')
   return content
+
+-- | Parse a single-quoted string value.
+parseSingleQuotedString :: Parser String
+parseSingleQuotedString = do
+  void $ char '\''
+  content <- manyTill (escapedChar '\'') (char '\'')
+  return content
+
+escapedChar :: Char -> Parser Char
+escapedChar quote = do
+  c <- satisfy (\x -> x /= quote && x /= '\\') <|> (char '\\' >> anyChar)
+  return $ case c of
+    '\\' -> '\\'
+    'n' -> '\n'
+    'r' -> '\r'
+    't' -> '\t'
+    x | x == quote -> quote
+    x -> x
   where
-    escapedChar = do
-      void $ char '\\'
-      c <- satisfy (const True)
-      return $ case c of
-        '"' -> '"'
-        '\\' -> '\\'
-        _ -> c
+    anyChar = satisfy (const True)
+
+-- | Parse a backticked identifier.
+parseBacktickedIdentifier :: Parser String
+parseBacktickedIdentifier = do
+  void $ char '`'
+  content <- manyTill (satisfy (/= '`')) (char '`')
+  return content
 
 -- | Parse a tagged string value.
 parseTaggedString :: Parser Value
@@ -272,6 +296,7 @@ identifierToString (IdentInteger i) = show i
 -- | Parse an identifier (symbol, string, or integer).
 parseIdentifier :: Parser Identifier
 parseIdentifier = 
+  try (IdentSymbol . Symbol <$> parseBacktickedIdentifier) <|>
   try (IdentString <$> parseString) <|>
   try (IdentInteger <$> parseInteger) <|>
   (IdentSymbol <$> parseSymbol)
@@ -410,10 +435,14 @@ parseReference = do
 -- | Parse relationship kind (arrows).
 parseRelationshipKind :: Parser String
 parseRelationshipKind = 
-  try (string "<->" >> return "<->") <|>
+  try (string "<==>" >> return "<==>") <|>
+  try (string "<-->" >> return "<-->") <|>
+  try (string "<~~>" >> return "<~~>") <|>
   try (string "<--" >> return "<--") <|>
   try (string "-->" >> return "-->") <|>
   try (string "<=>" >> return "<=>") <|>
+  try (string "==>" >> return "==>") <|>
+  try (string "<==" >> return "<==") <|>
   try (string "<=" >> return "<=") <|>
   try (string "=>" >> return "=>") <|>
   try (string "<~>" >> return "<~>") <|>
@@ -436,19 +465,66 @@ parseRelationshipWithAttributes = do
   let (symbol, labels, properties) = maybe (Symbol "", Set.empty, Map.empty) id attrs
   return $ Pattern (Subject symbol labels properties) []
 
+-- | Parse an interrupted arrow with attributes (e.g. -[...]->).
+parseInterruptedArrow :: Parser (Pattern Subject)
+parseInterruptedArrow = do
+  -- Parse left part of arrow
+  prefix <- choice
+    [ try (string "<-")
+    , try (string "<=")
+    , try (string "<~")
+    , try (string "-")
+    , try (string "=")
+    , try (string "~")
+    ]
+  
+  -- Parse attributes
+  attrs <- parseRelationshipWithAttributes
+  
+  -- Parse right part of arrow
+  suffix <- choice
+    [ try (string "->")
+    , try (string "=>")
+    , try (string "~>")
+    , try (string "-")
+    , try (string "=")
+    , try (string "~")
+    ]
+    
+  return attrs
+
 -- | Parse a relationship.
 parseRelationship :: Parser (Pattern Subject)
 parseRelationship = do
   left <- parseNode
   optionalSpace
-  -- Check for relationship attributes in square brackets
-  relAttrs <- optional (try parseRelationshipWithAttributes)
-  optionalSpace
-  kind <- parseRelationshipKind
+  
+  -- Try to parse relationship body
+  -- Case 1: Interrupted arrow with attributes (e.g. -[...] ->)
+  -- Case 2: Attributes then Simple arrow (legacy/simplified: [...] -->)
+  -- Case 3: Simple arrow (-->)
+  
+  attrs <- try (do
+      a <- parseInterruptedArrow
+      return (Just a)
+    ) <|> try (do
+      -- Check for relationship attributes in square brackets followed by kind
+      a <- optional (try parseRelationshipWithAttributes)
+      optionalSpace
+      _ <- parseRelationshipKind
+      return a
+    ) <|> (do
+      -- Just kind
+      _ <- parseRelationshipKind
+      return Nothing
+    )
+
   optionalSpace
   right <- parsePath
   -- Create a relationship pattern: left node as main, right node as element
   -- The relationship arrow kind is consumed but not stored in the data structure
+  -- Relationship attributes are also currently lost if not stored on the right pattern
+  -- For now, we just return the structure as is
   return $ Pattern (value left) [right]
 
 -- | Parse a path (relationship or node).
