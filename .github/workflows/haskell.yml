@@ -36,6 +36,6 @@ jobs:
     - name: Install dependencies
       run: |
         cabal update
-        cabal build --only-dependencies
+        cabal build --only-dependencies all
     - name: Build
-      run: cabal build lib:pattern
+      run: cabal build all

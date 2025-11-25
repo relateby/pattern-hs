@@ -1,0 +1,64 @@
+cabal-version:      2.4
+name:               gram
+version:            0.1.0.0
+
+synopsis:           Serialization and deserialization for gram notation
+description:        
+    Gram provides serialization and deserialization of Pattern Subject
+    to and from gram notation. The library handles the conversion between
+    the Haskell data structures (Pattern and Subject) and the gram notation
+    text format, including proper handling of anonymous subjects, labels,
+    properties, and all value types.
+    This is a reference implementation designed to be
+    translatable to other languages while maintaining category-theoretic
+    correctness.
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Pattern HS
+maintainer:         pattern@example.com
+category:           Data
+extra-source-files: CHANGELOG.md
+
+library
+    exposed-modules:
+        Gram
+        Gram.Serialize
+        Gram.Parse
+
+    build-depends:
+        base >=4.17.0.0 && <5,
+        pattern,
+        subject,
+        containers ^>=0.6,
+        text >=2.0,
+        megaparsec ^>=9.6
+
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+test-suite gram-test
+    type:                exitcode-stdio-1.0
+    main-is:             Test.hs
+    other-modules:
+        Spec.Gram.SerializeSpec
+        Spec.Gram.ParseSpec
+        Spec.Gram.ParseMinimalRepro
+        Spec.Gram.ParseRangeRepro
+        Spec.Gram.CorpusSpec
+
+    build-depends:
+        base >=4.17.0.0 && <5,
+        gram,
+        pattern,
+        subject,
+        containers ^>=0.6,
+        text >=2.0,
+        megaparsec ^>=9.6,
+        hspec ^>=2.11,
+        directory ^>=1.3,
+        filepath ^>=1.4
+
+    hs-source-dirs:   tests
+    default-language: Haskell2010
+

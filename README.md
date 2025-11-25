@@ -232,20 +232,24 @@ cabal build --with-compiler=ghc-9.10.3
 
 ### Test
 
-**Run all tests**:
+**Run all tests** (from project root):
 ```bash
-cabal test
+cabal test all
 ```
 
 **Run tests with verbose output**:
 ```bash
-cabal test --test-show-details=always
+cabal test all --test-show-details=always
 ```
 
-**Run specific test suite**:
+**Run tests for a specific library**:
 ```bash
+cabal test libs/pattern
+# Or by test suite name:
 cabal test pattern-test
 ```
+
+**Note**: In a multi-library project, you must specify `all` or a specific package when running `cabal test` from the root directory.
 
 **Run tests in watch mode** (if using `ghcid`):
 ```bash

@@ -1,0 +1,60 @@
+cabal-version:      2.4
+name:               subject
+version:            0.1.0.0
+
+synopsis:           A self-descriptive object with identity, labels, and property records
+description:        
+    Subject is a self-descriptive data structure that contains identity,
+    labels, and property records. It is designed to be the primary content
+    type for patterns (i.e., Pattern Subject will be the common use case)
+    and will serialize to gram notation.
+    This is a reference implementation designed to be
+    translatable to other languages while maintaining category-theoretic
+    correctness.
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Pattern HS
+maintainer:         pattern@example.com
+category:           Data
+extra-source-files: CHANGELOG.md
+
+library
+    exposed-modules:
+        Subject
+        Subject.Core
+        Subject.Value
+        Subject.Construction
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    build-depends:
+        base >=4.17.0.0 && <5,
+        containers ^>=0.6,
+        hashable ^>=1.4,
+        unordered-containers ^>=0.2
+
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+test-suite subject-test
+    type:                exitcode-stdio-1.0
+    main-is:             Test.hs
+    other-modules:
+        Spec.Subject.CoreSpec
+        Spec.Subject.ValueSpec
+
+    build-depends:
+        base >=4.17.0.0 && <5,
+        subject,
+        containers ^>=0.6,
+        hashable ^>=1.4,
+        unordered-containers ^>=0.2,
+        QuickCheck ^>=2.14,
+        hspec ^>=2.11,
+        mtl ^>=2.3
+
+    hs-source-dirs:   tests
+    default-language: Haskell2010
+
