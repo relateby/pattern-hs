@@ -1,39 +1,17 @@
--- | Parsing gram notation to Pattern Subject.
---
--- This module provides functions to parse gram notation text format into
--- Pattern Subject data structures. The parsing handles all aspects of
--- gram notation including:
---
--- * Top-level optional record
--- * Patterns with subjects (square brackets) and paths (nodes/relationships)
--- * Subjects with nested elements after pipe (ONLY structure with nesting)
--- * Nodes (round parentheses) - atomic, no nested elements
--- * Relationships connecting nodes
--- * All value types (standard and extended)
---
--- == Grammar Structure
---
--- gram: optional(record) + repeat(pattern)
--- pattern: optional(annotations) + commaSep1(pattern_element)
--- pattern_element: subject | path
--- subject: [attributes? | sub_pattern?]  -- ONLY structure with nested elements
--- node: (attributes?)  -- NO nested elements
--- relationship: node + relationship_kind + path
---
--- == Examples
---
--- Node: "(n:Person {name:\"Alice\"})"
--- Subject: "[a:Subject {k:\"v\"} | (b), (c)]"
--- Relationship: "()-->()"
 {-# LANGUAGE OverloadedStrings #-}
 module Gram.Parse
   ( fromGram
+  , parseGram
   , ParseError(..)
   ) where
 
-import Pattern.Core (Pattern(..))
-import Subject.Core (Subject(..), Symbol(..))
+import Gram.CST (Gram(..), Pattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), Subject(..), Attributes(..), Identifier(..), Symbol(..))
+import qualified Gram.CST as CST
+import qualified Gram.Transform as Transform
+import qualified Pattern.Core as Core
+import qualified Subject.Core as CoreSub
 import Subject.Value (Value(..), RangeValue(..))
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -59,8 +37,6 @@ convertError :: ParseErrorBundle String Void -> ParseError
 convertError bundle = ParseError (errorBundlePretty bundle)
 
 -- | Strip comments from gram notation string.
--- Handles both line comments (//) and end-of-line comments.
--- Respects double and single quoted strings.
 stripComments :: String -> String
 stripComments = unlines . filter (not . null) . map stripLineComment . lines
   where
@@ -72,14 +48,12 @@ stripComments = unlines . filter (not . null) . map stripLineComment . lines
     
     findComment' :: String -> Int -> Maybe Char -> Maybe Int
     findComment' [] _ _ = Nothing
-    findComment' ('\\' : _ : xs) idx inString = findComment' xs (idx + 2) inString  -- Skip escaped char
-    -- Start of string (if not already in string)
+    findComment' ('\\' : _ : xs) idx inString = findComment' xs (idx + 2) inString
     findComment' (c : xs) idx Nothing
       | c == '"'  = findComment' xs (idx + 1) (Just '"')
       | c == '\'' = findComment' xs (idx + 1) (Just '\'')
-      | c == '/' && take 1 xs == "/" = Just idx  -- Found comment start //
+      | c == '/' && take 1 xs == "/" = Just idx
       | otherwise = findComment' xs (idx + 1) Nothing
-    -- Inside string (check for matching closing quote)
     findComment' (c : xs) idx (Just q)
       | c == q    = findComment' xs (idx + 1) Nothing
       | otherwise = findComment' xs (idx + 1) (Just q)
@@ -88,9 +62,11 @@ stripComments = unlines . filter (not . null) . map stripLineComment . lines
 optionalSpace :: Parser ()
 optionalSpace = void $ many (char ' ' <|> char '\t')
 
--- | Parse optional whitespace including newlines (for use in maps and records).
+-- | Parse optional whitespace including newlines.
 optionalSpaceWithNewlines :: Parser ()
 optionalSpaceWithNewlines = void $ many (char ' ' <|> char '\t' <|> char '\n' <|> char '\r')
+
+-- ... [Value Parsers - largely unchanged, but reused from previous implementation] ...
 
 -- | Parse a symbol identifier.
 parseSymbol :: Parser Symbol
@@ -100,11 +76,9 @@ parseSymbol =
     rest <- many (satisfy (\c -> isAlphaNum c || c == '_' || c == '-' || c == '.' || c == '@'))
     return $ Symbol (first : rest)
 
--- | Check if next character is a symbol start character.
 isSymbolStart :: Char -> Bool
 isSymbolStart c = isAlphaNum c || c == '_'
 
--- | Parse an integer value.
 parseInteger :: Parser Integer
 parseInteger = do
   sign <- optional (char '-')
@@ -112,7 +86,6 @@ parseInteger = do
   let num = read digits :: Integer
   return $ if sign == Just '-' then -num else num
 
--- | Parse a decimal value.
 parseDecimal :: Parser Double
 parseDecimal = do
   sign <- optional (char '-')
@@ -122,24 +95,20 @@ parseDecimal = do
   let num = read (intPart ++ "." ++ fracPart) :: Double
   return $ if sign == Just '-' then -num else num
 
--- | Parse a boolean value.
 parseBoolean :: Parser Bool
 parseBoolean = 
   (string "true" >> return True) <|>
   (string "false" >> return False)
 
--- | Parse a string value (double-quoted or single-quoted).
 parseString :: Parser String
 parseString = parseDoubleQuotedString <|> parseSingleQuotedString
 
--- | Parse a double-quoted string value.
 parseDoubleQuotedString :: Parser String
 parseDoubleQuotedString = do
   void $ char '"'
   content <- manyTill (escapedChar '"') (char '"')
   return content
 
--- | Parse a single-quoted string value.
 parseSingleQuotedString :: Parser String
 parseSingleQuotedString = do
   void $ char '\''
@@ -159,14 +128,12 @@ escapedChar quote = do
   where
     anyChar = satisfy (const True)
 
--- | Parse a backticked identifier.
 parseBacktickedIdentifier :: Parser String
 parseBacktickedIdentifier = do
   void $ char '`'
   content <- manyTill (escapedChar '`') (char '`')
   return content
 
--- | Parse a tagged string value.
 parseTaggedString :: Parser Value
 parseTaggedString = do
   tag <- parseSymbol
@@ -176,23 +143,19 @@ parseTaggedString = do
   where
     quoteSymbol (Symbol s) = s
 
--- | Parse a array value.
 parseArray :: Parser Value
 parseArray = do
   void $ char '['
   optionalSpace
-  -- Use try on the separator to ensure we backtrack if space is consumed but comma is missing
   values <- sepBy (try parseScalarValue) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
   optionalSpace
   void $ char ']'
   return $ VArray values
 
--- | Parse a map value.
 parseMap :: Parser Value
 parseMap = do
   void $ char '{'
   optionalSpaceWithNewlines
-  -- Use try on the separator
   pairs <- sepBy (try parseMapping) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
   optionalSpaceWithNewlines
   void $ char '}'
@@ -202,45 +165,32 @@ parseMap = do
       key <- parseIdentifier
       void $ optionalSpaceWithNewlines >> char ':' >> optionalSpaceWithNewlines
       value <- parseScalarValue
-      -- Consume any trailing whitespace after the value
       optionalSpaceWithNewlines
       return (identifierToString key, value)
 
--- | Parse a range value.
--- Supports: 1..10, 1..., ...10, ...
--- Note: Must be tried before parseInteger in parseValue to avoid consuming the number
 parseRange :: Parser Value
 parseRange = do
-  -- Try to parse lower bound (optional)
-  -- First check if we start with dots (for ...10 case)
   startsWithDots <- lookAhead (optional (try (string "..")))
   lower <- if startsWithDots == Just ".."
-    then return Nothing  -- We start with dots, so no lower bound
+    then return Nothing
     else do
-      -- Parse the integer part first (without decimal, to avoid consuming the first dot)
-      -- Then check if dots follow to confirm this is a range
       sign <- optional (char '-')
       intPart <- some digitChar
-      -- Check if dots follow - if not, this is not a range, so fail (wrapped in try in parseValue)
       hasDots <- lookAhead (optional (try (string "..")))
       if hasDots == Just ".."
         then do
-          -- Dots follow, so this is a range - use the integer part
           let num = read intPart :: Double
           let numWithSign = if sign == Just '-' then -num else num
           return (Just numWithSign)
-        else fail "not a range"  -- No dots, fail so parseValue can try other alternatives
-  -- Parse dots: ".." (closed) or "..." (open on one or both sides)
+        else fail "not a range"
   firstDot <- char '.'
   secondDot <- char '.'
   hasThirdDot <- optional (char '.')
   if hasThirdDot == Just '.'
     then do
-      -- Three dots: "..." - upper bound is optional
       upper <- optional (try parseRangeDouble)
       return $ VRange (RangeValue lower upper)
     else do
-      -- Two dots: ".." - upper bound is required if lower is present, optional if not
       upper <- if lower == Nothing
         then optional (try parseRangeDouble)
         else Just <$> parseRangeDouble
@@ -254,7 +204,6 @@ parseRange = do
       let num = read numStr :: Double
       return $ if sign == Just '-' then -num else num
 
--- | Parse a measurement value.
 parseMeasurement :: Parser Value
 parseMeasurement = do
   sign <- optional (char '-')
@@ -266,7 +215,6 @@ parseMeasurement = do
   let value = if sign == Just '-' then -num else num
   return $ VMeasurement unit value
 
--- | Parse a scalar value (for arrays and maps).
 parseScalarValue :: Parser Value
 parseScalarValue = 
   try parseRange <|>
@@ -280,7 +228,6 @@ parseScalarValue =
   where
     quoteSymbol (Symbol s) = s
 
--- | Parse a value (all types).
 parseValue :: Parser Value
 parseValue = 
   try parseRange <|>
@@ -296,27 +243,20 @@ parseValue =
   where
     quoteSymbol (Symbol s) = s
 
--- | Identifier type (symbol, string, or integer).
-data Identifier = IdentSymbol Symbol | IdentString String | IdentInteger Integer
-
 identifierToString :: Identifier -> String
 identifierToString (IdentSymbol (Symbol s)) = s
 identifierToString (IdentString s) = s
 identifierToString (IdentInteger i) = show i
 
--- | Parse an identifier (symbol, string, or integer).
 parseIdentifier :: Parser Identifier
 parseIdentifier = 
-  try (IdentSymbol . Symbol <$> parseBacktickedIdentifier) <|>
+  try (IdentSymbol <$> parseSymbol) <|>
   try (IdentString <$> parseString) <|>
-  try (IdentInteger <$> parseInteger) <|>
-  (IdentSymbol <$> parseSymbol)
+  try (IdentInteger <$> parseInteger)
 
--- | Parse label separator (`:` or `::`).
 parseLabelSeparator :: Parser ()
 parseLabelSeparator = (try (string "::" >> return ()) <|> (char ':' >> return ()))
 
--- | Parse labels.
 parseLabels :: Parser (Set String)
 parseLabels = do
   firstLabel <- parseLabel
@@ -329,14 +269,10 @@ parseLabels = do
       return $ quoteSymbol lbl
     quoteSymbol (Symbol s) = s
 
--- | Parse a property record.
--- Note: Callers should wrap in try if backtracking is needed.
 parsePropertyRecord :: Parser (Map String Value)
 parsePropertyRecord = do
   void $ char '{'
   optionalSpaceWithNewlines
-  -- Use sepBy to allow empty records (empty list)
-  -- Use try on separator to handle newlines/spaces robustly
   pairs <- sepBy (try parseProperty) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
   optionalSpaceWithNewlines
   void $ char '}'
@@ -348,302 +284,195 @@ parsePropertyRecord = do
       parseLabelSeparator
       optionalSpaceWithNewlines
       value <- parseValue
-      -- Consume any trailing whitespace after the value
       optionalSpaceWithNewlines
       return (identifierToString key, value)
-  
--- | Parse a property (for use in record-only case).
-parsePropertyForRecord :: Parser (String, Value)
-parsePropertyForRecord = do
-  key <- parseIdentifier
-  optionalSpace
-  parseLabelSeparator
-  optionalSpace
-  value <- parseValue
-  return (identifierToString key, value)
-  where
-    identifierToString ident = case ident of
-      IdentSymbol (Symbol s) -> s
-      IdentString s -> s
-      IdentInteger i -> show i
 
--- | Parse attributes (identifier, labels, record - all optional, various combinations).
--- 
--- Architecture: Sequential parsing with explicit lookahead dispatch.
--- Use lookahead to determine what we're parsing, avoiding fragile alternative ordering:
--- 1. If starts with '{', parse record-only
--- 2. If starts with ':', parse labels-first (labels or labels+record)
--- 3. Otherwise, parse identifier-first (identifier, identifier+labels, identifier+record, or all three)
---
--- This approach is deterministic and doesn't depend on Megaparsec's alternative ordering.
-parseAttributes :: Parser (Symbol, Set String, Map String Value)
+-- ... [CST Specific Parsers] ...
+
+parseAttributes :: Parser Attributes
 parseAttributes = do
-  -- Use lookahead to determine the structure
-  -- Note: Caller should handle leading whitespace
   nextChar <- lookAhead (satisfy (const True))
-  
   case nextChar of
     '{' -> do
-      -- Record-only case - wrap in try for proper backtracking
       props <- try parsePropertyRecord
-      return (Symbol "", Set.empty, props)
+      return $ Attributes Nothing Set.empty props
     ':' -> do
-      -- Labels-first case (labels or labels+record)
       lbls <- parseLabels
       optionalSpace
       props <- optional (try parsePropertyRecord)
-      return (Symbol "", lbls, maybe Map.empty id props)
+      return $ Attributes Nothing lbls (maybe Map.empty id props)
     _ -> do
-      -- Identifier-first case (identifier, identifier+labels, identifier+record, or all three)
       ident <- parseIdentifier
       optionalSpace
-      -- Check for labels
       hasLabels <- lookAhead (optional (try (char ':')))
       lbls <- if hasLabels == Just ':'
         then do
           labels <- parseLabels
-          optionalSpace  -- Consume whitespace after labels
+          optionalSpace
           return labels
         else return Set.empty
       optionalSpace
-      -- Check for record
       hasRecord <- lookAhead (optional (char '{'))
       props <- if hasRecord == Just '{'
         then parsePropertyRecord
         else return Map.empty
-      return (identifierToSymbol ident, lbls, props)
-  where
-    identifierToSymbol (IdentSymbol s) = s
-    identifierToSymbol (IdentString s) = Symbol s
-    identifierToSymbol (IdentInteger i) = Symbol (show i)
+      return $ Attributes (Just ident) lbls props
 
--- | Parse a node (round parentheses) - NO nested elements.
-parseNode :: Parser (Pattern Subject)
+parseNode :: Parser Node
 parseNode = do
   void $ char '('
   optionalSpace
-  -- Parse attributes (optional - can be empty node)
-  -- parseAttributes handles all cases: record-only, labels-first, identifier-first
-  -- It uses lookahead internally to determine the structure
-  attrs <- try parseAttributes <|> return (Symbol "", Set.empty, Map.empty)
+  attrs <- try (Just <$> parseAttributes) <|> return Nothing
   optionalSpace
   void $ char ')'
-  let (symbol, labels, properties) = attrs
-  return $ Pattern (Subject symbol labels properties) []
+  return $ Node attrs
 
--- | Parse a reference (identifier only).
-parseReference :: Parser (Pattern Subject)
+parseReference :: Parser PatternElement
 parseReference = do
   ident <- parseIdentifier
-  -- Consume any trailing whitespace after the identifier
   optionalSpace
-  return $ Pattern (Subject (identifierToSymbol ident) Set.empty Map.empty) []
-  where
-    identifierToSymbol (IdentSymbol s) = s
-    identifierToSymbol (IdentString s) = Symbol s
-    identifierToSymbol (IdentInteger i) = Symbol (show i)
+  -- Create a Subject CST element for the reference
+  let attrs = Attributes (Just ident) Set.empty Map.empty
+  return $ PESubject (Subject (Just attrs) [])
 
--- | Parse relationship kind (arrows).
 parseRelationshipKind :: Parser String
 parseRelationshipKind = 
-  try (string "<==>" >> return "<==>") <|>
-  try (string "<-->" >> return "<-->") <|>
-  try (string "<~~>" >> return "<~~>") <|>
-  try (string "<--" >> return "<--") <|>
-  try (string "-->" >> return "-->") <|>
-  try (string "<=>" >> return "<=>") <|>
-  try (string "==>" >> return "==>") <|>
-  try (string "<==" >> return "<==") <|>
-  try (string "<=" >> return "<=") <|>
-  try (string "=>" >> return "=>") <|>
-  try (string "<~>" >> return "<~>") <|>
-  try (string "<~~" >> return "<~~") <|>  -- Squiggle arrow left
-  try (string "~~>" >> return "~~>") <|>  -- Squiggle arrow right
-  try (string "<~" >> return "<~") <|>
-  try (string "~>" >> return "~>") <|>
-  try (string "~~" >> return "~~") <|>
-  try (string "==" >> return "==") <|>
-  (string "--" >> return "--")
+  try (string "<==>") <|>
+  try (string "<-->") <|>
+  try (string "<~~>") <|>
+  try (string "<--") <|>
+  try (string "-->") <|>
+  try (string "<=>") <|>
+  try (string "==>") <|>
+  try (string "<==") <|>
+  try (string "<=") <|>
+  try (string "=>") <|>
+  try (string "<~>") <|>
+  try (string "<~~") <|>
+  try (string "~~>") <|>
+  try (string "<~") <|>
+  try (string "~>") <|>
+  try (string "~~") <|>
+  try (string "==") <|>
+  string "--"
 
--- | Parse relationship with optional attributes in square brackets.
-parseRelationshipWithAttributes :: Parser (Pattern Subject)
-parseRelationshipWithAttributes = do
-  void $ char '['
-  optionalSpace
-  attrs <- optional parseAttributes
-  optionalSpace
-  void $ char ']'
-  let (symbol, labels, properties) = maybe (Symbol "", Set.empty, Map.empty) id attrs
-  return $ Pattern (Subject symbol labels properties) []
-
--- | Parse an interrupted arrow with attributes (e.g. -[...]->).
-parseInterruptedArrow :: Parser (Pattern Subject)
-parseInterruptedArrow = do
-  -- Parse left part of arrow
-  prefix <- choice
-    [ try (string "<-")
-    , try (string "<=")
-    , try (string "<~")
-    , try (string "-")
-    , try (string "=")
-    , try (string "~")
-    ]
-  
-  -- Parse attributes
-  attrs <- parseRelationshipWithAttributes
-  
-  -- Parse right part of arrow
-  suffix <- choice
-    [ try (string "->")
-    , try (string "=>")
-    , try (string "~>")
-    , try (string "-")
-    , try (string "=")
-    , try (string "~")
-    ]
-    
-  return attrs
-
--- | Parse a relationship.
-parseRelationship :: Parser (Pattern Subject)
-parseRelationship = do
-  left <- parseNode
-  optionalSpace
-  
-  -- Try to parse relationship body
-  -- Case 1: Interrupted arrow with attributes (e.g. -[...] ->)
-  -- Case 2: Attributes then Simple arrow (legacy/simplified: [...] -->)
-  -- Case 3: Simple arrow (-->)
-  
-  attrs <- try (do
-      a <- parseInterruptedArrow
-      return (Just a)
-    ) <|> try (do
-      -- Check for relationship attributes in square brackets followed by kind
-      a <- optional (try parseRelationshipWithAttributes)
+-- | Parses the arrow part (including potential attributes)
+parseArrow :: Parser (String, Maybe Attributes)
+parseArrow = 
+  try parseInterruptedArrow <|>
+  try parseSimpleArrowWithAttributes <|>
+  parseSimpleArrow
+  where
+    parseSimpleArrow = do
+      kind <- parseRelationshipKind
+      return (kind, Nothing)
+      
+    parseSimpleArrowWithAttributes = do
+      void $ char '['
       optionalSpace
-      _ <- parseRelationshipKind
-      return a
-    ) <|> (do
-      -- Just kind
-      _ <- parseRelationshipKind
-      return Nothing
-    )
+      attrs <- optional parseAttributes
+      optionalSpace
+      void $ char ']'
+      optionalSpace
+      kind <- parseRelationshipKind
+      return (kind, attrs)
 
+    parseInterruptedArrow = do
+      -- Simplified for now, capturing the whole interrupted arrow logic is complex
+      -- But we need to capture attributes inside.
+      -- (This mirrors existing logic but adapted for CST)
+       prefix <- choice
+         [ try (string "<-")
+         , try (string "<=")
+         , try (string "<~")
+         , try (string "-")
+         , try (string "=")
+         , try (string "~")
+         ]
+       void $ char '['
+       optionalSpace
+       attrs <- optional parseAttributes
+       optionalSpace
+       void $ char ']'
+       suffix <- choice
+         [ try (string "->")
+         , try (string "=>")
+         , try (string "~>")
+         , try (string "-")
+         , try (string "=")
+         , try (string "~")
+         ]
+       return (prefix ++ "..." ++ suffix, attrs)
+
+parsePath :: Parser Path
+parsePath = do
+  start <- parseNode
   optionalSpace
-  right <- parsePath
-  
-  -- CORRECT MAPPING: Pattern r [left, right]
-  -- If we have attributes (subject 'r'), use them. Otherwise use empty subject.
-  let relSubject = maybe (Pattern (Subject (Symbol "") Set.empty Map.empty) []) id attrs
-  let relValue = value relSubject
-  
-  return $ Pattern relValue [left, right]
+  segments <- many (try parsePathSegment)
+  return $ Path start segments
 
--- | Parse a path (relationship or node).
-parsePath :: Parser (Pattern Subject)
-parsePath = try parseRelationship <|> parseNode
+parsePathSegment :: Parser PathSegment
+parsePathSegment = do
+  (arrow, attrs) <- parseArrow
+  optionalSpace
+  next <- parseNode
+  optionalSpace
+  return $ PathSegment (Relationship arrow attrs) next
 
--- | Parse sub-pattern element (subject, path, or reference).
-parseSubPatternElement :: Parser (Pattern Subject)
-parseSubPatternElement = try parseSubject <|> try parsePath <|> try parseReference
+parseSubPatternElement :: Parser PatternElement
+parseSubPatternElement = try (PESubject <$> parseSubject) <|> try (PEPath <$> parsePath) <|> try parseReference
 
--- | Parse a subject (square brackets) - ONLY structure with nested elements after pipe.
-parseSubject :: Parser (Pattern Subject)
+parseSubject :: Parser Subject
 parseSubject = do
   void $ char '['
   optionalSpace
-  -- Parse attributes (optional)
   attrs <- optional parseAttributes
   optionalSpace
-  -- Check for nested elements after pipe
   nested <- optional (do
     void $ char '|'
     optionalSpace
-    -- Parse comma-separated elements (at least one required by grammar: commaSep1)
-    -- Use try on separator for robust spacing handling
     elements <- sepBy1 (try parseSubPatternElement) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
-    -- Consume any trailing whitespace after the last element
     optionalSpace
     return elements)
   optionalSpace
   void $ char ']'
-  let (symbol, labels, properties) = maybe (Symbol "", Set.empty, Map.empty) id attrs
-  let nestedElements = maybe [] id nested
-  return $ Pattern (Subject symbol labels properties) nestedElements
+  return $ Subject attrs (maybe [] id nested)
 
--- | Parse a pattern element (subject or path).
-parsePatternElement :: Parser (Pattern Subject)
-parsePatternElement = try parseSubject <|> parsePath
+parsePatternElement :: Parser PatternElement
+parsePatternElement = try (PESubject <$> parseSubject) <|> (PEPath <$> parsePath)
 
--- | Parse a pattern (comma-separated elements).
--- A pattern must have at least one element.
-parsePattern :: Parser (Pattern Subject)
+parsePattern :: Parser Pattern
 parsePattern = do
   optionalSpace
-  -- Parse first element (required)
-  first <- parsePatternElement
-  -- Parse additional elements (optional, comma-separated)
-  rest <- many (do
-    try (optionalSpaceWithNewlines >> void (char ','))
-    optionalSpaceWithNewlines
-    parsePatternElement)
-  -- For a single element, return it as-is
-  -- For multiple elements, use first as main, rest as nested
-  if null rest
-    then return first
-    else return $ Pattern (value first) (elements first ++ rest)
+  elements <- sepBy1 parsePatternElement (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
+  return $ Pattern elements
 
--- | Parse gram notation to Pattern Subject.
---
--- Top-level structure: optional(record) + repeat(pattern)
--- For now, we parse the first pattern as the main result.
--- If only a record is present, we create an empty pattern with that record as properties.
-fromGram :: String -> Either ParseError (Pattern Subject)
+parseGram :: Parser Gram
+parseGram = do
+  optionalSpace
+  rootRecord <- optional (try parsePropertyRecord)
+  optionalSpace
+  
+  firstPatterns <- if rootRecord == Nothing
+    then (:[]) <$> parsePattern
+    else optional (try parsePattern) >>= \p -> return $ maybe [] (:[]) p
+    
+  additionalPatterns <- many (try (do
+    optionalSpaceWithNewlines
+    nextChar <- lookAhead (satisfy (const True))
+    if nextChar == '(' || nextChar == '[' || isSymbolStart nextChar
+      then parsePattern
+      else fail "no pattern"))
+      
+  optionalSpaceWithNewlines
+  eof
+  
+  return $ Gram rootRecord (firstPatterns ++ additionalPatterns)
+
+-- | Main entry point transforming CST to Pattern
+fromGram :: String -> Either ParseError (Core.Pattern CoreSub.Subject)
 fromGram input = do
   let stripped = stripComments input
-  case parse (do
-    optionalSpace
-    -- Check if we start with a record (starts with '{')
-    rootRecord <- optional (try parsePropertyRecord)
-    optionalSpace
-    -- Parse first pattern (required if no record, optional if record is present)
-    -- When we have a record, we still need to try to parse a pattern that follows
-    -- Use try to allow backtracking if pattern parsing fails
-    firstPattern <- if rootRecord == Nothing
-      then Just <$> parsePattern  -- Pattern is required if no record
-      else optional (try parsePattern)  -- Pattern is optional if we have a record, but try to parse it
-    -- Parse additional patterns on separate lines
-    -- Handle both "record followed by pattern" and "multiple patterns on separate lines"
-    additionalPatterns <- do
-      optionalSpaceWithNewlines
-      -- Try to parse more patterns (many will stop gracefully on failure)
-      many (try (do
-        -- Check if there's a pattern start character
-        nextChar <- lookAhead (satisfy (const True))
-        if nextChar == '(' || nextChar == '[' || isSymbolStart nextChar
-          then do
-            optionalSpaceWithNewlines
-            parsePattern
-          else fail "no pattern"))
-    -- Allow trailing whitespace (including newlines) before eof
-    optionalSpaceWithNewlines
-    eof
-    -- If we have a pattern, use it; otherwise create pattern from root record
-    -- If we have both a record and patterns, the record properties go on the main subject,
-    -- and the patterns become elements
-    case (rootRecord, firstPattern, additionalPatterns) of
-      (Just props, Just p, rest) -> do
-        -- Record properties go on main subject, patterns become elements
-        return $ Pattern (Subject (Symbol "") Set.empty props) (p : rest)
-      (Just props, Nothing, additional) -> 
-        -- Record with no first pattern, but may have additional patterns (from newline)
-        return $ Pattern (Subject (Symbol "") Set.empty props) additional
-      (Nothing, Just p, rest) -> 
-        if null rest
-          then return p
-          else return $ Pattern (value p) (elements p ++ rest)
-      (Nothing, Nothing, _) -> return $ Pattern (Subject (Symbol "") Set.empty Map.empty) []
-    ) "gram" stripped of
+  case parse parseGram "gram" stripped of
     Left err -> Left (convertError err)
-    Right p -> Right p
+    Right cst -> Right (Transform.transformGram cst)
