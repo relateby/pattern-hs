@@ -183,7 +183,7 @@ serializeLabels lbls
   | Set.null lbls = ""
   | otherwise = ":" ++ intercalate ":" (Set.toList lbls)
 
-    -- | Serialize a Subject to gram notation (legacy function, kept for compatibility).
+-- | Serialize a Subject to gram notation (legacy function, kept for compatibility).
 -- Note: This always uses node syntax. Use toGram for proper syntax selection.
 serializeSubject :: Subject -> String
 serializeSubject (Subject ident lbls props) =
@@ -191,14 +191,6 @@ serializeSubject (Subject ident lbls props) =
   serializeIdentity ident ++
   serializeLabels lbls ++
   serializePropertyRecord props
-
--- | Serialize pattern elements for implicit root (no brackets/pipe).
--- Used when serializing the top-level Gram container.
--- NOTE: This function is now inlined into toGram to handle properties.
--- Keeping signature for potential reuse or removing if unused.
--- serializeImplicitElements :: [Pattern Subject] -> String
--- serializeImplicitElements elems = 
---   intercalate "\n" (map toGram elems)
 
 -- | Serialize pattern elements to gram notation.
 --
