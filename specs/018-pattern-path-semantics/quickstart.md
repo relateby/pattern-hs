@@ -5,12 +5,12 @@
 ```haskell
 import Gram.Parse (parseGram)
 import Gram.Validate (validate)
-import Text.Megaparsec (errorBundlePretty)
+import Text.Megaparsec (parse, errorBundlePretty)
 
 main :: IO ()
 main = do
   let source = "[a], [b | a]"
-  case parseGram source of
+  case parse parseGram "" source of
     Left err -> putStrLn $ "Parse error: " ++ errorBundlePretty err
     Right cst -> case validate cst of
       Left errs -> mapM_ print errs
