@@ -41,6 +41,7 @@
 -- this module, ensuring a clean public API.
 module Gram
   ( module Gram.Serialize
+  , module Gram.Parse
   , module Gram.Validate
   ) where
 
