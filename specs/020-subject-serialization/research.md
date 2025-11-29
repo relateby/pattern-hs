@@ -14,12 +14,12 @@
 2.  **Sequential IDs (Global)**: Use a global counter.
     *   *Pros*: Simple.
     *   *Cons*: Requires `IO` / `MVar` / global state. Breaks purity.
-3.  **Sequential IDs (Local/Deterministic)**: Use a counter scoped to the `fromGram` call (e.g., `_anon_1`, `_anon_2`).
+3.  **Sequential IDs (Local/Deterministic)**: Use a counter scoped to the `fromGram` call (e.g., `#1`, `#2`).
     *   *Pros*: Pure, deterministic, easy to test.
     *   *Cons*: IDs are only unique within that specific parse result. Merging two parsed graphs could cause collisions if not handled (but that's a separate concern; `Subject` semigroup handles merging).
 
 **Decision**: **Option 3: Sequential IDs (Local/Deterministic)**.
-We will generate IDs of the form `_anon_<N>` (or similar distinct prefix) using a `State` monad during the transformation phase (`Gram.Transform`).
+We will generate IDs of the form `#<N>` (or similar distinct prefix) using a `State` monad during the transformation phase (`Gram.Transform`).
 
 **Implementation Details**:
 - Modify `transformGram` to be `transformGram :: CST.Gram -> P.Pattern S.Subject` (keeping signature pure) but internally use `evalState` with a stateful transformation function.
@@ -30,7 +30,7 @@ We will generate IDs of the form `_anon_<N>` (or similar distinct prefix) using 
   transformIdentifier Nothing = do
     n <- get
     put (n + 1)
-    return $ S.Symbol ("_anon_" ++ show n)
+    return $ S.Symbol ("#" ++ show n)
   transformIdentifier (Just (CST.IdentSymbol (CST.Symbol s))) = return $ S.Symbol s
   -- ...
   ```
@@ -38,8 +38,8 @@ We will generate IDs of the form `_anon_<N>` (or similar distinct prefix) using 
 ## 2. Round-trip Consistency
 
 **Context**: We want `fromGram . toGram == id` (conceptually).
-If we parse `()` -> `Subject "_anon_1"`, then `toGram` will produce `(_anon_1)`.
-Parsing `(_anon_1)` -> `Subject "_anon_1"`.
+If we parse `()` -> `Subject "#1"`, then `toGram` will produce `(#1)`.
+Parsing `(#1)` -> `Subject "#1"`.
 This preserves the data identity.
 
 **Decision**: Accept that anonymous subjects become named subjects after a round-trip. This is consistent with the requirement that `Subject` *has* an identity. The "anonymous" syntax is just a shorthand for "I don't care about the ID, make one up". Once made up, it persists.

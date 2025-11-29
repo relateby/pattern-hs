@@ -8,13 +8,13 @@ The core data structure representing a node or relationship's content.
 
 | Field | Type | Description | Constraints |
 |-------|------|-------------|-------------|
-| `identity` | `Symbol` | Unique identifier | **Mandatory**. Cannot be empty string in a valid graph (though type allows it). Parsed anonymous subjects receive generated IDs (e.g., `_anon_1`). |
+| `identity` | `Symbol` | Unique identifier | **Mandatory**. Cannot be empty string in a valid graph (though type allows it). Parsed anonymous subjects receive generated IDs (e.g., `#1`). |
 | `labels` | `Set String` | Classification tags | Unique set. |
 | `properties` | `Map String Value` | Key-value attributes | Keys are strings. Values are typed. |
 
 ### Identity Generation
 
-- **Format**: `_anon_<N>`
+- **Format**: `#<N>` (e.g., `#1`, `#2`, ...)
 - **Scope**: Local to a single `fromGram` parse operation.
 - **Counter**: Starts at 1 for each parse.
 
