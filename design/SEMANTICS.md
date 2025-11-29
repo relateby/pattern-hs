@@ -47,8 +47,8 @@ An identified pattern can only be defined once within a file:
 ```
 [a {k:"v"}]        // Defines 'a'
 [b | a]            // OK: references 'a'
-[a {k2:"v2"}]      // ERROR: 'a' already defined
-[c | [a]]          // ERROR: attempts to redefine 'a'
+[a {k2:"v2"}]      // ERROR: DuplicateDefinition 'a'
+[c | [a]]          // ERROR: DuplicateDefinition 'a'
 ```
 
 ### Immutability
@@ -56,15 +56,15 @@ Once defined, a pattern's structure, labels, and properties cannot be changed:
 
 ```
 [a {k:"v"}]        // Initial definition
-[a:Thing]          // ERROR: cannot add label to existing pattern
-[a | b]            // ERROR: cannot add elements to existing pattern
+[a:Thing]          // ERROR: DuplicateDefinition 'a' (attempt to redefine)
+[a | b]            // ERROR: DuplicateDefinition 'a'
 ```
 
 ### No Direct Self-Reference
 A pattern cannot contain itself as a direct element:
 
 ```
-[a | a]            // ERROR: 'a' references itself before definition complete
+[a | a]            // ERROR: SelfReference 'a'
 [a | [b | a]]      // OK: 'a' referenced indirectly through 'b'
 ```
 
@@ -74,6 +74,20 @@ References to patterns defined later in the file are allowed:
 ```
 [a | b]            // OK: 'b' defined below
 [b {k:"v"}]        // Definition of 'b'
+```
+
+### Path Notation Consistency
+When mixing path and pattern notation, definitions must be consistent.
+
+- Path relationships imply a pattern with arity 2 (source, target).
+- Pattern definitions must match this arity if referenced in a path as a relationship.
+
+```
+[r | a, b]         // Defines 'r' with arity 2
+(a)-[r]->(b)       // OK: 'r' used as relationship (arity 2)
+
+[k | a, b, c]      // Defines 'k' with arity 3
+(a)-[k]->(b)       // ERROR: InconsistentDefinition 'k' (expected arity 2)
 ```
 
 ## Anonymous Patterns
@@ -112,13 +126,17 @@ Each `[]` creates a distinct pattern instance, even if structurally identical.
 ```
 // Multiple definitions
 [a]
-[a {k:"v"}]        // ERROR: 'a' already defined
+[a {k:"v"}]        // ERROR: DuplicateDefinition 'a'
 
 // Undefined reference
-[b | c]            // ERROR if 'c' never defined
+[b | c]            // ERROR: UndefinedReference 'c'
 
 // Redefinition in elements
-[x | [a], [a]]     // ERROR: 'a' defined twice
+[x | [a], [a]]     // ERROR: DuplicateDefinition 'a'
+
+// Inconsistent usage
+[r | a, b, c]
+(a)-[r]->(b)       // ERROR: InconsistentDefinition 'r'
 ```
 
 ## Best Practices
