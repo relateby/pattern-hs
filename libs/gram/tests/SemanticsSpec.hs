@@ -4,9 +4,9 @@ module SemanticsSpec (spec) where
 import Test.Hspec
 import Gram.Validate
 import Gram.Parse (parseGram)
-import Gram.CST (Identifier(..), Symbol(..))
+-- import Gram.CST (Identifier(..), Symbol(..)) -- removed unused imports
 import Data.Either (isLeft, isRight)
-import Text.Megaparsec (parse, errorBundlePretty)
+import Text.Megaparsec (parse)
 
 -- Helper to parse and validate
 validateSource :: String -> Either [ValidationError] ()
