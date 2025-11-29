@@ -25,18 +25,18 @@ let parsed = fromGram "(n:Person)"
 
 ## Handling Anonymous Subjects
 
-When parsing anonymous subjects, unique IDs are automatically assigned:
+When parsing anonymous subjects, unique IDs are automatically assigned using `#<N>` format:
 
 ```haskell
 -- Parse anonymous node
 let result = fromGram "()"
--- Result: Right (Pattern (Subject (Symbol "_anon_1") ...))
+-- Result: Right (Pattern (Subject (Symbol "#1") ...))
 
 -- Parse anonymous path
 let result2 = fromGram "()-[:KNOWS]->()"
 -- Result: Pattern with:
---   Left Node: Subject "_anon_1"
---   Right Node: Subject "_anon_2"
---   Relationship: Subject "_anon_3" (if implicit) or named if specified
+--   Left Node: Subject "#1"
+--   Right Node: Subject "#2"
+--   Relationship: Subject "#3" (if implicit) or named if specified
 ```
 

@@ -101,7 +101,7 @@ description: "Tasks for implementing subject identity and serialization in gram-
 
 - [ ] T019 [US3] Verify `libs/gram/src/Gram/Serialize.hs` correctly handles explicit IDs (should already be covered, but explicit check needed)
 - [ ] T020 [US3] Run tests with timeout: `timeout 60 cabal test` to verify all User Story 3 tests pass
-- [ ] T021 [US3] Git commit: "feat: verify identity preservation - US3"
+- [x] T021 [US3] Git commit: "feat: verify identity preservation - US3"
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -111,8 +111,8 @@ description: "Tasks for implementing subject identity and serialization in gram-
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T022 Run quickstart validation from `specs/020-subject-serialization/quickstart.md`
-- [ ] T023 Run full test suite with timeout: `timeout 60 cabal test`
+- [x] T022 Run quickstart validation from `specs/020-subject-serialization/quickstart.md`
+- [x] T023 Run full test suite with timeout: `timeout 60 cabal test`
 - [ ] T024 Git commit: "docs: finalize subject serialization feature"
 
 ---
