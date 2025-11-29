@@ -35,28 +35,16 @@ Serialization and parsing for `Pattern Subject`.
 - **Parsing Conformance**: Verified 100% pass rate against `tree-sitter-gram` corpus (Feature 16).
 - **Validation**: `Gram.Validate` module implemented with duplicate definition, undefined reference, and arity checking.
 
+### Subject Identity & Serialization (Feature 20)
+Completed robust identity handling and round-trip capabilities.
+
+- **Identity Preservation**: Implemented sequential ID generation for anonymous subjects to ensure round-trip stability.
+- **Implicit Root**: Distinguishes between empty nodes `()` and implicit root containers `{}`.
+- **Round-Trip Verification**: Validated structural equality after serialization/deserialization cycles against the full test corpus.
+
 ---
 
 ## 🗺️ Roadmap
-
-### 1. Subject Identity & Serialization (Feature 20)
-**Priority**: High / Next Up
-**Goal**: Serialize Subject instances to gram notation and parse gram notation to Subject instances, handling the identity requirement (Subject requires identity, but gram allows anonymous subjects).
-
-#### 10.1 Serialization Design
-- [ ] Design serialization format for Subject to gram notation
-- [ ] Handle anonymous subjects: gram syntax allows anonymous (unidentified) subjects, but Subject data type requires identity
-- [ ] Design strategy for assigning identity to anonymous subjects during serialization
-  - [ ] Option: Generate unique identifiers (e.g., UUIDs, sequential IDs)
-  - [ ] Option: Use placeholder identifiers that can be omitted in output
-  - [ ] Option: Track identity mapping for round-trip serialization
-- [ ] Implement `toGram :: Subject -> String` (serialize Subject to gram notation)
-- [ ] Implement `fromGram :: String -> Either ParseError Subject` (parse gram notation to Subject)
-- [ ] Write tests: verify serialization of subjects with all components
-- [ ] Write tests: verify parsing of gram notation with anonymous subjects
-- [ ] Write tests: verify round-trip serialization (parse . serialize = id, with identity handling)
-
----
 
 ### 2. Graph Views (Feature 21)
 **Priority**: High

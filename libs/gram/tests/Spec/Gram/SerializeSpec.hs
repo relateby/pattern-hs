@@ -2,13 +2,19 @@
 module Spec.Gram.SerializeSpec where
 
 import Test.Hspec
+import Test.Hspec.QuickCheck
+import qualified Test.QuickCheck as QC
+import Test.QuickCheck (forAll, listOf, listOf1, Gen)
 import Gram.Serialize (toGram)
+import Gram.Parse (fromGram)
 import Pattern.Core (Pattern(..))
 import Subject.Core (Subject(..), Symbol(..))
 import Subject.Value (Value(..), RangeValue(..))
 import Data.Map (empty, fromList)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Text (pack)
 
 spec :: Spec
 spec = do
@@ -38,9 +44,11 @@ spec = do
           toGram p `shouldBe` "(:Person)"
         
         it "serializes anonymous subject (empty Symbol) without label" $ do
-          let s = Subject (Symbol "") Set.empty empty
+          -- Subject "" is reserved for Implicit Root, which must have Gram.Root label
+          let s = Subject (Symbol "") (Set.singleton "Gram.Root") empty
           let p = Pattern { value = s, elements = [] }
-          toGram p `shouldBe` "()"
+          -- Empty props/elems -> "{}" (Empty Graph Record)
+          toGram p `shouldBe` "{}"
       
       describe "subject with standard value types" $ do
         it "serializes subject with integer property" $ do
@@ -279,3 +287,81 @@ spec = do
           result `shouldContain` "temp:-10"
           result `shouldContain` "ratio:-0.5"
           result `shouldContain` "})"
+
+      describe "User Story 1: Round-trip Serialization" $ do
+        
+        it "handles complex special character escaping" $ do
+          let specialStr = "Line 1\nLine 2\tTabbed\rCarriage \"Quote\" \\Backslash"
+          let props = fromList [("data", VString specialStr)]
+          let s = Subject (Symbol "n") Set.empty props
+          let p = Pattern { value = s, elements = [] }
+          let serialized = toGram p
+          
+          -- Verify serialization format
+          serialized `shouldContain` "\\n"
+          serialized `shouldContain` "\\t"
+          serialized `shouldContain` "\\r"
+          serialized `shouldContain` "\\\""
+          serialized `shouldContain` "\\\\"
+          
+          -- Verify round-trip
+          let parsed = fromGram serialized
+          parsed `shouldBe` Right p
+
+      describe "User Story 3: Identity Preservation" $ do
+        
+        it "preserves explicit alphanumeric IDs" $ do
+          let idStr = "user123"
+          let s = Subject (Symbol idStr) Set.empty empty
+          let p = Pattern { value = s, elements = [] }
+          let serialized = toGram p
+          serialized `shouldBe` "(user123)"
+          
+          let parsed = fromGram serialized
+          parsed `shouldBe` Right p
+          
+        it "preserves explicit IDs requiring quoting" $ do
+          -- IDs with spaces require backtick quoting
+          let idStr = "user name"
+          let s = Subject (Symbol idStr) Set.empty empty
+          let p = Pattern { value = s, elements = [] }
+          let serialized = toGram p
+          serialized `shouldBe` "(`user name`)"
+          
+          let parsed = fromGram serialized
+          parsed `shouldBe` Right p
+          
+        it "preserves special characters in IDs" $ do
+          -- IDs with backticks need escaping
+          let idStr = "user`name"
+          let s = Subject (Symbol idStr) Set.empty empty
+          let p = Pattern { value = s, elements = [] }
+          let serialized = toGram p
+          serialized `shouldBe` "(`user\\`name`)"
+          
+          let parsed = fromGram serialized
+          parsed `shouldBe` Right p
+
+        prop "serializes and parses back to an equivalent pattern (Round Trip)" $ 
+          forAll genPattern $ \p -> do
+            let serialized = toGram p
+            let parsed = fromGram serialized
+            parsed `shouldBe` Right p
+
+-- Generators for Property Tests
+genPattern :: Gen (Pattern Subject)
+genPattern = do
+  val <- genSubject
+  -- Limit recursion depth for simple round-trip test
+  return $ Pattern val []
+
+genSubject :: Gen Subject
+genSubject = do
+  idStr <- listOf1 (QC.elements ['a'..'z'])
+  lbls <- listOf (listOf1 (QC.elements ['A'..'Z']))
+  -- Generate simple string properties to verify property serialization
+  k <- listOf1 (QC.elements ['a'..'z'])
+  v <- listOf1 (QC.elements ['a'..'z'])
+  let props = Map.fromList [(k, VString v)]
+  return $ Subject (Symbol idStr) (Set.fromList lbls) props
+
