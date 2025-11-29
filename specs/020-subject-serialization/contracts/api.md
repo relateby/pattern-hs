@@ -12,7 +12,7 @@ toGram :: Pattern Subject -> String
 
 ```haskell
 -- | Parse a gram notation string into a Pattern Subject.
--- Automatically assigns unique IDs (e.g., _anon_1) to anonymous subjects.
+-- Automatically assigns unique IDs (e.g., #1) to anonymous subjects.
 fromGram :: String -> Either ParseError (Pattern Subject)
 ```
 
