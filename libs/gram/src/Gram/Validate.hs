@@ -7,7 +7,6 @@ module Gram.Validate
   , SymbolType(..)
   , DefinitionStatus(..)
   , PatternSignature(..)
-  , ValidationEnv(..)
   , ValidationError(..)
   , validate
   ) where
