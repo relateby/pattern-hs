@@ -19,6 +19,7 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - N/A (text serialization/deserialization library) (014-gram-serialization)
 - Haskell (GHC 9.x) + `megaparsec` (parsing), `hspec` (testing) (016-gram-parsing-conformance)
 - N/A (In-memory data structures) (016-gram-parsing-conformance)
+- Haskell (GHC 9.8/9.10) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String) (020-subject-serialization)
 
 - (001-pattern-data-structure)
 
@@ -38,9 +39,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 020-subject-serialization: Added Haskell (GHC 9.8/9.10) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String)
 - 019-integration-polish: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 018-pattern-path-semantics: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-- 016-gram-parsing-conformance: Added Haskell (GHC 9.x) + `megaparsec` (parsing), `hspec` (testing)
 
 
 <!-- MANUAL ADDITIONS START -->
