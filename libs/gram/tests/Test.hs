@@ -4,6 +4,7 @@ import qualified Spec.Gram.ParseSpec as ParseSpec
 import qualified Spec.Gram.ParseMinimalRepro as ParseMinimalRepro
 import qualified Spec.Gram.ParseRangeRepro as ParseRangeRepro
 import qualified Spec.Gram.CorpusSpec as CorpusSpec
+import qualified SemanticsSpec
 
 main :: IO ()
 main = hspec testSpec
@@ -17,4 +18,5 @@ testSpec = do
     ParseMinimalRepro.spec
     ParseRangeRepro.spec
     CorpusSpec.spec
+    SemanticsSpec.spec
 

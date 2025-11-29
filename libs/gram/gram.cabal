@@ -27,6 +27,7 @@ library
         Gram.Parse
         Gram.CST
         Gram.Transform
+        Gram.Validate
 
     build-depends:
         base >=4.17.0.0 && <5,
@@ -34,7 +35,8 @@ library
         subject,
         containers ^>=0.6,
         text >=2.0,
-        megaparsec ^>=9.6
+        megaparsec ^>=9.6,
+        mtl ^>=2.3
 
     hs-source-dirs:   src
     default-language: Haskell2010
@@ -48,6 +50,7 @@ test-suite gram-test
         Spec.Gram.ParseMinimalRepro
         Spec.Gram.ParseRangeRepro
         Spec.Gram.CorpusSpec
+        SemanticsSpec
 
     build-depends:
         base >=4.17.0.0 && <5,

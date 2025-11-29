@@ -5,12 +5,12 @@ module Gram.Parse
   , ParseError(..)
   ) where
 
-import Gram.CST (Gram(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..), Symbol(..), Annotation(..))
+import Gram.CST (Gram(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..), Symbol(..), Annotation(..), Value(..), RangeValue(..))
 import qualified Gram.CST as CST
 import qualified Gram.Transform as Transform
 import qualified Pattern.Core as Core
 import qualified Subject.Core as CoreSub
-import Subject.Value (Value(..), RangeValue(..))
+import qualified Subject.Value as V
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -140,7 +140,7 @@ parseTaggedString = do
   tag <- parseSymbol
   void $ char '`'
   content <- manyTill (satisfy (const True)) (char '`')
-  return $ VTaggedString (quoteSymbol tag) content
+  return $ V.VTaggedString (quoteSymbol tag) content
   where
     quoteSymbol (Symbol s) = s
 
@@ -151,7 +151,7 @@ parseArray = do
   values <- sepBy (try parseScalarValue) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
   optionalSpace
   void $ char ']'
-  return $ VArray values
+  return $ V.VArray values
 
 parseMap :: Parser Value
 parseMap = do
@@ -160,7 +160,7 @@ parseMap = do
   pairs <- sepBy (try parseMapping) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
   optionalSpaceWithNewlines
   void $ char '}'
-  return $ VMap (Map.fromList pairs)
+  return $ V.VMap (Map.fromList pairs)
   where
     parseMapping = do
       key <- parseIdentifier
@@ -190,12 +190,12 @@ parseRange = do
   if hasThirdDot == Just '.'
     then do
       upper <- optional (try parseRangeDouble)
-      return $ VRange (RangeValue lower upper)
+      return $ V.VRange (V.RangeValue lower upper)
     else do
       upper <- if lower == Nothing
         then optional (try parseRangeDouble)
         else Just <$> parseRangeDouble
-      return $ VRange (RangeValue lower upper)
+      return $ V.VRange (V.RangeValue lower upper)
   where
     parseRangeDouble = do
       sign <- optional (char '-')
@@ -214,18 +214,18 @@ parseMeasurement = do
   let numStr = intPart ++ maybe "" ('.' :) fracPart
   let num = read numStr :: Double
   let value = if sign == Just '-' then -num else num
-  return $ VMeasurement unit value
+  return $ V.VMeasurement unit value
 
 parseScalarValue :: Parser Value
 parseScalarValue = 
   try parseRange <|>
   try parseMeasurement <|>
-  try (VDecimal <$> parseDecimal) <|>
-  try (VInteger <$> parseInteger) <|>
-  try (VBoolean <$> parseBoolean) <|>
+  try (V.VDecimal <$> parseDecimal) <|>
+  try (V.VInteger <$> parseInteger) <|>
+  try (V.VBoolean <$> parseBoolean) <|>
   try parseTaggedString <|>
-  try (VString <$> parseString) <|>
-  (VSymbol . quoteSymbol <$> parseSymbol)
+  try (V.VString <$> parseString) <|>
+  (V.VSymbol . quoteSymbol <$> parseSymbol)
   where
     quoteSymbol (Symbol s) = s
 
@@ -233,14 +233,14 @@ parseValue :: Parser Value
 parseValue = 
   try parseRange <|>
   try parseMeasurement <|>
-  try (VDecimal <$> parseDecimal) <|>
-  try (VInteger <$> parseInteger) <|>
-  try (VBoolean <$> parseBoolean) <|>
+  try (V.VDecimal <$> parseDecimal) <|>
+  try (V.VInteger <$> parseInteger) <|>
+  try (V.VBoolean <$> parseBoolean) <|>
   try parseTaggedString <|>
-  try (VString <$> parseString) <|>
+  try (V.VString <$> parseString) <|>
   try parseArray <|>
   try parseMap <|>
-  (VSymbol . quoteSymbol <$> parseSymbol)
+  (V.VSymbol . quoteSymbol <$> parseSymbol)
   where
     quoteSymbol (Symbol s) = s
 

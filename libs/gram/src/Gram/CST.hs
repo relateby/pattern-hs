@@ -104,7 +104,7 @@ data Identifier
   = IdentSymbol Symbol
   | IdentString String
   | IdentInteger Integer
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Ord, Generic)
 
 -- | Values (mirroring Subject.Value but local to CST if needed, 
 -- or we can reuse Core types if they are purely data)
