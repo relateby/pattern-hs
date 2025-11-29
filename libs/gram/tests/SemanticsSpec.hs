@@ -98,6 +98,28 @@ spec = do
     it "accepts anonymous relationships" $ do
       validateSource "(a)-[:knows]->(b), (a)-[:knows]->(b)" `shouldSatisfy` isRight
 
+    it "accepts relationship reuse with same endpoints" $ do
+      -- Valid: (a)-[r]->(b) followed by (a)-[r]->(b)-[r2]->(c)
+      -- The relationship r connects (a, b) in both cases
+      validateSource "(a)-[r]->(b), (a)-[r]->(b)-[r2]->(c)" `shouldSatisfy` isRight
+
+    it "rejects relationship reuse with different endpoints" $ do
+      -- Invalid: (a)-[r]->(b) followed by (a)-[r]->(c)-[r2]->(b)
+      -- The relationship r connects (a, b) first, then (a, c)
+      let result = validateSource "(a)-[r]->(b), (a)-[r]->(c)-[r2]->(b)"
+      result `shouldSatisfy` isLeft
+      case result of
+        Left [err] -> err `shouldSatisfy` isDuplicateDefinition
+        _ -> expectationFailure "Expected DuplicateDefinition error for relationship connecting different nodes"
+
+    it "accepts node reuse in cycles" $ do
+      -- Valid cycle: a appears twice but with no redefinition
+      validateSource "(a)-[r1]->(b)<-[r2]-(a)" `shouldSatisfy` isRight
+
+    it "accepts node reuse across separate paths" $ do
+      -- (a), (a) is valid - second is a reference to the first
+      validateSource "(a), (a)" `shouldSatisfy` isRight
+
   describe "Mixed Notation Consistency" $ do
     it "accepts consistent definition and usage" $ do
       validateSource "[r | a, b], (a)-[r]->(b)" `shouldSatisfy` isRight

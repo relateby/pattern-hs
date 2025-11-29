@@ -46,6 +46,7 @@ data DefinitionStatus
 data PatternSignature = PatternSignature
   { sigLabels :: Set String
   , sigArity :: Int
+  , sigEndpoints :: Maybe (Maybe Identifier, Maybe Identifier) -- (source, target) for relationships
   } deriving (Show, Eq)
 
 data ValidationEnv = ValidationEnv
@@ -106,8 +107,8 @@ registerSubjectPattern (SubjectPattern maybeSubj elements) = do
         Just info | symStatus info == StatusDefined -> 
           put (syms, DuplicateDefinition ident : errs)
         _ -> do
-          -- We define it here with its signature
-          let sig = PatternSignature labels arity
+          -- We define it here with its signature (no endpoints for pattern notation)
+          let sig = PatternSignature labels arity Nothing
           let info = SymbolInfo TypePattern StatusDefined (Just sig)
           put (Map.insert ident info syms, errs)
     _ -> return ()
@@ -118,12 +119,26 @@ registerSubjectPattern (SubjectPattern maybeSubj elements) = do
 registerPath :: Path -> State ValidationState ()
 registerPath (Path start segments) = do
   registerNode start
-  mapM_ registerSegment segments
+  let sourceId = getNodeIdentifier start
+  registerPathSegments sourceId segments
 
-registerSegment :: PathSegment -> State ValidationState ()
-registerSegment (PathSegment rel nextNode) = do
-  registerRelationship rel
+-- | Extract the identifier from a node, if present.
+-- Returns Nothing for anonymous nodes.
+getNodeIdentifier :: Node -> Maybe Identifier
+getNodeIdentifier (Node (Just (SubjectData (Just ident) _ _))) = Just ident
+getNodeIdentifier _ = Nothing
+
+-- | Register path segments while tracking node identifiers for relationship endpoint validation.
+-- The sourceId parameter is the identifier of the preceding node.
+-- For each segment, we extract the target node identifier and pass both to registerRelationship,
+-- allowing us to detect when a relationship identifier is reused with different endpoints.
+registerPathSegments :: Maybe Identifier -> [PathSegment] -> State ValidationState ()
+registerPathSegments _ [] = return ()
+registerPathSegments sourceId (PathSegment rel nextNode : rest) = do
+  let targetId = getNodeIdentifier nextNode
+  registerRelationship rel sourceId targetId
   registerNode nextNode
+  registerPathSegments targetId rest
 
 registerNode :: Node -> State ValidationState ()
 registerNode (Node (Just (SubjectData (Just ident) _ _))) = do
@@ -135,35 +150,41 @@ registerNode (Node (Just (SubjectData (Just ident) _ _))) = do
       put (Map.insert ident info syms, errs)
 registerNode _ = return () 
 
-registerRelationship :: Relationship -> State ValidationState ()
-registerRelationship (Relationship _ (Just (SubjectData (Just ident) _ _))) = do
+registerRelationship :: Relationship -> Maybe Identifier -> Maybe Identifier -> State ValidationState ()
+registerRelationship (Relationship _ (Just (SubjectData (Just ident) _ _))) sourceId targetId = do
   (syms, errs) <- get
+  let endpoints = (sourceId, targetId)
   case Map.lookup ident syms of
     Just info | symStatus info == StatusDefined -> 
       case symType info of
         TypeRelationship -> 
-          -- Already defined as a relationship in a previous path, this is a duplicate
-          put (syms, DuplicateDefinition ident : errs)
+          -- Check if the endpoints match the original definition
+          case symSignature info of
+            Just (PatternSignature _ _ (Just existingEndpoints)) ->
+              if existingEndpoints == endpoints
+                then return () -- Same endpoints, this is a valid reference
+                else put (syms, DuplicateDefinition ident : errs) -- Different endpoints, redefinition
+            _ -> return () -- No endpoints stored, allow
         TypePattern -> 
           -- Defined via pattern notation, allow if arity is consistent with path usage
           case symSignature info of
-            Just (PatternSignature _ existingArity)
+            Just (PatternSignature _ existingArity _)
               | existingArity == 2 -> return () -- Arity matches, path usage is consistent
               | otherwise -> put (syms, InconsistentDefinition ident ("Expected arity 2 but got " ++ show existingArity) : errs)
             Nothing -> return () -- No signature to check, allow usage
         _ -> 
           -- Other types (TypeNode, TypeUnknown) - allow if arity matches
           case symSignature info of
-            Just (PatternSignature _ existingArity)
+            Just (PatternSignature _ existingArity _)
               | existingArity == 2 -> return ()
               | otherwise -> put (syms, InconsistentDefinition ident ("Expected arity 2 but got " ++ show existingArity) : errs)
             Nothing -> return ()
     _ -> do
       -- A relationship in a path (a)-[r]->(b) is implicitly arity 2 (source, target)
-      let sig = PatternSignature Set.empty 2
+      let sig = PatternSignature Set.empty 2 (Just endpoints)
       let info = SymbolInfo TypeRelationship StatusDefined (Just sig)
       put (Map.insert ident info syms, errs)
-registerRelationship _ = return ()
+registerRelationship _ _ _ = return ()
 
 -- | Check references and consistency
 checkReferences :: AnnotatedPattern -> State ValidationState ()
@@ -214,7 +235,7 @@ checkIdentifierRef ident expectedArity = do
     Just info -> do
       -- Check consistency if we have an expected arity
       case (expectedArity, symSignature info) of
-        (Just expected, Just (PatternSignature _ actual)) 
+        (Just expected, Just (PatternSignature _ actual _)) 
           | expected /= actual -> 
             put (syms, InconsistentDefinition ident ("Expected arity " ++ show expected ++ " but got " ++ show actual) : errs)
         _ -> return ()
