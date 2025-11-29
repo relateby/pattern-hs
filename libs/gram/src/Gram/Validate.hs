@@ -48,12 +48,6 @@ data PatternSignature = PatternSignature
   , sigEndpoints :: Maybe (Maybe Identifier, Maybe Identifier) -- (source, target) for relationships
   } deriving (Show, Eq)
 
--- | Validation environment for future extensions (e.g., scope tracking).
--- Currently unused as indirect cycles are allowed by design.
-data ValidationEnv = ValidationEnv
-  { envCurrentPath :: [Identifier]
-  } deriving (Show, Eq)
-
 data ValidationError
   = DuplicateDefinition Identifier
   | UndefinedReference Identifier
