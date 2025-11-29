@@ -32,96 +32,15 @@ Serialization and parsing for `Pattern Subject`.
 
 - **Serialization**: `toGram` handles all value types, nested patterns, relationships, and anonymous subjects.
 - **Parsing**: `fromGram` implements initial support for standard and extended values, relationships, and nesting.
-- **Conformance**: Integrated `tree-sitter-gram` corpus for testing.
+- **Parsing Conformance**: Verified 100% pass rate against `tree-sitter-gram` corpus (Feature 16).
+- **Validation**: `Gram.Validate` module implemented with duplicate definition, undefined reference, and arity checking.
 
 ---
 
 ## 🗺️ Roadmap
 
-### 1. Graph Views (Feature 20)
+### 1. Subject Identity & Serialization (Feature 20)
 **Priority**: High / Next Up
-**Goal**: Interpret `Pattern` structures as different graph elements (nodes, relationships, walks) through categorical functors.
-
-#### 11.1 GraphView Typeclass Design
-- [ ] **STOP and REVIEW**: Is GraphView needed yet?
-- [ ] Design `GraphView` typeclass interface (minimal)
-- [ ] Consider: can we defer this entirely?
-
-#### 11.2 DirectedView (If Proceeding)
-- [ ] Implement minimal `DirectedView` if needed
-- [ ] Keep implementation simple
-
-*(Note: This feature was previously "Feature 11" in TODO-later.md and is now the active priority)*
-
----
-
-### 2. Gram Parsing Conformance
-**Priority**: Medium
-**Goal**: Ensure parser supports ALL syntax features defined in tree-sitter-gram corpus.
-
-#### 2.1 Parsing Conformance Re-assessment
-- [ ] Run corpus tests and analyze failures (T064)
-- [ ] Gap Analysis: Identify missing syntax support (e.g., Path syntax `(a)-->(b)`)
-- [ ] Implement missing syntax support in `src/Gram/Parse.hs`
-- [ ] Verify all corpus files parse successfully
-
----
-
-### 3. Gram Validation
-**Priority**: Medium
-**Goal**: Semantic validation (identity conflicts, undefined references) for parsed patterns.
-
-#### 3.1 Research Phase
-- [ ] **STOP and RESEARCH**: Identify semantic validation requirements
-- [ ] Review gram notation specification for semantic constraints
-- [ ] Identify validation categories:
-  - Identity conflicts in relationships (e.g., `(a)-[a]->(a)`)
-  - Undefined references (references to non-existent identities)
-  - Invalid relationship structures
-  - Type mismatches
-  - Scope and binding issues
-- [ ] Research validation approaches in similar parsing libraries
-- [ ] Document validation requirements and use cases
-- [ ] Evaluate: should validation be optional or required?
-- [ ] Evaluate: should validation happen during parsing or post-processing?
-
-#### 3.2 Design Phase
-- [ ] **STOP and DESIGN**: Design validation architecture
-- [ ] Design `ValidationError` type and error categories
-- [ ] Design `validatePattern :: Pattern Subject -> Either [ValidationError] (Pattern Subject)` function
-- [ ] Design validation module structure (`Gram.Validate`)
-- [ ] Design error reporting format (clear, actionable messages)
-- [ ] Design integration strategy (separate function, optional validation, etc.)
-- [ ] Consider: how to preserve relationship metadata for validation (currently lost in parsing)
-- [ ] Document design decisions and rationale
-- [ ] Create validation examples and test cases
-
-#### 3.3 User Confirmation Phase
-- [ ] **STOP and CONFIRM**: Get user confirmation on design
-- [ ] Present validation design to user
-- [ ] Confirm validation categories and error types
-- [ ] Confirm integration strategy (optional vs required, separate vs integrated)
-- [ ] Confirm error reporting format
-- [ ] Confirm relationship metadata preservation approach (if needed)
-- [ ] Get approval to proceed with implementation
-
-#### 3.4 Implementation Phase
-- [ ] Implement `Gram.Validate` module
-- [ ] Implement `ValidationError` type and error categories
-- [ ] Implement identity conflict detection in relationships
-- [ ] Implement undefined reference detection
-- [ ] Implement relationship structure validation
-- [ ] Implement other validation rules as designed
-- [ ] Write comprehensive tests for all validation rules
-- [ ] Write tests for error reporting
-- [ ] Write tests for edge cases
-- [ ] Add Haddock documentation with examples
-- [ ] Export validation functions from `Gram` module
-
----
-
-### 4. Gram Serialization for Subject Library
-**Priority**: Low / Deferred
 **Goal**: Serialize Subject instances to gram notation and parse gram notation to Subject instances, handling the identity requirement (Subject requires identity, but gram allows anonymous subjects).
 
 #### 10.1 Serialization Design
@@ -139,7 +58,36 @@ Serialization and parsing for `Pattern Subject`.
 
 ---
 
-### 5. Pattern Morphisms
+### 2. Graph Views (Feature 21)
+**Priority**: High
+**Goal**: Interpret `Pattern` structures as different graph elements (nodes, relationships, walks) through categorical functors.
+
+#### 11.1 GraphView Typeclass Design
+- [ ] **STOP and REVIEW**: Is GraphView needed yet?
+- [ ] Design `GraphView` typeclass interface (minimal)
+- [ ] Consider: can we defer this entirely?
+
+#### 11.2 DirectedView (If Proceeding)
+- [ ] Implement minimal `DirectedView` if needed
+- [ ] Keep implementation simple
+
+*(Note: This feature was previously "Feature 11" in TODO-later.md and is now the active priority)*
+
+---
+
+### 3. Gram Validation Tests
+**Priority**: Medium
+**Goal**: Add comprehensive tests for the implemented `Gram.Validate` module.
+
+- [ ] Create `libs/gram/tests/Spec/Gram/ValidateSpec.hs`
+- [ ] Write tests for `DuplicateDefinition` detection
+- [ ] Write tests for `UndefinedReference` detection
+- [ ] Write tests for relationship arity/consistency validation
+- [ ] Verify validation on corpus files
+
+---
+
+### 4. Pattern Morphisms
 **Priority**: Low / Deferred
 **Goal**: Basic morphisms if needed for core.
 
@@ -151,7 +99,7 @@ Serialization and parsing for `Pattern Subject`.
 
 ---
 
-### 6. Zipper for Interactive Navigation and Editing
+### 5. Zipper for Interactive Navigation and Editing
 **Priority**: Low / Deferred
 **Goal**: Efficient interactive navigation and editing (Up/Down/Left/Right).
 **Reference**: See `design/DESIGN.md` (section "Zipper for Focus").
@@ -225,7 +173,7 @@ Serialization and parsing for `Pattern Subject`.
 
 ---
 
-### 7. Pattern Matching DSL (PatternExpr Library)
+### 6. Pattern Matching DSL (PatternExpr Library)
 **Priority**: Low / Deferred
 **Goal**: Enable regex-like pattern matching expressions for Pattern structures.
 **Reference**: See `design/pattern-matching-dsl-design.md`.
