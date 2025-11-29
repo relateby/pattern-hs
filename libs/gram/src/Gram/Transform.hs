@@ -12,26 +12,63 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Control.Monad.State (State, evalState, get, put)
+import Data.Char (isDigit)
 
 type Transform = State Int
 
 -- | Transform a CST Gram into a Core Pattern Subject
 transformGram :: CST.Gram -> P.Pattern S.Subject
-transformGram gram = evalState (transformGram' gram) 1
+transformGram gram = evalState (transformGram' gram) (findMaxId gram + 1)
+
+-- | Find the maximum numeric suffix of IDs matching "#<N>" in the CST
+findMaxId :: CST.Gram -> Int
+findMaxId (CST.Gram _ patterns) = maximum (0 : concatMap scanPattern patterns)
+  where
+    scanPattern (CST.AnnotatedPattern _ elements) = concatMap scanElement elements
+
+    scanElement (CST.PEPath path) = scanPath path
+    scanElement (CST.PESubjectPattern sp) = scanSubjectPattern sp
+    scanElement (CST.PEReference ident) = scanIdentifier (Just ident)
+
+    scanPath (CST.Path startNode segments) = 
+      scanNode startNode ++ concatMap scanSegment segments
+
+    scanSegment (CST.PathSegment rel nextNode) = 
+      scanRelationship rel ++ scanNode nextNode
+
+    scanNode (CST.Node subjData) = scanSubjectData subjData
+
+    scanRelationship (CST.Relationship _ subjData) = scanSubjectData subjData
+
+    scanSubjectPattern (CST.SubjectPattern subjData nested) = 
+      scanSubjectData subjData ++ concatMap scanElement nested
+
+    scanSubjectData Nothing = []
+    scanSubjectData (Just (CST.SubjectData ident _ _)) = scanIdentifier ident
+
+    scanIdentifier (Just (CST.IdentSymbol (CST.Symbol s))) = case parseGeneratedId s of
+      Just n -> [n]
+      Nothing -> []
+    scanIdentifier _ = []
+
+    parseGeneratedId ('#':rest) | all isDigit rest && not (null rest) = Just (read rest)
+    parseGeneratedId _ = Nothing
 
 transformGram' :: CST.Gram -> Transform (P.Pattern S.Subject)
 transformGram' (CST.Gram record patterns) =
   case (record, patterns) of
     (Just props, []) -> 
-      return $ P.Pattern (S.Subject (S.Symbol "") Set.empty props) []
+      -- Only record
+      return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") props) []
     (Just props, pats) -> do
       pats' <- mapM transformPattern pats
-      return $ P.Pattern (S.Subject (S.Symbol "") Set.empty props) pats'
+      -- Explicit root record.
+      return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") props) pats'
     (Nothing, [p]) ->
       transformPattern p
     (Nothing, pats) -> do
       pats' <- mapM transformPattern pats
-      return $ P.Pattern (S.Subject (S.Symbol "") Set.empty Map.empty) pats'
+      return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") Map.empty) pats'
 
 transformPattern :: CST.AnnotatedPattern -> Transform (P.Pattern S.Subject)
 transformPattern (CST.AnnotatedPattern _ elements) =
@@ -69,22 +106,23 @@ transformPath (CST.Path startNode segments) =
     _ -> do
       -- Walk case (multiple segments): Return a Walk Pattern containing edges
       -- (a)-[r1]->(b)-[r2]->(c) becomes [walk | [r1 | a, b], [r2 | b, c]]
-      edges <- constructWalkEdges startNode segments
+      leftP <- transformNode startNode
+      edges <- constructWalkEdges leftP segments
       -- Use a specific label for Walk container to distinguish it
       let walkSubject = S.Subject (S.Symbol "") (Set.singleton "Gram.Walk") Map.empty
       return $ P.Pattern walkSubject edges
 
 -- | Construct a list of Edge Patterns from a start node and path segments.
-constructWalkEdges :: CST.Node -> [CST.PathSegment] -> Transform [P.Pattern S.Subject]
+-- We pass the transformed left pattern to ensure identity continuity in the walk.
+constructWalkEdges :: P.Pattern S.Subject -> [CST.PathSegment] -> Transform [P.Pattern S.Subject]
 constructWalkEdges _ [] = return []
-constructWalkEdges leftNode (seg:rest) = do
+constructWalkEdges leftP (seg:rest) = do
   let rightNode = CST.segmentNode seg
-  leftP <- transformNode leftNode
   rightP <- transformNode rightNode
   relP <- transformRelationship (CST.segmentRel seg)
   -- Create self-contained edge: [rel | left, right]
   let edge = P.Pattern (P.value relP) [leftP, rightP]
-  restEdges <- constructWalkEdges rightNode rest
+  restEdges <- constructWalkEdges rightP rest
   return (edge : restEdges)
 
 transformNode :: CST.Node -> Transform (P.Pattern S.Subject)

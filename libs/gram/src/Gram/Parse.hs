@@ -460,6 +460,8 @@ parseGram = do
     
   additionalPatterns <- many (try (do
     optionalSpaceWithNewlines
+    void $ optional (char ',')
+    optionalSpaceWithNewlines
     nextChar <- lookAhead (satisfy (const True))
     if nextChar == '(' || nextChar == '[' || nextChar == '@'
       then parseAnnotatedPattern

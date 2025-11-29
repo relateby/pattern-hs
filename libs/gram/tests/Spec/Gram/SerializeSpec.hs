@@ -3,7 +3,8 @@ module Spec.Gram.SerializeSpec where
 
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Test.QuickCheck
+import qualified Test.QuickCheck as QC
+import Test.QuickCheck (forAll, listOf, listOf1, Gen)
 import Gram.Serialize (toGram)
 import Gram.Parse (fromGram)
 import Pattern.Core (Pattern(..))
@@ -43,9 +44,11 @@ spec = do
           toGram p `shouldBe` "(:Person)"
         
         it "serializes anonymous subject (empty Symbol) without label" $ do
-          let s = Subject (Symbol "") Set.empty empty
+          -- Subject "" is reserved for Implicit Root, which must have Gram.Root label
+          let s = Subject (Symbol "") (Set.singleton "Gram.Root") empty
           let p = Pattern { value = s, elements = [] }
-          toGram p `shouldBe` "()"
+          -- Empty props/elems -> "{}" (Empty Graph Record)
+          toGram p `shouldBe` "{}"
       
       describe "subject with standard value types" $ do
         it "serializes subject with integer property" $ do
@@ -354,11 +357,11 @@ genPattern = do
 
 genSubject :: Gen Subject
 genSubject = do
-  idStr <- listOf1 (elements ['a'..'z'])
-  lbls <- listOf (listOf1 (elements ['A'..'Z']))
+  idStr <- listOf1 (QC.elements ['a'..'z'])
+  lbls <- listOf (listOf1 (QC.elements ['A'..'Z']))
   -- Generate simple string properties to verify property serialization
-  k <- listOf1 (elements ['a'..'z'])
-  v <- listOf1 (elements ['a'..'z'])
+  k <- listOf1 (QC.elements ['a'..'z'])
+  v <- listOf1 (QC.elements ['a'..'z'])
   let props = Map.fromList [(k, VString v)]
   return $ Subject (Symbol idStr) (Set.fromList lbls) props
 

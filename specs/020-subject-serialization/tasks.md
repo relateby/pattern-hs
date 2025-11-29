@@ -113,7 +113,7 @@ description: "Tasks for implementing subject identity and serialization in gram-
 
 - [x] T022 Run quickstart validation from `specs/020-subject-serialization/quickstart.md`
 - [x] T023 Run full test suite with timeout: `timeout 60 cabal test`
-- [ ] T024 Git commit: "docs: finalize subject serialization feature"
+- [x] T024 Git commit: "docs: finalize subject serialization feature"
 
 ---
 

@@ -22,15 +22,21 @@ spec = do
         it "parses empty node" $ do
           case fromGram "()" of
             Right p -> do
-              -- Empty node should have empty subject
-              value p `shouldBe` Subject (Symbol "") Set.empty empty
+              -- Empty node should have generated ID
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              labels (value p) `shouldBe` Set.empty
+              properties (value p) `shouldBe` empty
               elements p `shouldBe` []
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses node with empty record" $ do
           case fromGram "({})" of
             Right p -> do
-              value p `shouldBe` Subject (Symbol "") Set.empty empty
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              labels (value p) `shouldBe` Set.empty
+              properties (value p) `shouldBe` empty
               elements p `shouldBe` []
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
@@ -38,7 +44,10 @@ spec = do
           case fromGram "({ k : \"v\" })" of
             Right p -> do
               let props = fromList [("k", VString "v")]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              labels (value p) `shouldBe` Set.empty
+              properties (value p) `shouldBe` props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses identified node with record" $ do
@@ -59,7 +68,10 @@ spec = do
         it "parses empty subject" $ do
           case fromGram "[ ]" of
             Right p -> do
-              value p `shouldBe` Subject (Symbol "") Set.empty empty
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              labels (value p) `shouldBe` Set.empty
+              properties (value p) `shouldBe` empty
               elements p `shouldBe` []
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
@@ -97,16 +109,23 @@ spec = do
         it "parses single node pattern" $ do
           case fromGram "()" of
             Right p -> do
-              value p `shouldBe` Subject (Symbol "") Set.empty empty
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              labels (value p) `shouldBe` Set.empty
+              properties (value p) `shouldBe` empty
               elements p `shouldBe` []
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses two node members" $ do
-          case fromGram "(),()" of
+          case fromGram "() ()" of
             Right p -> do
-              value p `shouldBe` Subject (Symbol "") Set.empty empty
-              length (elements p) `shouldBe` 1
-              value (head (elements p)) `shouldBe` Subject (Symbol "") Set.empty empty
+              value p `shouldBe` Subject (Symbol "") (Set.singleton "Gram.Root") empty
+              length (elements p) `shouldBe` 2
+              let [e1, e2] = elements p
+              let Symbol id1 = identity (value e1)
+              let Symbol id2 = identity (value e2)
+              take 1 id1 `shouldBe` "#"
+              take 1 id2 `shouldBe` "#"
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses one relationship" $ do
@@ -158,35 +177,45 @@ spec = do
           case fromGram "({ n : 1 })" of
             Right p -> do
               let props = fromList [("n", VInteger 1)]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              properties (value p) `shouldBe` props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses string property" $ do
           case fromGram "({ s : \"a\" })" of
             Right p -> do
               let props = fromList [("s", VString "a")]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              properties (value p) `shouldBe` props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses range property (closed range)" $ do
           case fromGram "({ i : 1..10 })" of
             Right p -> do
               let props = fromList [("i", VRange (RangeValue (Just 1) (Just 10)))]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              properties (value p) `shouldBe` props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses range property (lower bound only)" $ do
           case fromGram "({ i : 1... })" of
             Right p -> do
               let props = fromList [("i", VRange (RangeValue (Just 1) Nothing))]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              properties (value p) `shouldBe` props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses range property (upper bound only)" $ do
           case fromGram "({ i : ...100 })" of
             Right p -> do
               let props = fromList [("i", VRange (RangeValue Nothing (Just 100)))]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              let Symbol id = identity (value p)
+              take 1 id `shouldBe` "#"
+              properties (value p) `shouldBe` props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses map property" $ do
@@ -209,7 +238,7 @@ spec = do
         it "parses empty record" $ do
           case fromGram "{}" of
             Right p -> do
-              value p `shouldBe` Subject (Symbol "") Set.empty empty
+              value p `shouldBe` Subject (Symbol "") (Set.singleton "Gram.Root") empty
               elements p `shouldBe` []
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
@@ -217,14 +246,14 @@ spec = do
           case fromGram "{ n : 1 }" of
             Right p -> do
               let props = fromList [("n", VInteger 1)]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              value p `shouldBe` Subject (Symbol "") (Set.singleton "Gram.Root") props
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
         it "parses record followed by node" $ do
           case fromGram "{ s : \"a\" }\n()" of
             Right p -> do
               let props = fromList [("s", VString "a")]
-              value p `shouldBe` Subject (Symbol "") Set.empty props
+              value p `shouldBe` Subject (Symbol "") (Set.singleton "Gram.Root") props
               length (elements p) `shouldBe` 1
             Left err -> expectationFailure $ "Parse failed: " ++ show err
       
@@ -243,8 +272,8 @@ spec = do
       describe "User Story 2: Anonymous Subject Handling" $ do
         
         it "assigns unique IDs to anonymous nodes" $ do
-          -- Two anonymous nodes: () ()
-          case fromGram "(), ()" of
+          -- Two anonymous nodes separated by space (parsed as 2 top-level patterns)
+          case fromGram "() ()" of
             Right p -> do
               let elems = elements p
               length elems `shouldBe` 2
@@ -259,8 +288,8 @@ spec = do
               id1 `shouldNotBe` id2
               
               -- IDs should follow format #<N>
-              head id1 `shouldBe` '#'
-              head id2 `shouldBe` '#'
+              take 1 id1 `shouldBe` "#"
+              take 1 id2 `shouldBe` "#"
             Left err -> expectationFailure $ "Parse failed: " ++ show err
             
         it "assigns unique IDs to anonymous path elements" $ do
@@ -284,5 +313,34 @@ spec = do
               relId `shouldNotBe` leftId
               relId `shouldNotBe` rightId
               
-              head relId `shouldBe` '#'
+              take 1 relId `shouldBe` "#"
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+        it "avoids collision with existing generated-style IDs" $ do
+          -- Input has explicit #1. Generator should skip it and use #2 (or higher).
+          case fromGram "(`#1`) ()" of
+            Right p -> do
+              let elems = elements p
+              length elems `shouldBe` 2
+              let [e1, e2] = elems
+              let Symbol id1 = identity (value e1)
+              let Symbol id2 = identity (value e2)
+              
+              id1 `shouldBe` "#1"
+              id2 `shouldNotBe` "#1"
+              take 1 id2 `shouldBe` "#"
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+        it "re-round-trips generated IDs safely (US3 Collision Prevention)" $ do
+          -- () -> #1 -> (#1)
+          -- (#1), () -> #1, #2 -> (#1), (#2)
+          case fromGram "(`#1`) ()" of
+            Right p -> do
+              let elems = elements p
+              let [e1, e2] = elems
+              let Symbol id1 = identity (value e1)
+              let Symbol id2 = identity (value e2)
+              
+              -- Ensure they are distinct
+              id1 `shouldNotBe` id2
             Left err -> expectationFailure $ "Parse failed: " ++ show err

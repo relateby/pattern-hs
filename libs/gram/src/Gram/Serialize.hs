@@ -183,7 +183,7 @@ serializeLabels lbls
   | Set.null lbls = ""
   | otherwise = ":" ++ intercalate ":" (Set.toList lbls)
 
--- | Serialize a Subject to gram notation (legacy function, kept for compatibility).
+    -- | Serialize a Subject to gram notation (legacy function, kept for compatibility).
 -- Note: This always uses node syntax. Use toGram for proper syntax selection.
 serializeSubject :: Subject -> String
 serializeSubject (Subject ident lbls props) =
@@ -191,6 +191,14 @@ serializeSubject (Subject ident lbls props) =
   serializeIdentity ident ++
   serializeLabels lbls ++
   serializePropertyRecord props
+
+-- | Serialize pattern elements for implicit root (no brackets/pipe).
+-- Used when serializing the top-level Gram container.
+-- NOTE: This function is now inlined into toGram to handle properties.
+-- Keeping signature for potential reuse or removing if unused.
+-- serializeImplicitElements :: [Pattern Subject] -> String
+-- serializeImplicitElements elems = 
+--   intercalate "\n" (map toGram elems)
 
 -- | Serialize pattern elements to gram notation.
 --
@@ -263,14 +271,33 @@ serializePatternElements elems
 -- "[g | a, b]"
 toGram :: Pattern Subject -> String
 toGram p@(Pattern subj elems)
+  | isImplicitRoot subj = serializeImplicitElements (properties subj) elems -- Implicit root -> record + elements
   | null elems = serializeSubjectAsNode subj  -- No elements -> node syntax
-  | otherwise = 
-      case isWalkPattern p of
-        Just edges -> serializeWalkPattern edges
-        Nothing -> case isEdgePattern p of
-          Just (rel, left, right) -> serializeEdgePattern rel left right
-          Nothing -> serializeSubjectAsSubject subj elems  -- Has elements -> subject syntax
+  | Just edges <- isWalkPattern p = serializeWalkPattern edges
+  | Just (rel, left, right) <- isEdgePattern p = serializeEdgePattern rel left right
+  | otherwise = serializeSubjectAsSubject subj elems  -- Has elements -> subject syntax
   where
+    -- | Check if subject is the Implicit Root
+    -- Identified by "Gram.Root" label.
+    isImplicitRoot :: Subject -> Bool
+    isImplicitRoot (Subject (Symbol "") lbls _) = "Gram.Root" `Set.member` lbls
+    isImplicitRoot _ = False
+
+    -- | Serialize pattern elements for implicit root (record + elements).
+    -- Note: We do NOT serialize the "Gram.Root" label itself, as it is implicit in the file structure.
+    serializeImplicitElements :: Map String Value -> [Pattern Subject] -> String
+    serializeImplicitElements props elems = 
+      let propsStr = if Map.null props then "" else serializePropertyRecord props
+          elemsStr = intercalate "\n" (map toGram elems)
+      in case (null propsStr, null elemsStr) of
+           (True, True) -> "{}" -- Empty graph/root
+           (False, True) -> trimLeadingSpace propsStr -- Remove leading space from serializePropertyRecord
+           (True, False) -> elemsStr
+           (False, False) -> trimLeadingSpace propsStr ++ "\n" ++ elemsStr
+
+    trimLeadingSpace (' ':xs) = xs
+    trimLeadingSpace xs = xs
+
     -- | Check if pattern is a Walk Pattern: [Gram.Walk | edge1, edge2, ...]
     isWalkPattern :: Pattern Subject -> Maybe [Pattern Subject]
     isWalkPattern (Pattern (Subject _ lbls _) edges)
