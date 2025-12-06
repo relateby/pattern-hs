@@ -290,7 +290,7 @@ toGram p@(Pattern subj elems)
       let propsStr = if Map.null props then "" else serializePropertyRecord props
           elemsStr = intercalate "\n" (map toGram elems)
       in case (null propsStr, null elemsStr) of
-           (True, True) -> "{}" -- Empty graph/root
+           (True, True) -> "" -- Empty graph/root - return empty string instead of "{}"
            (False, True) -> trimLeadingSpace propsStr -- Remove leading space from serializePropertyRecord
            (True, False) -> elemsStr
            (False, False) -> trimLeadingSpace propsStr ++ "\n" ++ elemsStr

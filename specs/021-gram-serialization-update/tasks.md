@@ -7,7 +7,7 @@
 ## Phase 2: Foundational
 
 - [x] T002 Update `Gram.Transform` to handle `AnnotatedPattern` by mapping annotations to Subject properties in `libs/gram/src/Gram/Transform.hs`
-- [ ] T003 Ensure `Gram.Serialize` handles `Gram.Root` label by flattening elements without brackets in `libs/gram/src/Gram/Serialize.hs`
+- [x] T003 Ensure `Gram.Serialize` handles `Gram.Root` label by flattening elements without brackets in `libs/gram/src/Gram/Serialize.hs`
 
 ## Phase 3: User Story 1 - Serialize Flat Top-Level Patterns
 
