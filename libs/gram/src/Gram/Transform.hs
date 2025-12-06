@@ -71,14 +71,35 @@ transformGram' (CST.Gram record patterns) =
       return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") Map.empty) pats'
 
 transformPattern :: CST.AnnotatedPattern -> Transform (P.Pattern S.Subject)
-transformPattern (CST.AnnotatedPattern _ elements) =
-  case elements of
-    [el] -> transformElement el
-    (first:rest) -> do
-      root <- transformElement first
-      others <- mapM transformElement rest
-      return $ P.Pattern (P.value root) (P.elements root ++ others)
-    [] -> return $ P.Pattern (S.Subject (S.Symbol "") Set.empty Map.empty) []
+transformPattern (CST.AnnotatedPattern annotations elements) = do
+  -- Transform elements (AnnotatedPattern contains exactly ONE element in 0.2.7)
+  transformedElements <- mapM transformElement elements
+  
+  case annotations of
+    [] -> case transformedElements of
+      [el] -> return el
+      (first:rest) -> return $ P.Pattern (P.value first) (P.elements first ++ rest)
+      [] -> return $ P.Pattern (S.Subject (S.Symbol "") Set.empty Map.empty) []
+      
+    anns -> do
+      -- Convert annotations to properties
+      let annProps = annotationsToProperties anns
+      
+      -- Annotations become properties of a wrapper subject pattern.
+      -- The single element from annotated_pattern becomes the content.
+      
+      -- Generate a fresh ID for the wrapper subject if needed
+      -- Note: In the semantic mapping, the annotations become properties of the "subject"
+      -- that wraps the content.
+      
+      sym <- generateId
+      let wrapperSubject = S.Subject sym Set.empty annProps
+      
+      return $ P.Pattern wrapperSubject transformedElements
+
+annotationsToProperties :: [CST.Annotation] -> Map String V.Value
+annotationsToProperties = Map.fromList . map (\(CST.Annotation (CST.Symbol k) v) -> (k, v))
+
 
 transformElement :: CST.PatternElement -> Transform (P.Pattern S.Subject)
 transformElement (CST.PEPath path) = transformPath path

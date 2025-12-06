@@ -39,20 +39,20 @@ spec = do
       validateSource "[a]" `shouldSatisfy` isRight
 
     it "accepts multiple unique definitions" $ do
-      validateSource "[a], [b]" `shouldSatisfy` isRight
+      validateSource "[a] [b]" `shouldSatisfy` isRight
 
     it "rejects duplicate definitions" $ do
-      let result = validateSource "[a], [a]"
+      let result = validateSource "[a] [a]"
       result `shouldSatisfy` isLeft
       case result of
         Left [err] -> err `shouldSatisfy` isDuplicateDefinition
         _ -> expectationFailure "Expected single DuplicateDefinition error"
 
     it "accepts forward references" $ do
-      validateSource "[b | a], [a]" `shouldSatisfy` isRight
+      validateSource "[b | a] [a]" `shouldSatisfy` isRight
     
     it "accepts backward references" $ do
-      validateSource "[a], [b | a]" `shouldSatisfy` isRight
+      validateSource "[a] [b | a]" `shouldSatisfy` isRight
 
     it "rejects undefined references" $ do
       let result = validateSource "[a | b]"
@@ -69,7 +69,7 @@ spec = do
         _ -> expectationFailure "Expected single SelfReference error"
 
     it "accepts indirect cycles" $ do
-      validateSource "[a | b], [b | a]" `shouldSatisfy` isRight
+      validateSource "[a | b] [b | a]" `shouldSatisfy` isRight
 
   describe "Path Notation Validation" $ do
     it "accepts a simple path" $ do
@@ -77,36 +77,28 @@ spec = do
 
     it "defines elements in a path" $ do
       -- (a) defines 'a', so [p | a] should be valid
-      validateSource "(a)-[r]->(b), [p | a]" `shouldSatisfy` isRight
+      validateSource "(a)-[r]->(b) [p | a]" `shouldSatisfy` isRight
 
     it "rejects redefinition of path elements" $ do
       -- 'r' is defined in first path, cannot be redefined in second with different structure
-      -- Note: This depends on strict consistency checks. 
-      -- For now, just checking duplicates if they are treated as pattern definitions.
-      -- If (a)-[r]->(b) implies [r | a, b], then a second identical path is fine?
-      -- No, identified relationships must be unique unless they are references.
-      -- But in path notation, identifiers are often used for uniqueness.
-      -- Let's assume standard redefinition rule applies: r is defined once.
-      -- If we write (a)-[r]->(b) and then (c)-[r]->(d), 'r' is duplicated?
-      -- Yes, if 'r' is an identifier.
-      let result = validateSource "(a)-[r]->(b), (c)-[r]->(d)"
+      let result = validateSource "(a)-[r]->(b) (c)-[r]->(d)"
       result `shouldSatisfy` isLeft
       case result of
         Left [err] -> err `shouldSatisfy` isDuplicateDefinition
         _ -> expectationFailure "Expected DuplicateDefinition error for reused relationship identifier"
 
     it "accepts anonymous relationships" $ do
-      validateSource "(a)-[:knows]->(b), (a)-[:knows]->(b)" `shouldSatisfy` isRight
+      validateSource "(a)-[:knows]->(b) (a)-[:knows]->(b)" `shouldSatisfy` isRight
 
     it "accepts relationship reuse with same endpoints" $ do
       -- Valid: (a)-[r]->(b) followed by (a)-[r]->(b)-[r2]->(c)
       -- The relationship r connects (a, b) in both cases
-      validateSource "(a)-[r]->(b), (a)-[r]->(b)-[r2]->(c)" `shouldSatisfy` isRight
+      validateSource "(a)-[r]->(b) (a)-[r]->(b)-[r2]->(c)" `shouldSatisfy` isRight
 
     it "rejects relationship reuse with different endpoints" $ do
       -- Invalid: (a)-[r]->(b) followed by (a)-[r]->(c)-[r2]->(b)
       -- The relationship r connects (a, b) first, then (a, c)
-      let result = validateSource "(a)-[r]->(b), (a)-[r]->(c)-[r2]->(b)"
+      let result = validateSource "(a)-[r]->(b) (a)-[r]->(c)-[r2]->(b)"
       result `shouldSatisfy` isLeft
       case result of
         Left [err] -> err `shouldSatisfy` isDuplicateDefinition
@@ -117,18 +109,18 @@ spec = do
       validateSource "(a)-[r1]->(b)<-[r2]-(a)" `shouldSatisfy` isRight
 
     it "accepts node reuse across separate paths" $ do
-      -- (a), (a) is valid - second is a reference to the first
-      validateSource "(a), (a)" `shouldSatisfy` isRight
+      -- (a) (a) is valid - second is a reference to the first
+      validateSource "(a) (a)" `shouldSatisfy` isRight
 
   describe "Mixed Notation Consistency" $ do
     it "accepts consistent definition and usage" $ do
-      validateSource "[r | a, b], (a)-[r]->(b)" `shouldSatisfy` isRight
+      validateSource "[r | a, b] (a)-[r]->(b)" `shouldSatisfy` isRight
 
     it "rejects inconsistent arity (structure mismatch)" $ do
       -- [r | a, b, c] has 3 elements. (a)-[r]->(b) implies 2 elements.
       -- This requires Arity check.
       -- Note: We also need (c) to define 'c', otherwise it's an undefined reference.
-      let result = validateSource "[r | a, b, c], (a)-[r]->(b), (c)"
+      let result = validateSource "[r | a, b, c] (a)-[r]->(b) (c)"
       result `shouldSatisfy` isLeft 
       case result of
         Left errs -> any isInconsistentDefinition errs `shouldBe` True

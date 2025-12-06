@@ -32,7 +32,9 @@ data Gram = Gram
   } deriving (Show, Eq, Generic)
 
 -- | A top-level annotated pattern
--- annotated_pattern: optional(annotations) + commaSep1(pattern_element)
+-- annotated_pattern: optional(annotations) + single(pattern_element)
+-- Note: In tree-sitter-gram 0.2.7, annotated_pattern contains exactly ONE element.
+-- Comma-separated sequences only appear inside subject_pattern elements (after |).
 data AnnotatedPattern = AnnotatedPattern
   { apAnnotations :: [Annotation]
   , apElements :: [PatternElement]
