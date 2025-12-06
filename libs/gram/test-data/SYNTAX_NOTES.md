@@ -22,6 +22,7 @@ gram: optional(record) + repeat(pattern)
 - Syntax: `[attributes | sub_pattern]`
 - Attributes: identifier, labels, record (all optional)
 - Sub-pattern after `|`: comma-separated list of subjects, paths (nodes/relationships), or references
+- **Note**: Comma-separated sequences only appear inside `subject_pattern` elements (after the `|`).
 - Examples:
   - `[ ]` - empty subject
   - `[ a ]` - named subject
@@ -87,8 +88,10 @@ gram: optional(record) + repeat(pattern)
 
 ## Pattern Structure
 
-- Patterns contain comma-separated elements
-- Elements can be: subjects, nodes, relationships
-- Relationships can chain (nested relationships)
-- Example: `(),(), ()-->(), ()-->()-->()` - pattern with multiple elements
+- **Top-level patterns** are whitespace-separated (no commas).
+- **Inside `subject_pattern`** (after `|`): comma-separated elements.
+- Elements can be: subjects, nodes, relationships, or references.
+- Relationships can chain (nested relationships).
+- Example top-level: `() ()-->() [subject | a, b]` - whitespace-separated patterns.
+- Example inside subject: `[g | (), (), ()-->()]` - comma-separated elements.
 

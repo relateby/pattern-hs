@@ -72,7 +72,7 @@ transformGram' (CST.Gram record patterns) =
 
 transformPattern :: CST.AnnotatedPattern -> Transform (P.Pattern S.Subject)
 transformPattern (CST.AnnotatedPattern annotations elements) = do
-  -- Transform elements
+  -- Transform elements (AnnotatedPattern contains exactly ONE element in 0.2.7)
   transformedElements <- mapM transformElement elements
   
   case annotations of
@@ -85,8 +85,8 @@ transformPattern (CST.AnnotatedPattern annotations elements) = do
       -- Convert annotations to properties
       let annProps = annotationsToProperties anns
       
-      -- If there are elements, we wrap them in a subject pattern with the annotation properties
-      -- If there are no elements but annotations, we return a subject with those properties
+      -- Annotations become properties of a wrapper subject pattern.
+      -- The single element from annotated_pattern becomes the content.
       
       -- Generate a fresh ID for the wrapper subject if needed
       -- Note: In the semantic mapping, the annotations become properties of the "subject"
