@@ -1,8 +1,9 @@
 <!--
 Sync Impact Report:
-- Version change: [none] → 1.0.0 (initial constitution)
-- Modified principles: N/A (initial creation)
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: N/A
 - Added sections:
+  - Development Standards: Version Control Standards
   - Core Principles: Code Quality, Testing Standards, Conceptual Consistency, Mathematical Clarity, Multi-Language Reference Alignment
   - Development Standards: Category Theory Foundations, Cross-Language Consistency
   - Quality Assurance: Testing Requirements, Documentation Standards
@@ -109,6 +110,12 @@ When making design decisions, consider:
 - Can the mathematical structure be preserved across all target languages?
 
 Documentation MUST address these considerations for any non-trivial design choice.
+
+### Version Control Standards
+
+- **Intermediate Commits**: Work MUST be committed frequently as "checkpoints" to the feature branch.
+- **Scope**: Checkpoint commits should capture logical steps or partial implementations (e.g., "passing 1 of 5 tests").
+- **Safety**: This prevents data loss and allows easy rollback of experimental changes.
 
 ## Quality Assurance
 
