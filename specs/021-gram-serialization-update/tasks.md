@@ -13,8 +13,8 @@
 
 **Goal**: Patterns should be serialized as a flat sequence of top-level elements (nodes, subjects, paths) without wrapper brackets, and Annotated Patterns should be serialized as Subject Patterns with properties.
 
-- [ ] T004 [US1] Create test case for flat top-level serialization (nodes, paths) in `libs/gram/tests/Gram/SerializeSpec.hs`
-- [ ] T005 [US1] Create test case for annotated pattern serialization (verifying `[{props} | content]` output) in `libs/gram/tests/Gram/SerializeSpec.hs`
+- [x] T004 [US1] Create test case for flat top-level serialization (nodes, paths) in `libs/gram/tests/Gram/SerializeSpec.hs`
+- [x] T005 [US1] Create test case for annotated pattern serialization (verifying `[{props} | content]` output) in `libs/gram/tests/Gram/SerializeSpec.hs`
 - [ ] T006 [US1] Implement flat serialization logic in `toGram` in `libs/gram/src/Gram/Serialize.hs`
 - [ ] T007 [US1] Implement annotated pattern transformation in `libs/gram/src/Gram/Transform.hs`
 

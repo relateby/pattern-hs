@@ -308,9 +308,48 @@ spec = do
           let parsed = fromGram serialized
           parsed `shouldBe` Right p
 
-      describe "User Story 3: Identity Preservation" $ do
+      describe "Gram.Root Serialization (Flattening)" $ do
+        it "serializes top-level elements as flat sequence" $ do
+          let n1 = Pattern (Subject (Symbol "n1") Set.empty empty) []
+          let n2 = Pattern (Subject (Symbol "n2") Set.empty empty) []
+          let root = Pattern (Subject (Symbol "") (Set.singleton "Gram.Root") empty) [n1, n2]
+          
+          -- Should be separated by newlines, no wrapping brackets
+          toGram root `shouldBe` "(n1)\n(n2)"
         
-        it "preserves explicit alphanumeric IDs" $ do
+        it "serializes empty root as empty string" $ do
+          let root = Pattern (Subject (Symbol "") (Set.singleton "Gram.Root") empty) []
+          toGram root `shouldBe` ""
+          
+        it "serializes root with properties correctly" $ do
+          let props = fromList [("version", VString "1.0")]
+          let n1 = Pattern (Subject (Symbol "n1") Set.empty empty) []
+          let root = Pattern (Subject (Symbol "") (Set.singleton "Gram.Root") props) [n1]
+          
+          -- Properties come first, then elements
+          toGram root `shouldBe` "{version:\"1.0\"}\n(n1)"
+
+      describe "Annotated Pattern Serialization" $ do
+        it "serializes annotated pattern as subject pattern with properties" $ do
+          -- @author("Me") (n) -> [{author:"Me"} | (n)]
+          let props = fromList [("author", VString "Me")]
+          let n = Pattern (Subject (Symbol "n") Set.empty empty) []
+          let annotated = Pattern (Subject (Symbol "") Set.empty props) [n]
+          
+          toGram annotated `shouldBe` "[{author:\"Me\"} | (n)]"
+          
+        it "serializes multiple annotations" $ do
+          -- @a(1) @b(2) (n) -> [{a:1, b:2} | (n)]
+          let props = fromList [("a", VInteger 1), ("b", VInteger 2)]
+          let n = Pattern (Subject (Symbol "n") Set.empty empty) []
+          let annotated = Pattern (Subject (Symbol "") Set.empty props) [n]
+          
+          let result = toGram annotated
+          result `shouldContain` "a:1"
+          result `shouldContain` "b:2"
+          result `shouldStartWith` "[{"
+          result `shouldEndWith` "} | (n)]"
+
           let idStr = "user123"
           let s = Subject (Symbol idStr) Set.empty empty
           let p = Pattern { value = s, elements = [] }
