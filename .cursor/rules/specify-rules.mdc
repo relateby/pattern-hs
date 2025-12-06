@@ -41,7 +41,6 @@ tests/
 ## Recent Changes
 - 020-subject-serialization: Added Haskell (GHC 9.8/9.10) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String)
 - 019-integration-polish: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-- 018-pattern-path-semantics: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 
 <!-- MANUAL ADDITIONS START -->

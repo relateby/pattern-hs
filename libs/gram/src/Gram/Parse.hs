@@ -445,8 +445,10 @@ parseAnnotatedPattern = do
   optionalSpace
   anns <- parseAnnotations
   optionalSpace
-  elements <- sepBy1 parsePatternElement (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
-  return $ AnnotatedPattern anns elements
+  -- Strict Mode: AnnotatedPattern contains exactly ONE PatternElement.
+  -- Comma-separated sequences are only allowed inside SubjectPattern [...].
+  element <- parsePatternElement
+  return $ AnnotatedPattern anns [element]
 
 parseGram :: Parser Gram
 parseGram = do

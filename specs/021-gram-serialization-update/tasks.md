@@ -15,18 +15,20 @@
 
 - [x] T004 [US1] Create test case for flat top-level serialization (nodes, paths) in `libs/gram/tests/Gram/SerializeSpec.hs`
 - [x] T005 [US1] Create test case for annotated pattern serialization (verifying `[{props} | content]` output) in `libs/gram/tests/Gram/SerializeSpec.hs`
-- [ ] T006 [US1] Implement flat serialization logic in `toGram` in `libs/gram/src/Gram/Serialize.hs`
-- [ ] T007 [US1] Implement annotated pattern transformation in `libs/gram/src/Gram/Transform.hs`
+- [x] T006 [US1] Implement flat serialization logic in `toGram` in `libs/gram/src/Gram/Serialize.hs`
+- [x] T007 [US1] Implement annotated pattern transformation in `libs/gram/src/Gram/Transform.hs`
 
 ## Phase 4: User Story 2 - Serialize Annotations Without Commas
 
 **Goal**: This story is effectively superseded by the semantic mapping strategy where annotations become standard properties (which use commas). However, we must ensure the `parse -> transform -> serialize` pipeline is consistent.
 
-- [ ] T008 [US2] Verify round-trip: Input `@k(v) (n)` parses, transforms to `[{k:v} | (n)]`, and serializes to `[{k:v} | (n)]` in `libs/gram/tests/Gram/RoundTripSpec.hs`
+- [x] T008 [US2] Verify round-trip: Input `@k(v) (n)` parses, transforms to `[{k:v} | (n)]`, and serializes to `[{k:v} | (n)]` in `libs/gram/tests/Gram/RoundTripSpec.hs`
 
 ## Final Phase: Polish
 
-- [ ] T009 Run full test suite to ensure no regressions in `libs/gram/tests/`
+- [x] T009 Run full test suite to ensure no regressions in `libs/gram/tests/`
+- [x] T010 Tighten parser to reject top-level comma separators (strict tree-sitter-gram 0.2.7 compliance)
+- [x] T011 Update SemanticsSpec tests to use newline separators instead of commas
 
 ## Dependencies
 
