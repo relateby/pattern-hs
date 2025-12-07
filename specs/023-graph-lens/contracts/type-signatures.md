@@ -1,87 +1,18 @@
--- | Graph Lens: Interpretive view of Pattern structures as graphs.
---
--- This module provides the Graph Lens feature, which enables interpreting
--- Pattern structures as graph structures (nodes, relationships, walks) through
--- a minimal, elegant design based on a single predicate.
---
--- == Overview
---
--- A Graph Lens provides an interpretive view of a Pattern as a graph structure.
--- Rather than defining graph concepts (nodes, relationships, walks) as intrinsic
--- properties of Pattern, they emerge through the lens's interpretation. This
--- design enables multiple graph views of the same Pattern and supports
--- higher-order graphs where relationships or entire graphs become nodes.
---
--- == Core Design
---
--- The Graph Lens consists of:
---
--- * @scopePattern@: The Pattern that defines the boundary for all graph operations.
---   Only direct elements of this pattern are considered for graph structure.
--- * @isNode@: A predicate determining which direct elements are nodes.
---   All other graph concepts (relationships, walks) derive from this single predicate.
---
--- == Design Principles
---
--- 1. **Scope-bounded operations**: All graph operations only consider direct elements
---    of @scopePattern@, never descending into nested structures.
---
--- 2. **Single predicate foundation**: Only @isNode@ is required. All other graph
---    predicates (relationships, walks, etc.) are derived from this.
---
--- 3. **Context captured at construction**: If a predicate needs context, that context
---    must be captured when the predicate is created, not during evaluation.
---
--- 4. **Interpretation, not intrinsic**: Graph structure is not a property of Pattern
---    itself, but an interpretation through the lens.
---
--- == Categorical Interpretation
---
--- Graph Lens provides a functorial interpretation where Pattern structures are
--- transformed into graph interpretations. The transformation Pattern → Graph
--- interpretation is functorial in nature.
---
--- == Example
---
--- >>> let graphPattern = patternWith "graph" [pattern "a", pattern "b", patternWith "r1" [pattern "a", pattern "b"]]
--- >>> let isAtomic (Pattern _ els) = null els
--- >>> let atomicLens = GraphLens graphPattern isAtomic
--- >>> nodes atomicLens
--- [Pattern "a" [],Pattern "b" []]
---
--- See @design/graph-lens.md@ and @specs/023-graph-lens/quickstart.md@ for
--- comprehensive examples and usage patterns.
-module Pattern.Graph
-  ( -- * Graph Lens Type
-    GraphLens(..)
-    -- * Node Operations
-  , nodes
-  , isNodeLens
-    -- * Relationship Operations
-  , isRelationship
-  , relationships
-  , source
-  , target
-  , reverseRel
-    -- * Walk Operations
-  , isWalk
-  , walks
-  , walkNodes
-    -- * Navigation Operations
-  , neighbors
-  , incidentRels
-  , degree
-    -- * Graph Analysis Operations
-  , connectedComponents  -- Requires Ord v
-  , bfs                   -- Requires Ord v
-  , findPath              -- Requires Ord v
-  ) where
+# Type Signatures: Graph Lens API
 
-import Pattern.Core (Pattern(..), pattern, patternWith)
-import Data.Maybe (mapMaybe)
-import qualified Data.Set as Set
-import qualified Data.Map as Map
+**Feature**: 023-graph-lens  
+**Date**: 2025-01-27  
+**Phase**: 1 - Design
 
+## Overview
+
+This document defines the complete type signature API for the Graph Lens module. All functions are pure (no side effects) and operate on the GraphLens data structure to interpret Pattern structures as graphs.
+
+## Core Data Structure
+
+### GraphLens
+
+```haskell
 -- | A Graph Lens provides an interpretive view of a Pattern as a graph structure.
 -- 
 -- The lens consists of:
@@ -115,7 +46,15 @@ data GraphLens v = GraphLens
   , isNode       :: Pattern v -> Bool
     -- ^ Predicate determining which elements are nodes
   }
+```
 
+---
+
+## Node Operations
+
+### nodes
+
+```haskell
 -- | Extract all nodes from the graph lens.
 --
 -- Nodes are direct elements of scopePattern that satisfy the isNode predicate.
@@ -129,29 +68,39 @@ data GraphLens v = GraphLens
 -- >>> nodes lens
 -- [[a], [b], [c]]
 nodes :: GraphLens v -> [Pattern v]
-nodes (GraphLens (Pattern _ elements) isNodePred) = 
-  filter isNodePred elements
+```
 
+### isNode (context-aware)
+
+```haskell
 -- | Determine if a Pattern is a node according to the lens.
 --
 -- This is the context-aware version that uses the lens's isNode predicate.
 -- The lens parameter provides the predicate context.
 --
--- Note: This function is named @isNodeLens@ to avoid conflict with the
--- @isNode@ field accessor in the GraphLens record.
---
 -- == Example
 --
 -- >>> let lens = GraphLens pattern isAtomic
--- >>> isNodeLens lens (pattern "a")
+-- >>> isNode lens (pattern "a")
 -- True
--- >>> isNodeLens lens (patternWith "rel" [pattern "a", pattern "b"])
+-- >>> isNode lens (patternWith "rel" [pattern "a", pattern "b"])
 -- False
-isNodeLens :: GraphLens v -> Pattern v -> Bool
-isNodeLens (GraphLens _ isNodePred) p = isNodePred p
+--
+-- Note: This function name may conflict with the field accessor.
+-- Consider using a qualified import or renaming if needed.
+isNode :: GraphLens v -> Pattern v -> Bool
+isNode lens p = isNode (lens :: GraphLens v) p
+-- Note: This conflicts with field accessor - implementation will need
+-- to handle this (e.g., use qualified access or different name)
+```
 
--- * Relationship Operations
+---
 
+## Relationship Operations
+
+### isRelationship
+
+```haskell
 -- | Determine if a Pattern is a relationship according to the lens.
 --
 -- A relationship is a non-node pattern with exactly two node elements.
@@ -168,11 +117,11 @@ isNodeLens (GraphLens _ isNodePred) p = isNodePred p
 -- >>> isRelationship lens rel
 -- True
 isRelationship :: GraphLens v -> Pattern v -> Bool
-isRelationship lens@(GraphLens _ isNodePred) p@(Pattern _ els) =
-  not (isNodePred p) &&
-  length els == 2 &&
-  all (isNodeLens lens) els
+```
 
+### relationships
+
+```haskell
 -- | Extract all relationships from the graph lens.
 --
 -- Relationships are non-node patterns with exactly two node elements.
@@ -186,9 +135,11 @@ isRelationship lens@(GraphLens _ isNodePred) p@(Pattern _ els) =
 -- >>> relationships lens
 -- [[knows | [Alice], [Bob]], [likes | [Bob], [Charlie]]]
 relationships :: GraphLens v -> [Pattern v]
-relationships lens@(GraphLens (Pattern _ elements) _) =
-  filter (isRelationship lens) elements
+```
 
+### source
+
+```haskell
 -- | Extract the source node from a relationship.
 --
 -- For directed relationships, the source is the first element.
@@ -201,11 +152,11 @@ relationships lens@(GraphLens (Pattern _ elements) _) =
 -- >>> source lens rel
 -- Just (pattern "Alice")
 source :: GraphLens v -> Pattern v -> Maybe (Pattern v)
-source lens p@(Pattern _ (s:_))
-  | isRelationship lens p = Just s
-  | otherwise = Nothing
-source _ _ = Nothing
+```
 
+### target
+
+```haskell
 -- | Extract the target node from a relationship.
 --
 -- For directed relationships, the target is the second element.
@@ -218,11 +169,11 @@ source _ _ = Nothing
 -- >>> target lens rel
 -- Just (pattern "Bob")
 target :: GraphLens v -> Pattern v -> Maybe (Pattern v)
-target lens p@(Pattern _ [_, t])
-  | isRelationship lens p = Just t
-  | otherwise = Nothing
-target _ _ = Nothing
+```
 
+### reverseRel
+
+```haskell
 -- | Reverse the direction of a relationship pattern.
 --
 -- Swaps the first and second elements, effectively reversing the
@@ -234,28 +185,15 @@ target _ _ = Nothing
 -- >>> reverseRel rel
 -- patternWith "knows" [pattern "Bob", pattern "Alice"]
 reverseRel :: Pattern v -> Pattern v
-reverseRel (Pattern v [a, b]) = Pattern v [b, a]
-reverseRel p = p  -- Return unchanged if not a 2-element pattern
+```
 
--- * Walk Operations
+---
 
--- | Check if a list of relationships are consecutively connected.
---
--- Relationships are consecutively connected if the target of one
--- equals the source of the next.
---
--- == Internal Function
--- This is an internal helper function used by isWalk.
-consecutivelyConnected :: Eq v => GraphLens v -> [Pattern v] -> Bool
-consecutivelyConnected lens rels =
-  case rels of
-    [] -> True
-    [_] -> True
-    (r1:r2:rest) ->
-      case (target lens r1, source lens r2) of
-        (Just t, Just s) -> t == s && consecutivelyConnected lens (r2:rest)
-        _ -> False
+## Walk Operations
 
+### isWalk
+
+```haskell
 -- | Determine if a Pattern is a walk according to the lens.
 --
 -- A walk is a non-node pattern whose elements are all relationships,
@@ -273,12 +211,12 @@ consecutivelyConnected lens rels =
 -- >>> let walk = patternWith "path" [rel1, rel2, rel3]
 -- >>> isWalk lens walk
 -- True
-isWalk :: Eq v => GraphLens v -> Pattern v -> Bool
-isWalk lens@(GraphLens _ isNodePred) p@(Pattern _ elements) =
-  not (isNodePred p) &&
-  all (isRelationship lens) elements &&
-  consecutivelyConnected lens elements
+isWalk :: GraphLens v -> Pattern v -> Bool
+```
 
+### walks
+
+```haskell
 -- | Extract all walks from the graph lens.
 --
 -- Walks are non-node patterns whose elements are all relationships,
@@ -292,10 +230,12 @@ isWalk lens@(GraphLens _ isNodePred) p@(Pattern _ elements) =
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> walks lens
 -- [[path | [rel1], [rel2], [rel3]]]
-walks :: Eq v => GraphLens v -> [Pattern v]
-walks lens@(GraphLens (Pattern _ elements) isNodePred) =
-  filter (isWalk lens) elements
+walks :: GraphLens v -> [Pattern v]
+```
 
+### walkNodes
+
+```haskell
 -- | Extract nodes from a walk in traversal order.
 --
 -- Returns the source of the first relationship, followed by the targets
@@ -308,17 +248,16 @@ walks lens@(GraphLens (Pattern _ elements) isNodePred) =
 -- >>> let walk = patternWith "path" [rel1, rel2]
 -- >>> walkNodes lens walk
 -- [pattern "A", pattern "B", pattern "C"]
-walkNodes :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
-walkNodes lens p@(Pattern _ rels)
-  | isWalk lens p = case rels of
-      [] -> []
-      (r:rest) -> case source lens r of
-        Just s -> s : mapMaybe (target lens) (r:rest)
-        Nothing -> []
-  | otherwise = []
+walkNodes :: GraphLens v -> Pattern v -> [Pattern v]
+```
 
--- * Navigation Operations
+---
 
+## Navigation Operations
+
+### neighbors
+
+```haskell
 -- | Find all neighbors of a node.
 --
 -- Neighbors are nodes connected to the given node via relationships
@@ -333,16 +272,11 @@ walkNodes lens p@(Pattern _ rels)
 -- >>> neighbors lens (pattern "Alice")
 -- [pattern "Bob", pattern "Charlie"]
 neighbors :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
-neighbors lens node =
-  let rels = relationships lens
-      connectedNodes = concatMap (\r -> 
-        case (source lens r, target lens r) of
-          (Just s, Just t) | s == node -> [t]
-                           | t == node -> [s]
-          _ -> []
-        ) rels
-  in connectedNodes
+```
 
+### incidentRels
+
+```haskell
 -- | Find all relationships involving a node.
 --
 -- Returns relationships where the node is either source or target.
@@ -356,14 +290,11 @@ neighbors lens node =
 -- >>> incidentRels lens (pattern "Alice")
 -- [[knows | [Alice], [Bob]], [likes | [Charlie], [Alice]]]
 incidentRels :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
-incidentRels lens node =
-  filter (\r ->
-    case (source lens r, target lens r) of
-      (Just s, _) | s == node -> True
-      (_, Just t) | t == node -> True
-      _ -> False
-    ) (relationships lens)
+```
 
+### degree
+
+```haskell
 -- | Compute the degree of a node (number of incident relationships).
 --
 -- The degree is the count of relationships where the node is either
@@ -378,10 +309,15 @@ incidentRels lens node =
 -- >>> degree lens (pattern "Alice")
 -- 3
 degree :: Eq v => GraphLens v -> Pattern v -> Int
-degree lens node = length (incidentRels lens node)
+```
 
--- * Graph Analysis Operations
+---
 
+## Graph Analysis Operations
+
+### connectedComponents
+
+```haskell
 -- | Find all connected components in the graph.
 --
 -- A connected component is a set of nodes that are reachable from
@@ -396,20 +332,12 @@ degree lens node = length (incidentRels lens node)
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> connectedComponents lens
 -- [[pattern "A", pattern "B", pattern "C"], [pattern "D", pattern "E"]]
-connectedComponents :: Ord v => GraphLens v -> [[Pattern v]]
-connectedComponents lens = findComponents lens (nodes lens) Set.empty []
+connectedComponents :: Eq v => GraphLens v -> [[Pattern v]]
+```
 
-findComponents :: Ord v => GraphLens v -> [Pattern v] -> Set.Set (Pattern v) -> [[Pattern v]] -> [[Pattern v]]
-findComponents _ [] _ acc = reverse acc
-findComponents lens (n:ns) visited acc =
-  if Set.member n visited
-  then findComponents lens ns visited acc
-  else
-    let component = bfs lens n
-        newVisited = Set.union visited (Set.fromList component)
-        newAcc = component : acc
-    in findComponents lens ns newVisited newAcc
+### bfs
 
+```haskell
 -- | Perform breadth-first search from a starting node.
 --
 -- Returns all nodes reachable from the starting node via relationships.
@@ -422,20 +350,12 @@ findComponents lens (n:ns) visited acc =
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> bfs lens (pattern "Alice")
 -- [pattern "Alice", pattern "Bob", pattern "Charlie"]
-bfs :: Ord v => GraphLens v -> Pattern v -> [Pattern v]
-bfs lens start = bfsHelper lens Set.empty [start] []
+bfs :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
+```
 
-bfsHelper :: Ord v => GraphLens v -> Set.Set (Pattern v) -> [Pattern v] -> [Pattern v] -> [Pattern v]
-bfsHelper _ _ [] acc = reverse acc
-bfsHelper lens visited (n:queue) acc
-  | Set.member n visited = bfsHelper lens visited queue acc
-  | otherwise =
-      let newVisited = Set.insert n visited
-          newAcc = n : acc
-          nodeNeighbors = Pattern.Graph.neighbors lens n
-          newQueue = queue ++ filter (not . (`Set.member` newVisited)) nodeNeighbors
-      in bfsHelper lens newVisited newQueue newAcc
+### findPath
 
+```haskell
 -- | Find a path between two nodes if one exists.
 --
 -- Returns Just [nodes] if a path exists, Nothing otherwise.
@@ -449,21 +369,123 @@ bfsHelper lens visited (n:queue) acc
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> findPath lens (pattern "Alice") (pattern "Charlie")
 -- Just [pattern "Alice", pattern "Bob", pattern "Charlie"]
-findPath :: Ord v => GraphLens v -> Pattern v -> Pattern v -> Maybe [Pattern v]
-findPath lens start end
-  | start == end = Just [start]
-  | otherwise = findPathHelper lens Set.empty [(start, [start])] end
+findPath :: Eq v => GraphLens v -> Pattern v -> Pattern v -> Maybe [Pattern v]
+```
 
-findPathHelper :: Ord v => GraphLens v -> Set.Set (Pattern v) -> [(Pattern v, [Pattern v])] -> Pattern v -> Maybe [Pattern v]
-findPathHelper _ _ [] _ = Nothing
-findPathHelper lens visited ((n, path):queue) target
-  | n == target = Just (reverse path)
-  | Set.member n visited = findPathHelper lens visited queue target
-  | otherwise =
-      let newVisited = Set.insert n visited
-          nodeNeighbors = Pattern.Graph.neighbors lens n
-          newPaths = map (\neighbor -> (neighbor, neighbor:path)) nodeNeighbors
-          unvisitedPaths = filter (\(neighbor, _) -> not (Set.member neighbor newVisited)) newPaths
-          newQueue = queue ++ unvisitedPaths
-      in findPathHelper lens newVisited newQueue target
+---
 
+## Helper Functions
+
+### consecutivelyConnected
+
+```haskell
+-- | Check if a list of relationships are consecutively connected.
+--
+-- Relationships are consecutively connected if the target of one
+-- equals the source of the next.
+--
+-- == Internal Function
+-- This is an internal helper function used by isWalk.
+-- May be exported for testing or advanced use cases.
+consecutivelyConnected :: Eq v => GraphLens v -> [Pattern v] -> Bool
+```
+
+---
+
+## Module Export Structure
+
+```haskell
+module Pattern.Graph
+  ( -- * Graph Lens Type
+    GraphLens(..)
+    -- * Node Operations
+  , nodes
+  , isNode
+    -- * Relationship Operations
+  , isRelationship
+  , relationships
+  , source
+  , target
+  , reverseRel
+    -- * Walk Operations
+  , isWalk
+  , walks
+  , walkNodes
+    -- * Navigation Operations
+  , neighbors
+  , incidentRels
+  , degree
+    -- * Graph Analysis Operations
+  , connectedComponents
+  , bfs
+  , findPath
+  ) where
+```
+
+---
+
+## Type Constraints
+
+### Eq Constraint
+
+Functions requiring node/relationship comparison use `Eq v` constraint:
+- `neighbors`
+- `incidentRels`
+- `degree`
+- `connectedComponents`
+- `bfs`
+- `findPath`
+- `consecutivelyConnected`
+
+This is necessary because:
+- Nodes and relationships are compared for equality
+- Graph traversal requires checking if nodes have been visited
+- Path finding requires tracking visited nodes
+
+### No Constraints
+
+Functions that only filter or transform patterns don't require constraints:
+- `nodes`
+- `relationships`
+- `walks`
+- `isNode`
+- `isRelationship`
+- `isWalk`
+- `source`
+- `target`
+- `reverseRel`
+- `walkNodes`
+
+---
+
+## Error Handling
+
+All functions handle edge cases gracefully:
+
+- **Empty patterns**: Return empty lists or `False`/`Nothing`
+- **No nodes**: Return empty lists for node-dependent operations
+- **Invalid structures**: Return `False` for predicates, `Nothing` for extractors
+- **Non-existent nodes**: Return empty lists or `Nothing` for navigation operations
+
+No exceptions are thrown - all error cases return safe default values.
+
+---
+
+## Performance Characteristics
+
+| Function | Time Complexity | Space Complexity |
+|----------|----------------|------------------|
+| `nodes` | O(n) | O(n) |
+| `relationships` | O(n) | O(n) |
+| `walks` | O(n) | O(n) |
+| `neighbors` | O(r) | O(n) |
+| `incidentRels` | O(r) | O(r) |
+| `degree` | O(r) | O(1) |
+| `connectedComponents` | O(n + r) | O(n) |
+| `bfs` | O(n + r) | O(n) |
+| `findPath` | O(n + r) | O(n) |
+
+Where:
+- `n` = number of direct elements in scopePattern
+- `r` = number of relationships in the graph
+- Space complexity assumes result storage, not including input

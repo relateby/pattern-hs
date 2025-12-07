@@ -20,6 +20,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - Haskell (GHC 9.x) + `megaparsec` (parsing), `hspec` (testing) (016-gram-parsing-conformance)
 - N/A (In-memory data structures) (016-gram-parsing-conformance)
 - Haskell (GHC 9.8/9.10) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String) (020-subject-serialization)
+- Haskell / GHC 8.10.7+ (compatible with base >=4.17.0.0 && <5) (023-graph-lens)
+- N/A (in-memory data structure, no persistence) (023-graph-lens)
 
 - (001-pattern-data-structure)
 
@@ -39,6 +41,7 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 023-graph-lens: Added Haskell / GHC 8.10.7+ (compatible with base >=4.17.0.0 && <5)
 - 020-subject-serialization: Added Haskell (GHC 9.8/9.10) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String)
 - 019-integration-polish: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
