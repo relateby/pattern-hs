@@ -429,11 +429,11 @@ parseSubjectPattern = do
   optionalSpace
   nested <- optional (do
     void $ char '|'
-    optionalSpace
+    optionalSpaceWithNewlines
     elements <- sepBy1 (try parseSubPatternElement) (try (optionalSpaceWithNewlines >> char ',') >> optionalSpaceWithNewlines)
     optionalSpace
     return elements)
-  optionalSpace
+  optionalSpaceWithNewlines
   void $ char ']'
   return $ SubjectPattern data' (maybe [] id nested)
 

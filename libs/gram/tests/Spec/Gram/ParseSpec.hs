@@ -104,6 +104,41 @@ spec = do
               -- Should have nested elements (references)
               length (elements p) `shouldBe` 4
             Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses subject with newline after pipe separator" $ do
+          -- Test for regression: newlines should be allowed after pipe separator
+          case fromGram "[ test:Agent { description: \"test\" } |\n  [tool:Tool {description: \"test\"}] ]" of
+            Right p -> do
+              let props = fromList [("description", VString "test")]
+              value p `shouldBe` Subject (Symbol "test") (Set.fromList ["Agent"]) props
+              length (elements p) `shouldBe` 1
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses subject with newline before closing bracket" $ do
+          -- Test for regression: newlines should be allowed before closing bracket
+          case fromGram "[ test:Agent { description: \"test\" } | [tool:Tool {description: \"test\"}]\n]" of
+            Right p -> do
+              let props = fromList [("description", VString "test")]
+              value p `shouldBe` Subject (Symbol "test") (Set.fromList ["Agent"]) props
+              length (elements p) `shouldBe` 1
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses complex nested subject pattern with newlines (reported issue)" $ do
+          -- This is the exact example that was reported as not parsing
+          let input = "[test:Agent {\n\n\n  description: \"test\"\n\n} |\n  [tool:Tool {description: \"test\"} | (param::Text)==>(::String)]\n]"
+          case fromGram input of
+            Right p -> do
+              let props = fromList [("description", VString "test")]
+              value p `shouldBe` Subject (Symbol "test") (Set.fromList ["Agent"]) props
+              -- Should have one nested element (the tool subject pattern)
+              length (elements p) `shouldBe` 1
+              let [nested] = elements p
+              -- The nested element should be a subject pattern with tool data
+              let toolProps = fromList [("description", VString "test")]
+              value nested `shouldBe` Subject (Symbol "tool") (Set.fromList ["Tool"]) toolProps
+              -- The nested element should have one element (the path)
+              length (elements nested) `shouldBe` 1
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
       
       describe "pattern parsing (from corpus: patterns.txt)" $ do
         it "parses single node pattern" $ do
