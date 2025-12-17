@@ -92,13 +92,75 @@ convertError :: ParseErrorBundle String Void -> ParseError
 convertError bundle = ParseError (errorBundlePretty bundle)
 
 -- | Strip comments from gram notation string.
+--
+-- Handles line comments starting with @\/\/@. Comments are stripped unless
+-- they appear inside string literals (double-quoted, single-quoted, or
+-- backtick-quoted) or inside codefence blocks.
+--
+-- Codefence blocks span multiple lines and start with @\`\`\`@ (optionally
+-- followed by a tag) and end with @\`\`\`@ on its own line. Content inside
+-- codefences is preserved verbatim, including any @\/\/@ sequences.
 stripComments :: String -> String
-stripComments = unlines . filter (not . null) . map stripLineComment . lines
+stripComments input = unlines $ filter (not . null) $ processLines False (lines input)
   where
+    -- Process lines while tracking codefence state
+    processLines :: Bool -> [String] -> [String]
+    processLines _ [] = []
+    processLines inCodefence (line:rest)
+      | inCodefence = 
+          -- Inside codefence content
+          if isClosingFence line
+            then line : processLines False rest  -- Closing fence, exit codefence
+            else line : processLines True rest   -- Keep content verbatim
+      | otherwise =
+          -- Outside codefence, check for opening fence and strip comments
+          let (processed, nowInCodefence) = processLineOutsideCodefence line
+          in processed : processLines nowInCodefence rest
+    
+    -- Check if line is a closing fence (``` possibly with trailing whitespace)
+    isClosingFence :: String -> Bool
+    isClosingFence s = 
+      let trimmed = dropWhile isWhitespace s
+      in take 3 trimmed == "```" && all isWhitespace (drop 3 trimmed)
+    
+    -- Process a line when outside codefence, returns (processed line, entering codefence?)
+    processLineOutsideCodefence :: String -> (String, Bool)
+    processLineOutsideCodefence line =
+      let stripped = stripLineComment line
+          -- Check if this line opens a codefence (ends with ``` or ```tag)
+          opensCodefence = endsWithCodefenceOpen stripped
+      in (stripped, opensCodefence)
+    
+    -- Check if line ends with opening codefence pattern (``` or ```tag)
+    -- This happens when a property value starts a codefence
+    endsWithCodefenceOpen :: String -> Bool
+    endsWithCodefenceOpen s = 
+      let rev = reverse s
+          -- Remove trailing whitespace
+          trimmed = dropWhile isWhitespace rev
+      in case trimmed of
+           -- Check for ``` at end (plain codefence) or ```tag (tagged codefence)
+           ('`':'`':'`':rest) -> 
+             -- After ```, we should have either end of meaningful content
+             -- or a tag (alphanumeric) followed by content
+             case rest of
+               [] -> True  -- Just ``` at end
+               (c:_) -> isWhitespace c || isTagChar c
+           _ -> False
+    
+    isWhitespace :: Char -> Bool
+    isWhitespace c = c == ' ' || c == '\t'
+    
+    isTagChar :: Char -> Bool
+    isTagChar c = isAlphaNum c || c == '_' || c == '-'
+    
+    -- Strip line comment from a single line (handles quotes)
+    stripLineComment :: String -> String
     stripLineComment line = case findComment line of
       Nothing -> line
       Just idx -> take idx line
     
+    findComment :: String -> Maybe Int
     findComment s = findComment' s 0 Nothing
     
     findComment' :: String -> Int -> Maybe Char -> Maybe Int
@@ -332,7 +394,7 @@ parseTaggedString :: Parser Value
 parseTaggedString = do
   tag <- parseSymbol
   void $ char '`'
-  content <- manyTill (satisfy (const True)) (char '`')
+  content <- manyTill (escapedChar '`') (char '`')
   return $ V.VTaggedString (quoteSymbol tag) content
   where
     quoteSymbol (Symbol s) = s

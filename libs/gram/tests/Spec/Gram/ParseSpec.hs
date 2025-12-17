@@ -523,6 +523,22 @@ spec = do
               Map.lookup "code" props `shouldBe` Just (VString "const x = ``template``;")
             Left err -> expectationFailure $ "Parse failed: " ++ show err
         
+        it "preserves // sequences inside codefence content (not stripped as comments)" $ do
+          -- CRITICAL: // inside codefence should NOT be treated as comment
+          case fromGram "({ url: ```\nhttps://example.com\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "url" props `shouldBe` Just (VString "https://example.com")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "preserves comment-like content inside codefence" $ do
+          -- Code with // comments should be preserved in codefence
+          case fromGram "({ code: ```\n// This is a comment\nlet x = 1; // inline\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "code" props `shouldBe` Just (VString "// This is a comment\nlet x = 1; // inline")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
         it "parses codefence with code block syntax in content" $ do
           -- Simulating markdown code block inside codefence
           case fromGram "({ doc: ```md\nHere is code:\n``\nvar x = 1;\n``\n``` })" of
