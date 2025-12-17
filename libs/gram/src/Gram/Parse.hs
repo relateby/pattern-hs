@@ -1,4 +1,59 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- |
+-- Module      : Gram.Parse
+-- Description : Parser for gram notation
+-- Copyright   : (c) gram-data, 2024
+-- License     : BSD3
+-- Maintainer  : gram-data
+-- Stability   : experimental
+--
+-- This module provides parsers for gram notation, converting text into
+-- Pattern and Subject data structures.
+--
+-- == String Value Syntax
+--
+-- The parser supports multiple string formats:
+--
+-- === Double-quoted strings
+--
+-- Standard strings with escape sequences:
+--
+-- @
+-- { name: \"Alice\" }
+-- @
+--
+-- === Single-quoted strings
+--
+-- Literal strings without escape processing:
+--
+-- @
+-- { pattern: \'[a-z]+\' }
+-- @
+--
+-- === Codefence strings (multiline)
+--
+-- Triple-backtick delimited strings for multiline content:
+--
+-- @
+-- { content: \`\`\`
+-- This content spans
+-- multiple lines.
+-- \`\`\` }
+-- @
+--
+-- === Tagged codefence strings
+--
+-- Codefence with a tag indicating the content type:
+--
+-- @
+-- { doc: \`\`\`md
+-- # Markdown Title
+-- Some **bold** text.
+-- \`\`\` }
+-- @
+--
+-- Tagged codefences are parsed as 'VTaggedString' values with the tag
+-- and content stored separately.
 module Gram.Parse
   ( fromGram
   , parseGram

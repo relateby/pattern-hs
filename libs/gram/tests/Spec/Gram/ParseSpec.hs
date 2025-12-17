@@ -511,3 +511,26 @@ spec = do
                   content `shouldContain` "tagged codefence"
                 _ -> expectationFailure "Expected VTaggedString for prompt property"
             Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+      -- Phase 7: Edge cases
+      describe "codefence edge cases" $ do
+        
+        it "parses codefence with exactly two consecutive backticks in content" $ do
+          -- Content containing `` (two backticks) - shouldn't confuse the parser
+          case fromGram "({ code: ```\nconst x = ``template``;\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "code" props `shouldBe` Just (VString "const x = ``template``;")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses codefence with code block syntax in content" $ do
+          -- Simulating markdown code block inside codefence
+          case fromGram "({ doc: ```md\nHere is code:\n``\nvar x = 1;\n``\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              case Map.lookup "doc" props of
+                Just (VTaggedString "md" content) -> do
+                  content `shouldContain` "``"
+                  content `shouldContain` "var x = 1"
+                _ -> expectationFailure "Expected VTaggedString"
+            Left err -> expectationFailure $ "Parse failed: " ++ show err

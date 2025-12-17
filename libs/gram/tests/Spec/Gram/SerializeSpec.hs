@@ -440,6 +440,38 @@ spec = do
           result `shouldContain` "```markdown"
           result `shouldContain` longContent
 
+      -- Phase 7: Round-trip property tests
+      describe "codefence round-trip tests" $ do
+        
+        prop "round-trip VString through parse/serialize" $ 
+          forAll genShortString $ \str -> do
+            let s = Subject (Symbol "test") Set.empty (fromList [("content", VString str)])
+            let p = Pattern { value = s, elements = [] }
+            let serialized = toGram p
+            let parsed = fromGram serialized
+            case parsed of
+              Right p' -> properties (value p') `shouldBe` properties (value p)
+              Left err -> expectationFailure $ "Round-trip failed: " ++ show err
+        
+        prop "round-trip VTaggedString through parse/serialize" $ 
+          forAll genTaggedPair $ \(tag, content) -> do
+            let s = Subject (Symbol "test") Set.empty (fromList [("doc", VTaggedString tag content)])
+            let p = Pattern { value = s, elements = [] }
+            let serialized = toGram p
+            let parsed = fromGram serialized
+            case parsed of
+              Right p' -> properties (value p') `shouldBe` properties (value p)
+              Left err -> expectationFailure $ "Round-trip failed: " ++ show err
+        
+        it "serializer escapes newlines in short strings correctly" $ do
+          let shortMultiline = "Line 1\nLine 2"  -- 14 chars, short
+          let s = Subject (Symbol "n") Set.empty (fromList [("text", VString shortMultiline)])
+          let p = Pattern { value = s, elements = [] }
+          let result = toGram p
+          -- Should use escaped newline in quoted string, not codefence
+          result `shouldContain` "\\n"
+          result `shouldNotContain` "```"
+
 -- Generators for Property Tests
 genPattern :: Gen (Pattern Subject)
 genPattern = do
@@ -456,4 +488,20 @@ genSubject = do
   v <- listOf1 (QC.elements ['a'..'z'])
   let props = Map.fromList [(k, VString v)]
   return $ Subject (Symbol idStr) (Set.fromList lbls) props
+
+-- | Generate short strings (avoiding special chars that need escaping)
+genShortString :: Gen String
+genShortString = do
+  len <- QC.choose (1, 50)
+  listOf1 (QC.elements $ ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ " .,!?")
+    >>= return . take len
+
+-- | Generate tag and content pair for tagged strings
+genTaggedPair :: Gen (String, String)
+genTaggedPair = do
+  tag <- listOf1 (QC.elements ['a'..'z'])  -- Simple tag like "md", "json"
+  len <- QC.choose (1, 50)
+  content <- listOf1 (QC.elements $ ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ " .,!?")
+    >>= return . take len
+  return (tag, content)
 

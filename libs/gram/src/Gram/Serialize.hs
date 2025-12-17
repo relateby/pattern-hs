@@ -17,6 +17,20 @@
 -- * @Subject@ → gram attributes notation (identity, labels, properties)
 -- * @Value@ types → gram value notation
 --
+-- == String Value Serialization
+--
+-- String values use different formats based on length:
+--
+-- * __Short strings__ (≤120 characters): Double-quoted with escapes
+-- * __Long strings__ (>120 characters): Codefence format (triple-backtick)
+--
+-- Tagged strings follow the same threshold for inline vs codefence:
+--
+-- * __Short tagged__: @tag\`content\`@
+-- * __Long tagged__: @\`\`\`tag\\ncontent\\n\`\`\`@
+--
+-- The threshold is defined by 'codefenceThreshold' (120 characters).
+--
 -- == Examples
 --
 -- Serializing a simple subject:

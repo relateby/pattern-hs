@@ -25,10 +25,10 @@
 
 **Purpose**: Verify existing project structure and dependencies
 
-- [ ] T001 Verify gram library builds cleanly: `cabal build lib:gram`
-- [ ] T002 Verify existing tests pass: `timeout 60 cabal test gram-test --test-show-details=always`
-- [ ] T003 Review existing parseString and parseTaggedString in `libs/gram/src/Gram/Parse.hs`
-- [ ] T004 Review existing serializeValue in `libs/gram/src/Gram/Serialize.hs`
+- [x] T001 Verify gram library builds cleanly: `cabal build lib:gram`
+- [x] T002 Verify existing tests pass: `timeout 60 cabal test gram-test --test-show-details=always`
+- [x] T003 Review existing parseString and parseTaggedString in `libs/gram/src/Gram/Parse.hs`
+- [x] T004 Review existing serializeValue in `libs/gram/src/Gram/Serialize.hs`
 
 ---
 
@@ -38,8 +38,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Add codefenceThreshold constant (120) in `libs/gram/src/Gram/Serialize.hs`
-- [ ] T006 Implement parseFencedContent helper function in `libs/gram/src/Gram/Parse.hs`
+- [x] T005 Add codefenceThreshold constant (120) in `libs/gram/src/Gram/Serialize.hs`
+- [x] T006 Implement parseFencedContent helper function in `libs/gram/src/Gram/Parse.hs`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -55,18 +55,18 @@
 
 > **NOTE: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Add test: parse plain codefence basic in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T008 [P] [US1] Add test: parse plain codefence empty content in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T009 [P] [US1] Add test: parse plain codefence with backticks in content in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T010 [P] [US1] Add test: parse plain codefence error on unclosed fence in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T011 [US1] Run tests with timeout to verify they FAIL: `timeout 60 cabal test gram-test --test-show-details=always`
+- [x] T007 [P] [US1] Add test: parse plain codefence basic in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T008 [P] [US1] Add test: parse plain codefence empty content in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T009 [P] [US1] Add test: parse plain codefence with backticks in content in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T010 [P] [US1] Add test: parse plain codefence error on unclosed fence in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T011 [US1] Run tests with timeout to verify they FAIL: `timeout 60 cabal test gram-test --test-show-details=always`
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement parseFencedString function with Haddock docs in `libs/gram/src/Gram/Parse.hs`
-- [ ] T013 [US1] Integrate parseFencedString into parseString chain in `libs/gram/src/Gram/Parse.hs`
-- [ ] T014 [US1] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify all User Story 1 tests pass
-- [ ] T015 [US1] Git commit: "feat(gram): add plain codefence string parsing - US1"
+- [x] T012 [US1] Implement parseFencedString function with Haddock docs in `libs/gram/src/Gram/Parse.hs`
+- [x] T013 [US1] Integrate parseFencedString into parseString chain in `libs/gram/src/Gram/Parse.hs`
+- [x] T014 [US1] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify all User Story 1 tests pass
+- [x] T015 [US1] Git commit: "feat(gram): add plain codefence string parsing - US1"
 
 **Checkpoint**: Plain codefence parsing is fully functional and testable independently
 
@@ -80,18 +80,18 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Add test: parse tagged codefence basic in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T017 [P] [US2] Add test: parse tagged codefence empty content in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T018 [P] [US2] Add test: parse tagged codefence various tags (md, json, html) in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T019 [P] [US2] Add test: parse tagged codefence error on missing tag in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T020 [US2] Run tests with timeout to verify they FAIL: `timeout 60 cabal test gram-test --test-show-details=always`
+- [x] T016 [P] [US2] Add test: parse tagged codefence basic in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T017 [P] [US2] Add test: parse tagged codefence empty content in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T018 [P] [US2] Add test: parse tagged codefence various tags (md, json, html) in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T019 [P] [US2] Add test: parse tagged codefence error on missing tag in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T020 [US2] Run tests with timeout to verify they FAIL: `timeout 60 cabal test gram-test --test-show-details=always`
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement parseTaggedFencedString function with Haddock docs in `libs/gram/src/Gram/Parse.hs`
-- [ ] T022 [US2] Refactor parseTaggedString to try parseTaggedFencedString first in `libs/gram/src/Gram/Parse.hs`
-- [ ] T023 [US2] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify all User Story 2 tests pass
-- [ ] T024 [US2] Git commit: "feat(gram): add tagged codefence string parsing - US2"
+- [x] T021 [US2] Implement parseTaggedFencedString function with Haddock docs in `libs/gram/src/Gram/Parse.hs`
+- [x] T022 [US2] Refactor parseTaggedString to try parseTaggedFencedString first in `libs/gram/src/Gram/Parse.hs`
+- [x] T023 [US2] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify all User Story 2 tests pass
+- [x] T024 [US2] Git commit: "feat(gram): add tagged codefence string parsing - US2"
 
 **Checkpoint**: Tagged codefence parsing is fully functional and testable independently
 
@@ -105,16 +105,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T025 [P] [US3] Add test: parse node with codefence property in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T026 [P] [US3] Add test: parse node with multiple codefence properties in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T027 [P] [US3] Add test: parse node with mixed value types including codefence in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T028 [US3] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify integration tests pass
+- [x] T025 [P] [US3] Add test: parse node with codefence property in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T026 [P] [US3] Add test: parse node with multiple codefence properties in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T027 [P] [US3] Add test: parse node with mixed value types including codefence in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T028 [US3] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify integration tests pass
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Verify parseValue correctly routes to codefence parsers in `libs/gram/src/Gram/Parse.hs`
-- [ ] T030 [US3] Test parsing examples/markdown.gram succeeds: add test in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
-- [ ] T031 [US3] Git commit: "feat(gram): verify codefence integration with property records - US3"
+- [x] T029 [US3] Verify parseValue correctly routes to codefence parsers in `libs/gram/src/Gram/Parse.hs`
+- [x] T030 [US3] Test parsing examples/markdown.gram succeeds: add test in `libs/gram/tests/Spec/Gram/ParseSpec.hs`
+- [x] T031 [US3] Git commit: "feat(gram): verify codefence integration with property records - US3"
 
 **Checkpoint**: Codefence strings work in all property record contexts
 
@@ -128,20 +128,20 @@
 
 ### Tests for User Story 4
 
-- [ ] T032 [P] [US4] Add test: serialize short VString (<= 120 chars) uses quotes in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
-- [ ] T033 [P] [US4] Add test: serialize long VString (> 120 chars) uses codefence in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
-- [ ] T034 [P] [US4] Add test: serialize VString exactly 120 chars uses quotes in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
-- [ ] T035 [P] [US4] Add test: serialize short VTaggedString uses inline format in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
-- [ ] T036 [P] [US4] Add test: serialize long VTaggedString uses codefence format in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
-- [ ] T037 [US4] Run tests with timeout to verify they FAIL: `timeout 60 cabal test gram-test --test-show-details=always`
+- [x] T032 [P] [US4] Add test: serialize short VString (<= 120 chars) uses quotes in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
+- [x] T033 [P] [US4] Add test: serialize long VString (> 120 chars) uses codefence in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
+- [x] T034 [P] [US4] Add test: serialize VString exactly 120 chars uses quotes in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
+- [x] T035 [P] [US4] Add test: serialize short VTaggedString uses inline format in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
+- [x] T036 [P] [US4] Add test: serialize long VTaggedString uses codefence format in `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
+- [x] T037 [US4] Run tests with timeout to verify they FAIL: `timeout 60 cabal test gram-test --test-show-details=always`
 
 ### Implementation for User Story 4
 
-- [ ] T038 [US4] Modify serializeValue for VString with length check in `libs/gram/src/Gram/Serialize.hs`
-- [ ] T039 [US4] Modify serializeValue for VTaggedString with length check in `libs/gram/src/Gram/Serialize.hs`
-- [ ] T040 [US4] Add Haddock documentation for codefence serialization behavior in `libs/gram/src/Gram/Serialize.hs`
-- [ ] T041 [US4] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify all serialization tests pass
-- [ ] T042 [US4] Git commit: "feat(gram): add automatic codefence serialization for long strings - US4"
+- [x] T038 [US4] Modify serializeValue for VString with length check in `libs/gram/src/Gram/Serialize.hs`
+- [x] T039 [US4] Modify serializeValue for VTaggedString with length check in `libs/gram/src/Gram/Serialize.hs`
+- [x] T040 [US4] Add Haddock documentation for codefence serialization behavior in `libs/gram/src/Gram/Serialize.hs`
+- [x] T041 [US4] Run tests with timeout: `timeout 60 cabal test gram-test --test-show-details=always` to verify all serialization tests pass
+- [x] T042 [US4] Git commit: "feat(gram): add automatic codefence serialization for long strings - US4"
 
 **Checkpoint**: Serialization correctly uses codefence format based on length threshold
 
