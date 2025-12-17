@@ -471,6 +471,37 @@ spec = do
           -- Should use escaped newline in quoted string, not codefence
           result `shouldContain` "\\n"
           result `shouldNotContain` "```"
+        
+        it "falls back to quoted format when long string contains closing fence pattern" $ do
+          -- Long string (>120 chars) containing \n``` which would break codefence parsing
+          let problematic = replicate 100 'x' ++ "\n```" ++ replicate 50 'y'
+          length problematic `shouldSatisfy` (> 120)  -- Verify it's long enough
+          let s = Subject (Symbol "n") Set.empty (fromList [("content", VString problematic)])
+          let p = Pattern { value = s, elements = [] }
+          let serialized = toGram p
+          -- Should NOT use codefence format due to closing fence pattern in content
+          -- Instead should use quoted format with escaped newline
+          serialized `shouldNotContain` "```\n"  -- No opening codefence
+          -- Verify round-trip works
+          let parsed = fromGram serialized
+          case parsed of
+            Right p' -> properties (value p') `shouldBe` properties (value p)
+            Left err -> expectationFailure $ "Round-trip failed: " ++ show err
+        
+        it "falls back to quoted format when long tagged string contains closing fence pattern" $ do
+          -- Long tagged string content containing \n``` which would break codefence parsing
+          let problematic = replicate 100 'a' ++ "\n```" ++ replicate 50 'b'
+          length problematic `shouldSatisfy` (> 120)
+          let s = Subject (Symbol "n") Set.empty (fromList [("doc", VTaggedString "md" problematic)])
+          let p = Pattern { value = s, elements = [] }
+          let serialized = toGram p
+          -- Should NOT use tagged codefence format
+          serialized `shouldNotContain` "```md"
+          -- Verify round-trip works
+          let parsed = fromGram serialized
+          case parsed of
+            Right p' -> properties (value p') `shouldBe` properties (value p)
+            Left err -> expectationFailure $ "Round-trip failed: " ++ show err
 
 -- Generators for Property Tests
 genPattern :: Gen (Pattern Subject)
