@@ -135,6 +135,101 @@ parseBacktickedIdentifier = do
   content <- manyTill (escapedChar '`') (char '`')
   return content
 
+-- | Parse the content of a fenced string (codefence).
+--
+-- Captures all characters between the opening fence (after newline)
+-- and the closing fence. The closing fence must be three backticks
+-- at the start of a line (preceded by newline).
+--
+-- Content may contain:
+--
+-- * Newlines
+-- * Single backticks
+-- * Double backticks
+-- * Any other characters
+--
+-- Content may NOT contain three consecutive backticks at line start.
+--
+-- === Examples
+--
+-- The content between fences is captured verbatim:
+--
+-- @
+-- \`\`\`
+-- Hello World
+-- \`\`\`
+-- @
+--
+-- Produces: @"Hello World\\n"@
+--
+-- === Implementation
+--
+-- Uses character-by-character parsing to detect the closing fence pattern
+-- (newline followed by three backticks). This allows backticks within
+-- the content as long as they don't form the closing pattern.
+parseFencedContent :: Parser String
+parseFencedContent = do
+  -- Check if closing fence appears immediately (empty content case)
+  closingAtStart <- optional (try (string "```"))
+  case closingAtStart of
+    Just _ -> return ""  -- Empty content
+    Nothing -> go []
+  where
+    go :: [Char] -> Parser String
+    go acc = do
+      -- Try to match the closing fence: newline followed by ```
+      closingFence <- optional (try (char '\n' >> string "```"))
+      case closingFence of
+        Just _ -> return (reverse acc)  -- Found closing, return accumulated content
+        Nothing -> do
+          -- Check for EOF (unclosed fence)
+          isEnd <- optional eof
+          case isEnd of
+            Just _ -> fail "Unclosed codefence: expected closing ```"
+            Nothing -> do
+              -- Consume one character and continue
+              c <- satisfy (const True)
+              go (c : acc)
+
+-- | Parse a plain fenced string (codefence without tag).
+--
+-- Recognizes the syntax:
+--
+-- @
+-- \`\`\`
+-- content here
+-- can span multiple lines
+-- \`\`\`
+-- @
+--
+-- Returns the content between the opening and closing fences as a VString.
+-- The opening fence must be immediately followed by a newline.
+-- Content may be empty.
+--
+-- === Examples
+--
+-- >>> parse parseFencedString "" "```\\nHello World\\n```"
+-- Right (VString "Hello World")
+--
+-- >>> parse parseFencedString "" "```\\n```"
+-- Right (VString "")
+--
+-- === Errors
+--
+-- Fails if:
+--
+-- * Opening fence is not followed by newline
+-- * Closing fence is missing
+parseFencedString :: Parser Value
+parseFencedString = do
+  -- Match opening fence: ```
+  void $ string "```"
+  -- Require newline after opening fence (plain codefence has no tag)
+  void $ char '\n'
+  -- Parse content until closing fence
+  content <- parseFencedContent
+  return $ V.VString content
+
 parseTaggedString :: Parser Value
 parseTaggedString = do
   tag <- parseSymbol
@@ -223,6 +318,7 @@ parseScalarValue =
   try (V.VDecimal <$> parseDecimal) <|>
   try (V.VInteger <$> parseInteger) <|>
   try (V.VBoolean <$> parseBoolean) <|>
+  try parseFencedString <|>      -- NEW: Plain codefence (US1)
   try parseTaggedString <|>
   try (V.VString <$> parseString) <|>
   (V.VSymbol . quoteSymbol <$> parseSymbol)
@@ -236,6 +332,7 @@ parseValue =
   try (V.VDecimal <$> parseDecimal) <|>
   try (V.VInteger <$> parseInteger) <|>
   try (V.VBoolean <$> parseBoolean) <|>
+  try parseFencedString <|>      -- NEW: Plain codefence (US1)
   try parseTaggedString <|>
   try (V.VString <$> parseString) <|>
   try parseArray <|>

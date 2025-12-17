@@ -379,3 +379,42 @@ spec = do
               -- Ensure they are distinct
               id1 `shouldNotBe` id2
             Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+      -- US1: Plain Codefence String Parsing
+      describe "codefence string parsing (US1)" $ do
+        
+        it "parses plain codefence basic" $ do
+          -- Basic codefence: ```\nHello World\n```
+          case fromGram "({ content: ```\nHello World\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "content" props `shouldBe` Just (VString "Hello World")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses plain codefence with multiline content" $ do
+          case fromGram "({ text: ```\nLine 1\nLine 2\nLine 3\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "text" props `shouldBe` Just (VString "Line 1\nLine 2\nLine 3")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses plain codefence empty content" $ do
+          case fromGram "({ empty: ```\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "empty" props `shouldBe` Just (VString "")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "parses plain codefence with backticks in content" $ do
+          -- Content containing single and double backticks
+          case fromGram "({ code: ```\nconst x = `hello`;\nconst y = ``template``;\n``` })" of
+            Right p -> do
+              let props = properties (value p)
+              Map.lookup "code" props `shouldBe` Just (VString "const x = `hello`;\nconst y = ``template``;")
+            Left err -> expectationFailure $ "Parse failed: " ++ show err
+        
+        it "fails on unclosed codefence" $ do
+          -- Unclosed codefence should fail parsing
+          case fromGram "({ bad: ```\nno closing fence here" of
+            Right _ -> expectationFailure "Should have failed on unclosed codefence"
+            Left (ParseError _) -> return ()  -- Any parse error is acceptable
