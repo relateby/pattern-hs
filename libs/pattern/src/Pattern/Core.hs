@@ -565,42 +565,42 @@ instance Hashable v => Hashable (Pattern v) where
 --
 -- >>> elem1 = point "hello"
 -- >>> elem2 = point "world"
--- >>> pattern = pattern "greeting" [elem1, elem2]
--- >>> fmap (map toUpper) pattern
+-- >>> p = pattern "greeting" [elem1, elem2]
+-- >>> fmap (map toUpper) p
 -- Pattern "GREETING" [Pattern "HELLO" [],Pattern "WORLD" []]
 --
 -- >>> elem1 = point 5
 -- >>> elem2 = point 10
--- >>> pattern = pattern 20 [elem1, elem2]
--- >>> fmap (* 2) pattern
+-- >>> p = pattern 20 [elem1, elem2]
+-- >>> fmap (* 2) p
 -- Pattern 40 [Pattern 10 [],Pattern 20 []]
 --
 -- >>> inner = point "inner"
 -- >>> middle = pattern "middle" [inner]
 -- >>> outer = pattern "outer" [middle]
--- >>> pattern = pattern "root" [outer]
--- >>> fmap (map toUpper) pattern
+-- >>> p = pattern "root" [outer]
+-- >>> fmap (map toUpper) p
 -- Pattern "ROOT" [Pattern "OUTER" [Pattern "MIDDLE" [Pattern "INNER" []]]]
 --
 -- >>> level4 = point "level4"
 -- >>> level3 = pattern "level3" [level4]
 -- >>> level2 = pattern "level2" [level3]
 -- >>> level1 = pattern "level1" [level2]
--- >>> pattern = pattern "root" [level1]
--- >>> fmap (map toUpper) pattern
+-- >>> p = pattern "root" [level1]
+-- >>> fmap (map toUpper) p
 -- Pattern "ROOT" [Pattern "LEVEL1" [Pattern "LEVEL2" [Pattern "LEVEL3" [Pattern "LEVEL4" []]]]]
 --
 -- >>> branch1 = pattern "b1" [point "b1leaf"]
 -- >>> branch2 = pattern "b2" [pattern "b2mid" [point "b2leaf"]]
 -- >>> branch3 = point "b3"
--- >>> pattern = pattern "root" [branch1, branch2, branch3]
--- >>> fmap (map toUpper) pattern
+-- >>> p = pattern "root" [branch1, branch2, branch3]
+-- >>> fmap (map toUpper) p
 -- Pattern "ROOT" [Pattern "B1" [Pattern "B1LEAF" []],Pattern "B2" [Pattern "B2MID" [Pattern "B2LEAF" []]],Pattern "B3" []]
 --
 -- >>> elem1 = point "5"
 -- >>> elem2 = point "10"
--- >>> pattern = pattern "20" [elem1, elem2]
--- >>> fmap (read :: String -> Int) pattern
+-- >>> p = pattern "20" [elem1, elem2]
+-- >>> fmap (read :: String -> Int) p
 -- Pattern 20 [Pattern 5 [],Pattern 10 []]
 --
 -- >>> atom = Pattern { value = "atom", elements = [] }
@@ -789,14 +789,14 @@ instance Foldable Pattern where
 --
 -- >>> import Data.Functor.Identity
 -- >>> p = pattern 1 [point 2]
--- >>> runIdentity $ traverse (Identity . (*2)) pattern
+-- >>> runIdentity $ traverse (Identity . (*2)) p
 -- Pattern 2 [Pattern 4 []]
 --
 -- Traversal with Maybe (validation):
 --
 -- >>> let validate x = if x > 0 then Just x else Nothing
 -- >>> p = pattern 1 [point 2]
--- >>> traverse validate pattern
+-- >>> traverse validate p
 -- Just (Pattern 1 [Pattern 2 []])
 --
 -- >>> invalid = pattern 1 [point (-1)]
@@ -805,8 +805,8 @@ instance Foldable Pattern where
 --
 -- Sequencing effects:
 --
--- >>> pattern = pattern (Just 1) [point (Just 2)]
--- >>> sequenceA pattern
+-- >>> p = pattern (Just 1) [point (Just 2)]
+-- >>> sequenceA p
 -- Just (Pattern 1 [Pattern 2 []])
 --
 -- Atomic pattern:
@@ -820,8 +820,8 @@ instance Foldable Pattern where
 -- >>> let validate x = if x > 0 then Just x else Nothing
 -- >>> elem1 = point 5
 -- >>> elem2 = point 10
--- >>> pattern = pattern 20 [elem1, elem2]
--- >>> traverse validate pattern
+-- >>> p = pattern 20 [elem1, elem2]
+-- >>> traverse validate p
 -- Just (Pattern 20 [Pattern 5 [],Pattern 10 []])
 --
 -- Nested pattern structure:
@@ -829,8 +829,8 @@ instance Foldable Pattern where
 -- >>> let validate x = if x > 0 then Just x else Nothing
 -- >>> inner = point 1
 -- >>> middle = pattern 2 [inner]
--- >>> pattern = pattern 3 [middle]
--- >>> traverse validate pattern
+-- >>> p = pattern 3 [middle]
+-- >>> traverse validate p
 -- Just (Pattern 3 [Pattern 2 [Pattern 1 []]])
 --
 -- Effect failure propagation:
@@ -838,8 +838,8 @@ instance Foldable Pattern where
 -- >>> let validate x = if x > 0 then Just x else Nothing
 -- >>> inner = point (-1) -- Invalid value
 -- >>> middle = pattern 2 [inner]
--- >>> pattern = pattern 3 [middle]
--- >>> traverse validate pattern
+-- >>> p = pattern 3 [middle]
+-- >>> traverse validate p
 -- Nothing
 instance Traversable Pattern where
   traverse f (Pattern v es) = Pattern <$> f v <*> traverse (traverse f) es

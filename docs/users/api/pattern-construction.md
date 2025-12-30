@@ -6,12 +6,12 @@
 
 ## Overview
 
-The Pattern library provides three functionally equivalent ways to create atomic patterns (patterns with no elements) from a value:
+The Pattern library provides two functionally equivalent ways to create atomic patterns (patterns with no elements) from a value:
 
 1. **`point`** - Category-theory aligned name (pointed functor)
 2. **`pure`** - Applicative typeclass method
 
-All three functions are identical in behavior: they take a value and return an atomic pattern containing that value with an empty elements list.
+Both functions are identical in behavior: they take a value and return an atomic pattern containing that value with an empty elements list.
 
 **Note**: The `pattern` function is now used for creating patterns with elements (the primary constructor). For atomic patterns, use `point` or `pure`.
 
