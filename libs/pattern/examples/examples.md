@@ -258,12 +258,12 @@ elem3 :: Pattern String
 elem3 = Pattern { value = "elem3", elements = [] }
 
 -- Create a pattern containing multiple elements
-patternWithMany :: Pattern String
-patternWithMany = Pattern { value = "pattern", elements = [elem1, elem2, elem3] }
+patternMany :: Pattern String
+patternMany = Pattern { value = "pattern", elements = [elem1, elem2, elem3] }
 
-value patternWithMany  -- "pattern"
-length (elements patternWithMany)  -- 3
-elements patternWithMany  -- [elem1, elem2, elem3]
+value patternMany  -- "pattern"
+length (elements patternMany)  -- 3
+elements patternMany  -- [elem1, elem2, elem3]
 ```
 
 **Gram notation:**
@@ -344,13 +344,13 @@ atomicPattern = Pattern { value = "test", elements = [] }
 value atomicPattern  -- "test"
 
 -- Access value from pattern with elements
-patternWithElems :: Pattern String
-patternWithElems = Pattern 
+patternWithElements :: Pattern String
+patternWithElements = Pattern 
   { value = "pattern"
   , elements = [Pattern { value = "elem1", elements = [] }]
   }
 
-value patternWithElems  -- "pattern"
+value patternWithElements  -- "pattern"
 ```
 
 **Gram notation:**
@@ -369,16 +369,16 @@ atomicPattern = Pattern { value = "atom", elements = [] }
 elements atomicPattern  -- []
 
 -- Access elements from pattern with elements
-patternWithElems :: Pattern String
-patternWithElems = Pattern 
+patternWithElements :: Pattern String
+patternWithElements = Pattern 
   { value = "pattern"
   , elements = [ Pattern { value = "elem1", elements = [] }
                , Pattern { value = "elem2", elements = [] }
                ]
   }
 
-elements patternWithElems  -- [Pattern {value = "elem1", elements = []}, ...]
-length (elements patternWithElems)  -- 2
+elements patternWithElements  -- [Pattern {value = "elem1", elements = []}, ...]
+length (elements patternWithElements)  -- 2
 ```
 
 **Gram notation:**

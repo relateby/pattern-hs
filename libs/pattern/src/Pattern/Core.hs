@@ -334,18 +334,18 @@ instance Show v => Show (Pattern v) where
 --
 -- Using standard operators:
 --
--- >>> (pattern "a") < (pattern "b")
+-- >>> (point "a") < (point "b")
 -- True
--- >>> (pattern "a") <= (pattern "b")
+-- >>> (point "a") <= (point "b")
 -- True
--- >>> (pattern "b") > (pattern "a")
+-- >>> (point "b") > (point "a")
 -- True
 --
 -- Min and Max:
 --
--- >>> min (pattern "a") (pattern "b")
+-- >>> min (point "a") (point "b")
 -- Pattern "a" []
--- >>> max (pattern "a") (pattern "b")
+-- >>> max (point "a") (point "b")
 -- Pattern "b" []
 instance Ord v => Ord (Pattern v) where
   compare (Pattern v1 es1) (Pattern v2 es2) =
@@ -467,7 +467,7 @@ instance Semigroup v => Semigroup (Pattern v) where
 --
 -- >>> mempty <> point "test"
 -- Pattern "test" []
--- >>> pattern "test" <> mempty
+-- >>> point "test" <> mempty
 -- Pattern "test" []
 --
 -- Combining list of patterns:
@@ -505,9 +505,9 @@ instance Monoid v => Monoid (Pattern v) where
 --
 -- Hashing atomic patterns:
 --
--- >>> hash (pattern "a" :: Pattern String)
+-- >>> hash (point "a" :: Pattern String)
 -- ...
--- >>> hash (pattern "b" :: Pattern String)
+-- >>> hash (point "b" :: Pattern String)
 -- ...
 --
 -- Hashing patterns with elements:
@@ -517,8 +517,8 @@ instance Monoid v => Monoid (Pattern v) where
 --
 -- Hash consistency with equality:
 --
--- >>> let p1 = pattern "test" :: Pattern String
--- >>> let p2 = pattern "test" :: Pattern String
+-- >>> let p1 = point "test" :: Pattern String
+-- >>> let p2 = point "test" :: Pattern String
 -- >>> p1 == p2
 -- True
 -- >>> hash p1 == hash p2
@@ -534,15 +534,15 @@ instance Monoid v => Monoid (Pattern v) where
 -- Using in HashMap:
 --
 -- >>> import qualified Data.HashMap.Strict as HashMap
--- >>> let m = HashMap.fromList [(pattern "a", 1), (pattern "b", 2)] :: HashMap (Pattern String) Int
--- >>> HashMap.lookup (pattern "a") m
+-- >>> let m = HashMap.fromList [(point "a", 1), (point "b", 2)] :: HashMap (Pattern String) Int
+-- >>> HashMap.lookup (point "a") m
 -- Just 1
 --
 -- Using in HashSet:
 --
 -- >>> import qualified Data.HashSet as HashSet
 -- >>> let s = HashSet.fromList [point "a", point "b", point "c"] :: HashSet (Pattern String)
--- >>> HashSet.member (pattern "a") s
+-- >>> HashSet.member (point "a") s
 -- True
 instance Hashable v => Hashable (Pattern v) where
   hashWithSalt salt (Pattern v es) = 
@@ -569,8 +569,8 @@ instance Hashable v => Hashable (Pattern v) where
 -- >>> fmap (map toUpper) pattern
 -- Pattern "GREETING" [Pattern "HELLO" [],Pattern "WORLD" []]
 --
--- >>> elem1 = pattern 5
--- >>> elem2 = pattern 10
+-- >>> elem1 = point 5
+-- >>> elem2 = point 10
 -- >>> pattern = pattern 20 [elem1, elem2]
 -- >>> fmap (* 2) pattern
 -- Pattern 40 [Pattern 10 [],Pattern 20 []]
@@ -715,7 +715,7 @@ instance Applicative Pattern where
 --
 -- Extract returns the root value:
 --
--- >>> p = pattern 5
+-- >>> p = point 5
 -- >>> extract p
 -- 5
 --
@@ -799,27 +799,27 @@ instance Foldable Pattern where
 -- >>> traverse validate pattern
 -- Just (Pattern 1 [Pattern 2 []])
 --
--- >>> invalid = pattern 1 [pattern (-1)]
+-- >>> invalid = pattern 1 [point (-1)]
 -- >>> traverse validate invalid
 -- Nothing
 --
 -- Sequencing effects:
 --
--- >>> pattern = pattern (Just 1) [pattern (Just 2)]
+-- >>> pattern = pattern (Just 1) [point (Just 2)]
 -- >>> sequenceA pattern
 -- Just (Pattern 1 [Pattern 2 []])
 --
 -- Atomic pattern:
 --
--- >>> atom = pattern 5
+-- >>> atom = point 5
 -- >>> traverse (Just . (*2)) atom
 -- Just (Pattern 10 [])
 --
 -- Pattern with multiple elements:
 --
 -- >>> let validate x = if x > 0 then Just x else Nothing
--- >>> elem1 = pattern 5
--- >>> elem2 = pattern 10
+-- >>> elem1 = point 5
+-- >>> elem2 = point 10
 -- >>> pattern = pattern 20 [elem1, elem2]
 -- >>> traverse validate pattern
 -- Just (Pattern 20 [Pattern 5 [],Pattern 10 []])
@@ -827,7 +827,7 @@ instance Foldable Pattern where
 -- Nested pattern structure:
 --
 -- >>> let validate x = if x > 0 then Just x else Nothing
--- >>> inner = pattern 1
+-- >>> inner = point 1
 -- >>> middle = pattern 2 [inner]
 -- >>> pattern = pattern 3 [middle]
 -- >>> traverse validate pattern
@@ -836,7 +836,7 @@ instance Foldable Pattern where
 -- Effect failure propagation:
 --
 -- >>> let validate x = if x > 0 then Just x else Nothing
--- >>> inner = pattern (-1) -- Invalid value
+-- >>> inner = point (-1) -- Invalid value
 -- >>> middle = pattern 2 [inner]
 -- >>> pattern = pattern 3 [middle]
 -- >>> traverse validate pattern
@@ -897,7 +897,7 @@ fromList v vs = pattern v (map point vs)
 --
 -- === Examples
 --
--- >>> length (pattern "atom")
+-- >>> length (point "atom")
 -- 0
 --
 -- >>> length (pattern "pair" [point 1, point 2])
@@ -912,13 +912,13 @@ length (Pattern _ es) = Prelude.length es
 --
 -- === Examples
 --
--- >>> size (pattern "atom")
+-- >>> size (point "atom")
 -- 1
 --
 -- >>> size (pattern "root" [point "child"])
 -- 2
 --
--- >>> size (pattern "root" [pattern "a", pattern "b"])
+-- >>> size (pattern "root" [point "a", point "b"])
 -- 3
 size :: Pattern v -> Int
 size (Pattern _ es) = 1 + sum (map size es)
@@ -931,13 +931,13 @@ size (Pattern _ es) = 1 + sum (map size es)
 --
 -- === Examples
 --
--- >>> depth (pattern "atom")
+-- >>> depth (point "atom")
 -- 0
 --
--- >>> depth (pattern "root" [pattern "child"])
+-- >>> depth (pattern "root" [point "child"])
 -- 1
 --
--- >>> depth (pattern "root" [pattern "middle" [pattern "inner"]])
+-- >>> depth (pattern "root" [pattern "middle" [point "inner"]])
 -- 2
 depth :: Pattern v -> Int
 depth (Pattern _ []) = 0
@@ -951,10 +951,10 @@ depth (Pattern _ es) = 1 + maximum (map depth es)
 --
 -- === Examples
 --
--- >>> values (pattern "atom")
+-- >>> values (point "atom")
 -- ["atom"]
 --
--- >>> values (pattern "root" [pattern "a", pattern "b"])
+-- >>> values (pattern "root" [point "a", point "b"])
 -- ["root","a","b"]
 values :: Pattern v -> [v]
 values = toList
@@ -969,10 +969,10 @@ values = toList
 --
 -- === Examples
 --
--- >>> anyValue (> 5) (pattern 3 [pattern 6, pattern 2])
+-- >>> anyValue (> 5) (pattern 3 [point 6, point 2])
 -- True
 --
--- >>> anyValue (> 10) (pattern 3 [pattern 6, pattern 2])
+-- >>> anyValue (> 10) (pattern 3 [point 6, point 2])
 -- False
 anyValue :: (v -> Bool) -> Pattern v -> Bool
 anyValue p = foldr (\v acc -> p v || acc) False
@@ -985,10 +985,10 @@ anyValue p = foldr (\v acc -> p v || acc) False
 --
 -- === Examples
 --
--- >>> allValues (> 0) (pattern 3 [pattern 6, pattern 2])
+-- >>> allValues (> 0) (pattern 3 [point 6, point 2])
 -- True
 --
--- >>> allValues (> 5) (pattern 3 [pattern 6, pattern 2])
+-- >>> allValues (> 5) (pattern 3 [point 6, point 2])
 -- False
 allValues :: (v -> Bool) -> Pattern v -> Bool
 allValues p = foldr (\v acc -> p v && acc) True
@@ -1001,7 +1001,7 @@ allValues p = foldr (\v acc -> p v && acc) True
 --
 -- === Examples
 --
--- >>> p = pattern 3 [pattern 6, pattern 2]
+-- >>> p = pattern 3 [point 6, point 2]
 -- >>> map value $ filterPatterns (\x -> value x > 5) p
 -- [6]
 --
@@ -1019,7 +1019,7 @@ filterPatterns p pat@(Pattern _ es) =
 --
 -- === Examples
 --
--- >>> p = pattern 3 [pattern 6, pattern 2]
+-- >>> p = pattern 3 [point 6, point 2]
 -- >>> fmap value $ findPattern (\x -> value x > 5) p
 -- Just 6
 --
@@ -1040,7 +1040,7 @@ findPattern p pat@(Pattern _ es)
 --
 -- === Examples
 --
--- >>> p = pattern 3 [pattern 6, pattern 2]
+-- >>> p = pattern 3 [point 6, point 2]
 -- >>> map value $ findAllPatterns (\x -> value x > 1) p
 -- [3,6,2]
 findAllPatterns :: (Pattern v -> Bool) -> Pattern v -> [Pattern v]
@@ -1054,10 +1054,10 @@ findAllPatterns = filterPatterns
 --
 -- === Examples
 --
--- >>> matches (pattern "a") (pattern "a")
+-- >>> matches (point "a") (point "a")
 -- True
 --
--- >>> matches (pattern "a") (pattern "b")
+-- >>> matches (point "a") (point "b")
 -- False
 matches :: Eq v => Pattern v -> Pattern v -> Bool
 matches = (==)
@@ -1070,11 +1070,11 @@ matches = (==)
 --
 -- === Examples
 --
--- >>> p = pattern "root" [pattern "child"]
--- >>> contains p (pattern "child")
+-- >>> p = pattern "root" [point "child"]
+-- >>> contains p (point "child")
 -- True
 --
--- >>> contains p (pattern "missing")
+-- >>> contains p (point "missing")
 -- False
 contains :: Eq v => Pattern v -> Pattern v -> Bool
 contains haystack needle =
@@ -1088,7 +1088,7 @@ contains haystack needle =
 --
 -- === Examples
 --
--- >>> flatten (pattern "atom")
+-- >>> flatten (point "atom")
 -- ["atom"]
 flatten :: Pattern v -> [v]
 flatten = toList
@@ -1100,10 +1100,10 @@ flatten = toList
 --
 -- === Examples
 --
--- >>> toTuple (pattern "atom")
+-- >>> toTuple (point "atom")
 -- ("atom",[])
 --
--- >>> toTuple (pattern "root" [pattern "child"])
+-- >>> toTuple (pattern "root" [point "child"])
 -- ("root",[Pattern "child" []])
 toTuple :: Pattern v -> (v, [Pattern v])
 toTuple (Pattern v es) = (v, es)
@@ -1117,7 +1117,7 @@ toTuple (Pattern v es) = (v, es)
 --
 -- === Examples
 --
--- >>> p = pattern "root" [pattern "child"]
+-- >>> p = pattern "root" [point "child"]
 -- >>> depthAt p
 -- Pattern 1 [Pattern 0 []]
 depthAt :: Pattern v -> Pattern Int
@@ -1130,7 +1130,7 @@ depthAt = extend depth
 --
 -- === Examples
 --
--- >>> p = pattern "root" [pattern "a", pattern "b"]
+-- >>> p = pattern "root" [point "a", point "b"]
 -- >>> sizeAt p
 -- Pattern 3 [Pattern 1 [],Pattern 1 []]
 sizeAt :: Pattern v -> Pattern Int
@@ -1146,7 +1146,7 @@ sizeAt (Pattern _ es) =
 --
 -- === Examples
 --
--- >>> p = pattern "root" [pattern "a", pattern "b"]
+-- >>> p = pattern "root" [point "a", point "b"]
 -- >>> indicesAt p
 -- Pattern [] [Pattern [0] [],Pattern [1] []]
 indicesAt :: Eq v => Pattern v -> Pattern [Int]
