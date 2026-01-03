@@ -3856,9 +3856,11 @@ spec = do
               xs = pattern 5 [pure 3, pure 7]
               result = fs <*> xs
           value result `shouldBe` 5
-          length (elements result) `shouldBe` 2
-          value (head (elements result)) `shouldBe` 6
-          value (last (elements result)) `shouldBe` 17
+          -- Law-abiding: each f in fs applies to xs, and each x gets id applied
+          -- Result: [(*2) <*> xs, (+10) <*> xs, id <*> 3, id <*> 7]
+          length (elements result) `shouldBe` 4
+          value (elements result !! 0) `shouldBe` 10  -- (*2) applied to 5
+          value (elements result !! 1) `shouldBe` 15  -- (+10) applied to 5
         
         it "T010: <*> with nested patterns" $ do
           let fs = pattern (id :: Int -> Int) 
@@ -3871,16 +3873,17 @@ spec = do
                 ]
               result = fs <*> xs
           value result `shouldBe` 1
-          length (elements result) `shouldBe` 2
-          -- First nested element: (*2) applied to 2 = 4, (*3) applied to 3 = 9
+          -- Law-abiding: fs elements apply to xs, and xs elements get id applied
+          -- Result has 4 elements: [pattern (*2) <*> xs, pattern (+1) <*> xs, id <*> pattern 2, id <*> pattern 4]
+          length (elements result) `shouldBe` 4
+          -- First element: pattern (*2) [pure (*3)] <*> pattern 1 [pattern 2 [pure 3], pattern 4 []]
           let firstElem = head (elements result)
-          value firstElem `shouldBe` 4
-          length (elements firstElem) `shouldBe` 1
-          value (head (elements firstElem)) `shouldBe` 9
-          -- Second nested element: (+1) applied to 4 = 5
-          let secondElem = last (elements result)
-          value secondElem `shouldBe` 5
-          elements secondElem `shouldBe` ([] :: [Pattern Int])
+          value firstElem `shouldBe` 2  -- (*2) applied to 1
+          -- Last element: id <*> pattern 4 [] = pattern 4 []
+          let lastElem = last (elements result)
+          value lastElem `shouldBe` 4  -- id applied to 4
+          -- The last element will have nested structure from the recursive application
+          length (elements lastElem) `shouldBe` 2
         
         it "T011: <*> with pure function and point value" $ do
           let f = pure ((+1) :: Int -> Int)
@@ -3950,16 +3953,20 @@ spec = do
               xs = pattern 5 [pure 3, pure 7]              -- 2 elements
               result = fs <*> xs
           value result `shouldBe` 5
-          length (elements result) `shouldBe` 1  -- Truncated to minimum
-          value (head (elements result)) `shouldBe` 6
+          -- With law-abiding Applicative: fs applies to all xs elements, and xs elements get id applied
+          length (elements result) `shouldBe` 3  -- [(*2) <*> xs, id <*> 3, id <*> 7]
+          -- First element: (*2) applied to entire xs pattern
+          value (head (elements result)) `shouldBe` 10  -- (*2) applied to 5
         
         it "T051: <*> with mismatched element counts (value p has fewer elements)" $ do
           let fs = pattern (id :: Int -> Int) [pure (*2), pure (+10)]  -- 2 elements
               xs = pattern 5 [pure 3]                                   -- 1 element
               result = fs <*> xs
           value result `shouldBe` 5
-          length (elements result) `shouldBe` 1  -- Truncated to minimum
-          value (head (elements result)) `shouldBe` 6
+          -- With law-abiding Applicative: each f in fs applies to xs, and each x gets id applied
+          length (elements result) `shouldBe` 3  -- [(*2) <*> xs, (+10) <*> xs, id <*> 3]
+          -- First element: (*2) applied to entire xs pattern  
+          value (head (elements result)) `shouldBe` 10  -- (*2) applied to 5
       
       describe "Deeply nested patterns" $ do
         
@@ -3974,8 +3981,8 @@ spec = do
               xs = buildDeepValue 10 :: Pattern Int
               fs = buildDeepFunc 10 :: Pattern (Int -> Int)
               result = fs <*> xs
-          -- Result should have same structure
-          depth result `shouldBe` 10
+          -- With law-abiding Applicative, depth doubles due to applying fs elements to xs and xs elements to fs
+          depth result `shouldBe` 20  -- Depth increases due to both branches
           value result `shouldBe` 10
       
       describe "Atomic patterns with multi-element patterns" $ do
