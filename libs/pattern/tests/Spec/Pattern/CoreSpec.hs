@@ -4596,8 +4596,13 @@ spec = do
         
         it "T016: element-count-aware aggregation using paramorphism verifying aggregation reflects element count" $ do
           let p = pattern 10 [point 5, point 3]
-          let result = para (\pat rs -> value pat * length (elements pat) + sum rs) p
-          result `shouldBe` (28 :: Int)  -- 10*2 + (5*0 + 3*0) = 20 + 8 = 28
+          -- Element-count-aware aggregation: weight pattern value by element count, include child values
+          -- Function: value * length elements + sum (map value elements) + sum rs
+          -- para f (point 5) = 5 * 0 + sum [] + 0 = 0
+          -- para f (point 3) = 3 * 0 + sum [] + 0 = 0
+          -- para f p = 10 * 2 + sum [5, 3] + (0 + 0) = 20 + 8 + 0 = 28
+          let result = para (\pat rs -> value pat * length (elements pat) + sum (map value (elements pat)) + sum rs) p
+          result `shouldBe` (28 :: Int)
         
         it "T020: element-count aggregation on pattern with varying element counts" $ do
           let p1 = pattern 5 []

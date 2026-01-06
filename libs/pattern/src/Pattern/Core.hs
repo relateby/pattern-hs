@@ -1158,12 +1158,12 @@ indicesAt = go []
 --
 -- >>> p = pattern 10 [point 5, point 3]
 -- >>> para (\pat rs -> value pat * depth pat + sum rs) p
--- 18
+-- 10
 --
 -- Element-count-aware aggregation:
 --
 -- >>> p = pattern 10 [point 5, point 3]
--- >>> para (\pat rs -> value pat * length (elements pat) + sum rs) p
+-- >>> para (\pat rs -> value pat * length (elements pat) + sum (map value (elements pat)) + sum rs) p
 -- 28
 --
 -- Structure-preserving transformation during fold:
