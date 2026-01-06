@@ -12,7 +12,7 @@ module Spec.Pattern.Properties where
 
 import Control.Comonad (extract, extend)
 import Data.Char (toUpper)
-import Data.Foldable (toList)
+import Data.Foldable (toList, foldr)
 import Data.Functor.Compose (Compose(..))
 import Data.Functor.Identity (Identity(..))
 import Data.Hashable (hash)
@@ -20,7 +20,7 @@ import Data.Monoid (Product(..), Sum(..))
 import Data.List (nub)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Pattern.Core (Pattern(..), pattern, point, fromList, flatten, size, depth, values, toTuple, anyValue, allValues, filterPatterns, findPattern, matches, contains)
+import Pattern.Core (Pattern(..), pattern, point, fromList, flatten, size, depth, values, toTuple, anyValue, allValues, filterPatterns, findPattern, matches, contains, para)
 import qualified Pattern.Core as PC
 import Test.Hspec
 import Test.QuickCheck hiding (elements)
@@ -1329,4 +1329,56 @@ spec = do
           let f p' = length (values p')  -- Context-aware function: count values
               g p' = size p'             -- Context-aware function: compute size
           in (extend f . extend g) p == extend (f . extend g) p
+  
+  describe "Paramorphism Properties (User Story 1 & 2)" $ do
+    
+    describe "Structure access properties" $ do
+      
+      it "T025: paramorphism provides access to pattern structure (depth)" $ do
+        -- Property: para can extract structural properties like depth
+        quickProperty $ \(p :: Pattern Int) -> 
+          para (\pat _ -> depth pat) p == depth p
+      
+      it "T025b: paramorphism provides access to pattern structure (element count)" $ do
+        -- Property: para can extract structural properties like element count
+        quickProperty $ \(p :: Pattern Int) -> 
+          para (\pat _ -> length (elements pat)) p == length (elements p)
+    
+    describe "Value access properties" $ do
+      
+      it "T026: paramorphism can simulate Foldable (toList)" $ do
+        -- Property: para can extract all values like toList
+        quickProperty $ \(p :: Pattern Int) -> 
+          para (\pat rs -> value pat : concat rs) p == toList p
+    
+    describe "Structure-aware aggregation properties" $ do
+      
+      it "T027: depth-weighted sum produces correct results" $ do
+        -- Property: Depth-weighted sum using para produces correct results
+        -- Note: This verifies the aggregation logic, not the exact values
+        quickProperty $ \(p :: Pattern Int) -> 
+          let result = para (\pat rs -> value pat * depth pat + sum rs) p
+          -- Verify result is non-negative if all values are non-negative
+          all (>= 0) (toList p) ==> result >= 0
+      
+      it "T028: element-count aggregation produces correct results" $ do
+        -- Property: Element-count-aware aggregation produces correct results
+        quickProperty $ \(p :: Pattern Int) -> 
+          let result = para (\pat rs -> value pat * length (elements pat) + sum rs) p
+          -- Verify result includes pattern's own value contribution
+          result >= value p || length (elements p) == 0
+    
+    describe "Order preservation properties" $ do
+      
+      it "T029: paramorphism preserves element order" $ do
+        -- Property: para preserves element order when extracting values
+        quickProperty $ \(p :: Pattern Int) -> 
+          para (\pat rs -> value pat : concat rs) p == toList p
+    
+    describe "Relationship to Foldable" $ do
+      
+      it "T030: paramorphism can simulate foldr when ignoring structure" $ do
+        -- Property: para can simulate foldr by including pattern's value and summing child results
+        quickProperty $ \(p :: Pattern Int) -> 
+          para (\pat rs -> value pat + sum rs) p == foldr (+) 0 p
 

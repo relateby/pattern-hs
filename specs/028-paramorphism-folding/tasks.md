@@ -30,23 +30,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T001 [P] [US1] Write unit test for paramorphism on atomic pattern verifying folding function receives pattern subtree in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T002 [P] [US1] Write unit test for paramorphism on pattern with elements verifying folding function receives pattern subtree and child results in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T003 [P] [US1] Write unit test for paramorphism on nested pattern verifying structural access at all levels in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T004 [P] [US1] Write unit test for paramorphism verifying structure-preserving transformation during fold in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T005 [P] [US1] Write unit test for paramorphism verifying context-dependent aggregation adapts to structural properties in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T006 [P] [US1] Write unit test for paramorphism on atomic pattern with integer value in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T007 [P] [US1] Write unit test for paramorphism on pattern with multiple elements containing integer values in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T008 [P] [US1] Write unit test for paramorphism on deeply nested pattern structure in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T009 [P] [US1] Write unit test for paramorphism with string values in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T010 [P] [US1] Write unit test for paramorphism with custom type values in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T001 [P] [US1] Write unit test for paramorphism on atomic pattern verifying folding function receives pattern subtree in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T002 [P] [US1] Write unit test for paramorphism on pattern with elements verifying folding function receives pattern subtree and child results in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T003 [P] [US1] Write unit test for paramorphism on nested pattern verifying structural access at all levels in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T004 [P] [US1] Write unit test for paramorphism verifying structure-preserving transformation during fold in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T005 [P] [US1] Write unit test for paramorphism verifying context-dependent aggregation adapts to structural properties in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T006 [P] [US1] Write unit test for paramorphism on atomic pattern with integer value in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T007 [P] [US1] Write unit test for paramorphism on pattern with multiple elements containing integer values in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T008 [P] [US1] Write unit test for paramorphism on deeply nested pattern structure in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T009 [P] [US1] Write unit test for paramorphism with string values in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T010 [P] [US1] Write unit test for paramorphism with custom type values in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement `para` function with signature `para :: (Pattern v -> [r] -> r) -> Pattern v -> r` in `libs/pattern/src/Pattern/Core.hs`
-- [ ] T012 [US1] Add Haddock documentation for `para` function explaining structure-aware folding in `libs/pattern/src/Pattern/Core.hs`
-- [ ] T013 [US1] Add Haddock examples for `para` usage demonstrating structure access in `libs/pattern/src/Pattern/Core.hs`
-- [ ] T014 [US1] Export `para` function from `Pattern.Core` module in `libs/pattern/src/Pattern/Core.hs`
+- [x] T011 [US1] Implement `para` function with signature `para :: (Pattern v -> [r] -> r) -> Pattern v -> r` in `libs/pattern/src/Pattern/Core.hs`
+- [x] T012 [US1] Add Haddock documentation for `para` function explaining structure-aware folding in `libs/pattern/src/Pattern/Core.hs`
+- [x] T013 [US1] Add Haddock examples for `para` usage demonstrating structure access in `libs/pattern/src/Pattern/Core.hs`
+- [x] T014 [US1] Export `para` function from `Pattern.Core` module in `libs/pattern/src/Pattern/Core.hs`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. All tests should pass, demonstrating structure-aware folding with access to pattern subtrees.
 
@@ -62,19 +62,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US2] Write unit test for depth-weighted sum using paramorphism verifying values at different nesting levels contribute differently in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T016 [P] [US2] Write unit test for element-count-aware aggregation using paramorphism verifying aggregation reflects element count in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T017 [P] [US2] Write unit test for nesting-level statistics using paramorphism verifying level-aware statistics in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T018 [P] [US2] Write unit test for context-dependent aggregation using paramorphism verifying aggregation adapts to structural properties in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T019 [P] [US2] Write unit test for depth-weighted sum on pattern with values at different nesting levels in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
-- [ ] T020 [P] [US2] Write unit test for element-count aggregation on pattern with varying element counts in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T015 [P] [US2] Write unit test for depth-weighted sum using paramorphism verifying values at different nesting levels contribute differently in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T016 [P] [US2] Write unit test for element-count-aware aggregation using paramorphism verifying aggregation reflects element count in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T017 [P] [US2] Write unit test for nesting-level statistics using paramorphism verifying level-aware statistics in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T018 [P] [US2] Write unit test for context-dependent aggregation using paramorphism verifying aggregation adapts to structural properties in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T019 [P] [US2] Write unit test for depth-weighted sum on pattern with values at different nesting levels in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
+- [x] T020 [P] [US2] Write unit test for element-count aggregation on pattern with varying element counts in `libs/pattern/tests/Spec/Pattern/CoreSpec.hs`
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Verify `para` implementation enables depth-weighted aggregations (no code changes if already correct) in `libs/pattern/src/Pattern/Core.hs`
-- [ ] T022 [US2] Add Haddock documentation examples for depth-weighted sum using `para` in `libs/pattern/src/Pattern/Core.hs`
-- [ ] T023 [US2] Add Haddock documentation examples for element-count-aware aggregation using `para` in `libs/pattern/src/Pattern/Core.hs`
-- [ ] T024 [US2] Add Haddock documentation examples for nesting-level statistics using `para` in `libs/pattern/src/Pattern/Core.hs`
+- [x] T021 [US2] Verify `para` implementation enables depth-weighted aggregations (no code changes if already correct) in `libs/pattern/src/Pattern/Core.hs`
+- [x] T022 [US2] Add Haddock documentation examples for depth-weighted sum using `para` in `libs/pattern/src/Pattern/Core.hs`
+- [x] T023 [US2] Add Haddock documentation examples for element-count-aware aggregation using `para` in `libs/pattern/src/Pattern/Core.hs`
+- [x] T024 [US2] Add Haddock documentation examples for nesting-level statistics using `para` in `libs/pattern/src/Pattern/Core.hs`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Paramorphism should enable structure-aware aggregations that correctly reflect both values and structural properties.
 
@@ -90,12 +90,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T025 [P] Write property-based test verifying `para (\p _ -> depth p) pattern == depth pattern` in `libs/pattern/tests/Spec/Pattern/Properties.hs`
-- [ ] T026 [P] Write property-based test verifying `para (\p rs -> value p : concat rs) pattern == toList pattern` in `libs/pattern/tests/Spec/Pattern/Properties.hs`
-- [ ] T027 [P] Write property-based test verifying depth-weighted sum produces correct results in `libs/pattern/tests/Spec/Pattern/Properties.hs`
-- [ ] T028 [P] Write property-based test verifying element-count aggregation produces correct results in `libs/pattern/tests/Spec/Pattern/Properties.hs`
-- [ ] T029 [P] Write property-based test verifying paramorphism preserves element order in `libs/pattern/tests/Spec/Pattern/Properties.hs`
-- [ ] T030 [P] Write property-based test verifying relationship to `Foldable`: `para (\p rs -> value p + sum rs) pattern == foldr (+) 0 pattern` in `libs/pattern/tests/Spec/Pattern/Properties.hs`
+- [x] T025 [P] Write property-based test verifying `para (\p _ -> depth p) pattern == depth pattern` in `libs/pattern/tests/Spec/Pattern/Properties.hs`
+- [x] T026 [P] Write property-based test verifying `para (\p rs -> value p : concat rs) pattern == toList pattern` in `libs/pattern/tests/Spec/Pattern/Properties.hs`
+- [x] T027 [P] Write property-based test verifying depth-weighted sum produces correct results in `libs/pattern/tests/Spec/Pattern/Properties.hs`
+- [x] T028 [P] Write property-based test verifying element-count aggregation produces correct results in `libs/pattern/tests/Spec/Pattern/Properties.hs`
+- [x] T029 [P] Write property-based test verifying paramorphism preserves element order in `libs/pattern/tests/Spec/Pattern/Properties.hs`
+- [x] T030 [P] Write property-based test verifying relationship to `Foldable`: `para (\p rs -> value p + sum rs) pattern == foldr (+) 0 pattern` in `libs/pattern/tests/Spec/Pattern/Properties.hs`
 
 **Checkpoint**: At this point, property-based tests should pass, verifying paramorphism correctness across many pattern structures.
 

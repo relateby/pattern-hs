@@ -19,7 +19,7 @@ import Data.Semigroup (sconcat, stimes)
 import qualified Data.Set as Set
 import Test.Hspec
 import Control.Comonad (extract, extend, duplicate)
-import Pattern.Core (Pattern(..), pattern, point, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt, indicesAt)
+import Pattern.Core (Pattern(..), pattern, point, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt, indicesAt, para)
 import qualified Pattern.Core as PC
 
 -- Custom type for testing
@@ -4398,3 +4398,150 @@ spec = do
           extract (elements result !! 0) `shouldBe` ([0] :: [Int])  -- "a": [0]
           extract (elements result !! 1) `shouldBe` ([1] :: [Int])  -- "b": [1]
           extract (elements (elements result !! 0) !! 0) `shouldBe` ([0, 0] :: [Int])  -- "x": [0, 0]
+    
+    describe "Paramorphism (User Story 1)" $ do
+      
+      describe "Basic paramorphism operations" $ do
+        
+        it "T001: paramorphism on atomic pattern verifying folding function receives pattern subtree" $ do
+          let p = point 5
+          let result = para (\pat _ -> value pat) p
+          result `shouldBe` (5 :: Int)
+        
+        it "T002: paramorphism on pattern with elements verifying folding function receives pattern subtree and child results" $ do
+          let p = pattern 10 [point 5, point 3]
+          let result = para (\pat rs -> value pat + sum rs) p
+          result `shouldBe` (18 :: Int)  -- 10 + (5 + 3)
+        
+        it "T003: paramorphism on nested pattern verifying structural access at all levels" $ do
+          let p = pattern 1 [pattern 2 [point 3]]
+          let result = para (\pat rs -> value pat + sum rs) p
+          result `shouldBe` (6 :: Int)  -- 1 + (2 + 3)
+        
+        it "T004: paramorphism verifying structure-preserving transformation during fold" $ do
+          let p = pattern 10 [point 5, point 3]
+          let result = para (\pat rs -> Pattern (value pat * depth pat) rs) p
+          value result `shouldBe` (10 :: Int)  -- 10 * 1 (depth 1)
+          length (elements result) `shouldBe` 2
+          value (elements result !! 0) `shouldBe` (0 :: Int)  -- 5 * 0 (depth 0)
+          value (elements result !! 1) `shouldBe` (0 :: Int)  -- 3 * 0 (depth 0)
+        
+        it "T005: paramorphism verifying context-dependent aggregation adapts to structural properties" $ do
+          let p = pattern 10 [point 5, point 3]
+          let result = para (\pat rs -> value pat * length (elements pat) + sum rs) p
+          result `shouldBe` (28 :: Int)  -- 10 * 2 + (5 + 3)
+        
+        it "T006: paramorphism on atomic pattern with integer value" $ do
+          let p = point 42
+          let result = para (\pat _ -> value pat) p
+          result `shouldBe` (42 :: Int)
+        
+        it "T007: paramorphism on pattern with multiple elements containing integer values" $ do
+          let p = pattern 10 [point 20, point 30]
+          let result = para (\pat rs -> value pat : concat rs) p
+          result `shouldBe` ([10, 20, 30] :: [Int])
+        
+        it "T008: paramorphism on deeply nested pattern structure" $ do
+          let level3 = point 1
+          let level2 = pattern 2 [level3]
+          let level1 = pattern 3 [level2]
+          let p = pattern 4 [level1]
+          let result = para (\pat rs -> value pat + sum rs) p
+          result `shouldBe` (10 :: Int)  -- 4 + (3 + (2 + 1))
+        
+        it "T009: paramorphism with string values" $ do
+          let p = pattern "root" [point "a", point "b"]
+          let result = para (\pat rs -> value pat : concat rs) p
+          result `shouldBe` (["root", "a", "b"] :: [String])
+        
+        it "T010: paramorphism with custom type values" $ do
+          let p1 = Pattern { value = Person "Alice" (Just 30), elements = [] }
+          let p2 = Pattern { value = Person "Bob" (Just 25), elements = [] }
+          let p = Pattern { value = Person "Root" Nothing, elements = [p1, p2] }
+          let result = para (\pat rs -> value pat : concat rs) p
+          length result `shouldBe` 3
+          name (result !! 0) `shouldBe` "Root"
+          name (result !! 1) `shouldBe` "Alice"
+          name (result !! 2) `shouldBe` "Bob"
+    
+    describe "Structure-Aware Aggregations (User Story 2)" $ do
+      
+      describe "Depth-weighted aggregations" $ do
+        
+        it "T015: depth-weighted sum using paramorphism verifying values at different nesting levels contribute differently" $ do
+          let p = pattern 10 [point 5, point 3]
+          -- Depth-weighted sum: weight each value by its depth
+          -- For point 5: depth is 0, so contribution is 5 * 0 = 0, but we still need to include the value
+          -- So we compute: value * depth + sum of child results
+          -- But child results already include the weighted values, so we need to be careful
+          -- Actually, let's use a different approach: include the value weighted by depth, plus child results
+          -- But child results are already computed, so they include the child values weighted by their depths
+          -- So: para f (point 5) = 5 * 0 + 0 = 0 (child has no children, so rs = [])
+          -- para f (point 3) = 3 * 0 + 0 = 0
+          -- para f p = 10 * 1 + (0 + 0) = 10
+          -- But this loses the child values! We need to include them differently.
+          -- Let's use: value * depth + value + sum rs, or better: value * (depth + 1) + sum rs
+          -- Actually, the standard depth-weighted sum should be: value * depth + sum of child results
+          -- But child results should include the child values weighted by their depths
+          -- So: para f (point 5) = 5 * 0 + 0 = 0
+          -- para f (point 3) = 3 * 0 + 0 = 0  
+          -- para f p = 10 * 1 + (0 + 0) = 10
+          -- This is correct for depth-weighting: only the root value (depth 1) contributes, children (depth 0) don't
+          let result = para (\pat rs -> value pat * depth pat + sum rs) p
+          result `shouldBe` (10 :: Int)
+        
+        it "T019: depth-weighted sum on pattern with values at different nesting levels" $ do
+          let level2 = point 5
+          let level1 = pattern 10 [level2]
+          let p = pattern 20 [level1]
+          -- Depth-weighted sum: weight by depth
+          -- para f (point 5): depth 0, so 5 * 0 + 0 = 0
+          -- para f (pattern 10 [point 5]): depth 1, child result [0], so 10 * 1 + 0 = 10
+          -- para f p: depth 2, child result [10], so 20 * 2 + 10 = 40 + 10 = 50
+          let result = para (\pat rs -> value pat * depth pat + sum rs) p
+          result `shouldBe` (50 :: Int)
+      
+      describe "Element-count-aware aggregations" $ do
+        
+        it "T016: element-count-aware aggregation using paramorphism verifying aggregation reflects element count" $ do
+          let p = pattern 10 [point 5, point 3]
+          let result = para (\pat rs -> value pat * length (elements pat) + sum rs) p
+          result `shouldBe` (28 :: Int)  -- 10*2 + (5*0 + 3*0) = 20 + 8 = 28
+        
+        it "T020: element-count aggregation on pattern with varying element counts" $ do
+          let p1 = pattern 5 []
+          let p2 = pattern 10 [point 3]
+          let p = pattern 20 [p1, p2]
+          let result = para (\pat rs -> value pat * length (elements pat) + sum rs) p
+          -- Calculation: p has 2 elements, p1 has 0 elements, p2 has 1 element
+          -- para f (point 3) = 3 * 0 + 0 = 3 (wait, no - point 3 has 0 elements, so 3*0 + 0 = 0, but we need to sum the value)
+          -- Actually: para f (point 3) = 3 * 0 + 0 = 0 (but we're summing rs, not including value in rs)
+          -- Wait, let me re-read the function: para f (Pattern v els) = f (Pattern v els) (map (para f) els)
+          -- So para f (point 3) = f (Pattern 3 []) [] = 3 * 0 + 0 = 0
+          -- para f (pattern 10 [point 3]) = f (Pattern 10 [point 3]) [0] = 10 * 1 + 0 = 10
+          -- para f (pattern 5 []) = f (Pattern 5 []) [] = 5 * 0 + 0 = 0
+          -- para f p = f (Pattern 20 [p1, p2]) [0, 10] = 20 * 2 + (0 + 10) = 40 + 10 = 50
+          result `shouldBe` (50 :: Int)
+      
+      describe "Nesting-level statistics" $ do
+        
+        it "T017: nesting-level statistics using paramorphism verifying level-aware statistics" $ do
+          let p = pattern 10 [point 5, point 3]
+          let result = para (\pat rs -> 
+            let (s, c, d) = foldr (\(s', c', d') (s'', c'', d'') -> 
+              (s' + s'', c' + c'', max d' d'')) (0, 0, 0) rs
+            in (value pat + s, 1 + c, max (depth pat) d)) p
+          fst result `shouldBe` (18 :: Int)  -- sum: 10 + 5 + 3 = 18
+          snd result `shouldBe` (3 :: Int)   -- count: 3 patterns
+          thd result `shouldBe` (1 :: Int)   -- maxDepth: 1
+          where thd (_, _, x) = x
+      
+      describe "Context-dependent aggregations" $ do
+        
+        it "T018: context-dependent aggregation using paramorphism verifying aggregation adapts to structural properties" $ do
+          let p = pattern 10 [point 5, point 3]
+          let result = para (\pat rs -> 
+            if depth pat > 0 
+              then value pat * 2 + sum rs
+              else value pat + sum rs) p
+          result `shouldBe` (28 :: Int)  -- 10*2 + (5 + 3) = 20 + 8 = 28

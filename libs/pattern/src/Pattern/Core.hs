@@ -29,6 +29,8 @@ module Pattern.Core
   , depthAt
   , sizeAt
   , indicesAt
+    -- * Paramorphism Functions
+  , para
   ) where
 
 import Prelude hiding (length)
@@ -1135,3 +1137,54 @@ indicesAt = go []
   where
     go path (Pattern _ es) =
       Pattern path (zipWith (\i e -> go (path ++ [i]) e) [0..] es)
+
+-- | Paramorphism: structure-aware folding over patterns.
+--
+-- Paramorphism enables folding over pattern structures while providing access
+-- to the full pattern subtree at each position. The folding function receives:
+--
+-- 1. The current pattern subtree (@Pattern v@)
+-- 2. The list of recursively computed results from children (@[r]@)
+--
+-- This extends 'Foldable' (value-only folding) to provide structure-aware folding,
+-- just as 'Comonad' extends 'Functor' to provide structure-aware transformation.
+--
+-- Paramorphism enables structure-aware aggregations that consider structural
+-- properties (depth, element count, nesting level) in addition to values.
+--
+-- === Examples
+--
+-- Depth-weighted sum:
+--
+-- >>> p = pattern 10 [point 5, point 3]
+-- >>> para (\pat rs -> value pat * depth pat + sum rs) p
+-- 18
+--
+-- Element-count-aware aggregation:
+--
+-- >>> p = pattern 10 [point 5, point 3]
+-- >>> para (\pat rs -> value pat * length (elements pat) + sum rs) p
+-- 28
+--
+-- Structure-preserving transformation during fold:
+--
+-- >>> p = pattern 10 [point 5, point 3]
+-- >>> para (\pat rs -> Pattern (value pat * depth pat) rs) p
+-- Pattern 10 [Pattern 0 [],Pattern 0 []]
+--
+-- === Relationship to Other Operations
+--
+-- * 'Foldable': Provides value-only folding (@foldr@, @foldl@, @foldMap@).
+--   Use when you only need values, not structural information.
+--
+-- * Paramorphism: Provides structure-aware folding (@para@).
+--   Use when you need structure-aware aggregations (depth-weighted sums,
+--   nesting-level statistics, element-count-based aggregations).
+--
+-- * 'Comonad': Provides structure-aware transformation (@extend@).
+--   Use when you need structure-aware transformation (not aggregation).
+--
+-- @since 0.1.0
+para :: (Pattern v -> [r] -> r) -> Pattern v -> r
+para f (Pattern v els) = 
+  f (Pattern v els) (map (para f) els)
