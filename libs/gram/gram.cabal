@@ -55,6 +55,7 @@ test-suite gram-test
         Spec.Gram.ParseRangeRepro
         Spec.Gram.CorpusSpec
         Spec.Gram.JSONSpec
+        Spec.Gram.RoundtripSpec
         SemanticsSpec
 
     build-depends:

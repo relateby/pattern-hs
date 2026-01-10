@@ -60,6 +60,18 @@ relationship = patternWith "knows" [atomA, atomB]
 - **API Documentation**: Generate with `cabal haddock` or see `specs/*/contracts/type-signatures.md`
 - **Quickstart Guide**: `specs/002-basic-pattern-type/quickstart.md`
 
+## Testing
+
+Run the full test suite:
+```bash
+cabal test all
+```
+
+**Important Test Requirements**:
+- **JSON Roundtrip Tests**: All patterns must successfully roundtrip through JSON serialization (`gram:test:gram-test --match=Roundtrip`)
+- **Corpus Tests**: Require `tree-sitter-gram` submodule initialized (tests skip gracefully if not present)
+- **Property-Based Tests**: QuickCheck validates 100+ random patterns for structural integrity
+
 ## Libraries
 
 - **`pattern`**: Core pattern data structure library (recursive, decorated sequences)
