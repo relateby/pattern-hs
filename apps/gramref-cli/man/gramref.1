@@ -153,9 +153,9 @@ Output format: json-schema (default), typescript, or rust
 .PP
 json-schema: JSON Schema Draft 2020-12 specification
 .br
-typescript: TypeScript type definitions (future)
+typescript: TypeScript type definitions with interfaces and type guards
 .br
-rust: Rust struct definitions with serde annotations (future)
+rust: Rust struct definitions with serde annotations and convenience constructors
 .RE
 .SH OUTPUT FORMATS
 .SS json
@@ -263,6 +263,22 @@ Generate JSON Schema for Pattern<Subject>:
 .RS 4
 .nf
 gramref schema --format json-schema > pattern-schema.json
+.fi
+.RE
+.PP
+Generate TypeScript type definitions:
+.PP
+.RS 4
+.nf
+gramref schema --format typescript > pattern.ts
+.fi
+.RE
+.PP
+Generate Rust type definitions:
+.PP
+.RS 4
+.nf
+gramref schema --format rust > pattern.rs
 .fi
 .RE
 .SH SEE ALSO

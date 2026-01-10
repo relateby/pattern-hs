@@ -8,8 +8,11 @@ module Gramref.CLI.Commands.Schema
 
 import Options.Applicative
 import qualified Gram.Schema.JSONSchema as Schema
+import qualified Gram.Schema.TypeScript as TypeScript
+import qualified Gram.Schema.Rust as Rust
 import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text.IO as TIO
 import System.Exit (ExitCode(..))
 
 -- | Supported schema formats
@@ -52,11 +55,11 @@ runSchema opts = do
       return ExitSuccess
     
     TypeScript -> do
-      putStrLn "Error: TypeScript schema generation not yet implemented"
-      putStrLn "Use --format json-schema for now"
-      return (ExitFailure 3)
+      let tsCode = TypeScript.generateTypeScriptTypes
+      TIO.putStr tsCode
+      return ExitSuccess
     
     Rust -> do
-      putStrLn "Error: Rust schema generation not yet implemented"
-      putStrLn "Use --format json-schema for now"
-      return (ExitFailure 3)
+      let rustCode = Rust.generateRustTypes
+      TIO.putStr rustCode
+      return ExitSuccess

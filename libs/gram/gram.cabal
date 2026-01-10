@@ -31,6 +31,8 @@ library
         Gram.JSON
         Gram.Schema
         Gram.Schema.JSONSchema
+        Gram.Schema.TypeScript
+        Gram.Schema.Rust
 
     build-depends:
         base >=4.17.0.0 && <5,

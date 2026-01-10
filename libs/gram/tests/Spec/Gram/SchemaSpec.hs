@@ -6,6 +6,9 @@ import Test.Hspec
 import Data.Aeson
 import qualified Data.Aeson.KeyMap as KeyMap
 import qualified Gram.Schema.JSONSchema as Schema
+import qualified Gram.Schema.TypeScript as TypeScript
+import qualified Gram.Schema.Rust as Rust
+import qualified Data.Text as T
 
 spec :: Spec
 spec = do
@@ -89,3 +92,58 @@ spec = do
               KeyMap.member "Measurement" defsObj `shouldBe` True
             _ -> expectationFailure "$defs is not an object"
         _ -> expectationFailure "Schema is not an object"
+
+  describe "TypeScript Type Generation" $ do
+    
+    it "generates valid TypeScript syntax (basic check)" $ do
+      let tsCode = TypeScript.generateTypeScriptTypes
+      tsCode `shouldSatisfy` T.isInfixOf "export interface Pattern"
+      tsCode `shouldSatisfy` T.isInfixOf "export interface Subject"
+      tsCode `shouldSatisfy` T.isInfixOf "export type Value"
+    
+    it "includes all expected interfaces" $ do
+      let tsCode = TypeScript.generateTypeScriptTypes
+      tsCode `shouldSatisfy` T.isInfixOf "interface Pattern"
+      tsCode `shouldSatisfy` T.isInfixOf "interface Subject"
+      tsCode `shouldSatisfy` T.isInfixOf "interface ValueSymbol"
+      tsCode `shouldSatisfy` T.isInfixOf "interface ValueTaggedString"
+      tsCode `shouldSatisfy` T.isInfixOf "interface ValueRange"
+      tsCode `shouldSatisfy` T.isInfixOf "interface ValueMeasurement"
+    
+    it "includes type guards" $ do
+      let tsCode = TypeScript.generateTypeScriptTypes
+      tsCode `shouldSatisfy` T.isInfixOf "isValueSymbol"
+      tsCode `shouldSatisfy` T.isInfixOf "isValueRange"
+    
+    it "includes JSDoc comments" $ do
+      let tsCode = TypeScript.generateTypeScriptTypes
+      tsCode `shouldSatisfy` T.isInfixOf "/**"
+  
+  describe "Rust Type Generation" $ do
+    
+    it "generates valid Rust syntax (basic check)" $ do
+      let rustCode = Rust.generateRustTypes
+      rustCode `shouldSatisfy` T.isInfixOf "pub struct Pattern"
+      rustCode `shouldSatisfy` T.isInfixOf "pub struct Subject"
+      rustCode `shouldSatisfy` T.isInfixOf "pub enum Value"
+    
+    it "includes all expected structs and enums" $ do
+      let rustCode = Rust.generateRustTypes
+      rustCode `shouldSatisfy` T.isInfixOf "struct Pattern"
+      rustCode `shouldSatisfy` T.isInfixOf "struct Subject"
+      rustCode `shouldSatisfy` T.isInfixOf "struct ValueSymbol"
+      rustCode `shouldSatisfy` T.isInfixOf "enum Value"
+    
+    it "includes serde derives" $ do
+      let rustCode = Rust.generateRustTypes
+      rustCode `shouldSatisfy` T.isInfixOf "Serialize, Deserialize"
+      rustCode `shouldSatisfy` T.isInfixOf "#[serde(untagged)]"
+    
+    it "includes convenience constructors" $ do
+      let rustCode = Rust.generateRustTypes
+      rustCode `shouldSatisfy` T.isInfixOf "impl Pattern"
+      rustCode `shouldSatisfy` T.isInfixOf "pub fn new"
+    
+    it "includes doc comments" $ do
+      let rustCode = Rust.generateRustTypes
+      rustCode `shouldSatisfy` T.isInfixOf "///"
