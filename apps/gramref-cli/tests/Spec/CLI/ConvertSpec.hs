@@ -10,6 +10,7 @@ import Data.Aeson (encode)
 import qualified Pattern.Core as Pattern
 import qualified Subject.Core as Subject
 import qualified Subject.Value as SubjectValue
+import qualified Gram.JSON as GramJSON  -- For ToJSON instance
 import qualified Gramref.CLI.Commands.Convert as Convert
 import Gramref.CLI.Types (OutputOptions(..))
 import qualified Data.Set as Set

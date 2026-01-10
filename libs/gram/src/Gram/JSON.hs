@@ -213,9 +213,29 @@ instance FromJSON (Pattern.Pattern Subject.Subject) where
 -- This function ensures that equivalent data structures produce byte-for-byte
 -- identical JSON strings, enabling reliable automated comparison.
 --
+-- Special handling: Pattern objects always have "subject" before "elements"
+-- to maintain semantic ordering.
+--
 -- @since 0.1.0
 canonicalizeJSON :: Value -> Value
-canonicalizeJSON (Object obj) = Object $ KeyMap.fromList $ List.sort $ map canonicalizePair $ KeyMap.toList obj
+canonicalizeJSON (Object obj) = 
+  let subjectKey = fromString "subject"
+      elementsKey = fromString "elements"
+      -- Special case: Pattern objects have exactly two keys: "subject" and "elements"
+      -- Explicitly grab them and construct in the correct order
+      subjectVal = KeyMap.lookup subjectKey obj
+      elementsVal = KeyMap.lookup elementsKey obj
+  in case (subjectVal, elementsVal) of
+       (Just s, Just e) -> 
+         -- Pattern object: subject first, then elements
+         -- Use object to construct in correct order
+         object [ subjectKey .= canonicalizeJSON s
+                , elementsKey .= canonicalizeJSON e
+                ]
+       _ -> 
+         -- Other objects: sort alphabetically
+         let pairs = map canonicalizePair $ KeyMap.toList obj
+         in Object $ KeyMap.fromList $ List.sortBy (\(k1, _) (k2, _) -> compare (toText k1) (toText k2)) pairs
   where
     canonicalizePair (k, v) = (k, canonicalizeJSON v)
 canonicalizeJSON (Array arr) = Array $ fmap canonicalizeJSON arr

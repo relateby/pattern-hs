@@ -95,7 +95,7 @@ spec = do
             -- Should not contain metadata
             T.isInfixOf (T.pack "Meta") output `shouldBe` False
             -- Should contain pattern structure
-            T.isInfixOf (T.pack "value") output `shouldBe` True
+            T.isInfixOf (T.pack "subject") output `shouldBe` True
             -- Should be deterministic
             output2 <- return $ JSON.patternToJSON opts pattern
             output `shouldBe` output2
@@ -110,7 +110,7 @@ spec = do
             let opts = Types.defaultOutputOptions { Types.valueOnly = True }
             let output = JSON.patternToJSON opts pattern
             -- Verify it's valid JSON and contains pattern data
-            T.isInfixOf (T.pack "value") output `shouldBe` True
+            T.isInfixOf (T.pack "subject") output `shouldBe` True
             T.isInfixOf (T.pack "elements") output `shouldBe` True
     
     describe "Edge cases" $ do
@@ -123,7 +123,7 @@ spec = do
             let opts = Types.defaultOutputOptions { Types.valueOnly = True }
             let output = JSON.patternToJSON opts pattern
             -- Should produce valid JSON even for empty pattern
-            T.isInfixOf (T.pack "value") output `shouldBe` True
+            T.isInfixOf (T.pack "subject") output `shouldBe` True
             T.isInfixOf (T.pack "elements") output `shouldBe` True
       
       it "all flags combined (--value-only --deterministic --canonical) work together" $ do
@@ -141,7 +141,7 @@ spec = do
             -- Should not contain metadata
             T.isInfixOf (T.pack "Meta") output `shouldBe` False
             -- Should contain pattern structure
-            T.isInfixOf (T.pack "value") output `shouldBe` True
+            T.isInfixOf (T.pack "subject") output `shouldBe` True
             -- Should be deterministic
             output2 <- return $ JSON.patternToJSON opts' pattern
             output `shouldBe` output2

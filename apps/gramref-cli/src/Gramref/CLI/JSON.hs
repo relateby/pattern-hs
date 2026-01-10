@@ -98,6 +98,7 @@ patternToJSON opts pat = unsafePerformIO $ do
   if Types.valueOnly opts' 
     then do
       let jsonVal = if Types.canonical opts' then GramJSON.canonicalizeJSON patternVal else patternVal
+      -- Use encode for canonical output (encodePretty only affects top-level keys)
       let jsonBytes = encode jsonVal
       return $ TE.decodeUtf8 $ BSL.toStrict jsonBytes
     else do
