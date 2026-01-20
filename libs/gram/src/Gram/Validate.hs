@@ -21,7 +21,7 @@ import qualified Data.Set as Set
 import Control.Monad.State
 import Control.Monad (when)
 
-import Gram.CST (Gram(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..))
+import Gram.CST (GramDoc(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..))
 
 -- | The internal state used during validation.
 type SymbolTable = Map Identifier SymbolInfo
@@ -74,8 +74,8 @@ emptyEnv :: ValidationEnv
 emptyEnv = ValidationEnv []
 
 -- | Validate a parsed Gram AST.
-validate :: Gram -> Either [ValidationError] ()
-validate (Gram _ patterns) = 
+validate :: GramDoc -> Either [ValidationError] ()
+validate (GramDoc _ patterns) = 
   let (_, errs) = execState (validatePatterns patterns) (emptySymbolTable, [])
   in if null errs then Right () else Left (reverse errs)
 

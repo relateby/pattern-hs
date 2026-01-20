@@ -7,7 +7,7 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck (forAll, listOf, listOf1, Gen)
-import Gram.Serialize (toGram)
+import Gram.Serialize (toGram, toGramList, toGramWithHeader)
 import Gram.Parse (fromGram)
 import qualified Gram.Transform as Transform
 import Pattern.Core (Pattern(..))
@@ -25,6 +25,18 @@ spec = do
     
     describe "toGram" $ do
       
+      describe "toGramList" $ do
+        it "serializes a list of patterns" $ do
+          let p1 = Pattern (Subject (Symbol "a") Set.empty empty) []
+          let p2 = Pattern (Subject (Symbol "b") Set.empty empty) []
+          toGramList [p1, p2] `shouldBe` "(a)\n(b)"
+
+      describe "toGramWithHeader" $ do
+        it "serializes a header and patterns" $ do
+          let header = fromList [("v", VInteger 1)]
+          let p = Pattern (Subject (Symbol "a") Set.empty empty) []
+          toGramWithHeader header [p] `shouldBe` "{v:1}\n(a)"
+
       describe "simple subject serialization" $ do
         it "serializes subject with identity and single label" $ do
           let s = Subject (Symbol "n") (Set.fromList ["Person"]) empty

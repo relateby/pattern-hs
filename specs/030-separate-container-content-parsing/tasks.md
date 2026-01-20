@@ -17,7 +17,7 @@
 
 **Purpose**: Project initialization and testing skeleton
 
-- [ ] T001 Create testing skeleton for new parsing and serialization API in `libs/gram/tests/Spec/Gram/ParseSpec.hs` and `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
+- [X] T001 Create testing skeleton for new parsing and serialization API in `libs/gram/tests/Spec/Gram/ParseSpec.hs` and `libs/gram/tests/Spec/Gram/SerializeSpec.hs`
 
 ---
 
@@ -25,8 +25,8 @@
 
 **Purpose**: Refactoring CST and base parsing logic to support containers
 
-- [ ] T002 Update `libs/gram/src/Gram/CST.hs` to explicitly represent the Gram document structure (optional header + list of patterns)
-- [ ] T003 Refactor the top-level parser in `libs/gram/src/Gram/Parse.hs` to use the updated CST structure and ensure it correctly identifies a leading bare record as a potential header
+- [X] T002 Update `libs/gram/src/Gram/CST.hs` to explicitly represent the Gram document structure (optional header + list of patterns)
+- [X] T003 Refactor the top-level parser in `libs/gram/src/Gram/Parse.hs` to use the updated CST structure and ensure it correctly identifies a leading bare record as a potential header
 
 ---
 
@@ -38,8 +38,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Implement `fromGramList` in `libs/gram/src/Gram/Parse.hs` which extracts all patterns from a parsed document
-- [ ] T005 [P] [US1] Add comprehensive unit tests for `fromGramList` in `libs/gram/tests/Spec/Gram/ParseSpec.hs` covering multiple patterns, empty documents, and whitespace/comments
+- [X] T004 [US1] Implement `fromGramList` in `libs/gram/src/Gram/Parse.hs` which extracts all patterns from a parsed document
+- [X] T005 [P] [US1] Add comprehensive unit tests for `fromGramList` in `libs/gram/tests/Spec/Gram/ParseSpec.hs` covering multiple patterns, empty documents, and whitespace/comments
 
 ---
 
@@ -51,8 +51,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Implement `fromGramWithHeader` in `libs/gram/src/Gram/Parse.hs` to separate the leading bare record from the pattern list
-- [ ] T007 [P] [US2] Add unit tests for `fromGramWithHeader` in `libs/gram/tests/Spec/Gram/ParseSpec.hs` covering documents with and without headers, and bare records that are NOT at the start
+- [X] T006 [US2] Implement `fromGramWithHeader` in `libs/gram/src/Gram/Parse.hs` to separate the leading bare record from the pattern list
+- [X] T007 [P] [US2] Add unit tests for `fromGramWithHeader` in `libs/gram/tests/Spec/Gram/ParseSpec.hs` covering documents with and without headers, and bare records that are NOT at the start
 
 ---
 
@@ -64,9 +64,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Implement `toGramList` in `libs/gram/src/Gram/Serialize.hs` for space/newline-delimited pattern serialization
-- [ ] T009 [US3] Implement `toGramWithHeader` in `libs/gram/src/Gram/Serialize.hs` for serialization with a leading header record
-- [ ] T010 [P] [US3] Add unit and property-based tests for new serialization functions in `libs/gram/tests/Spec/Gram/SerializeSpec.hs` and `libs/gram/tests/Spec/Gram/RoundtripSpec.hs`
+- [X] T008 [US3] Implement `toGramList` in `libs/gram/src/Gram/Serialize.hs` for space/newline-delimited pattern serialization
+- [X] T009 [US3] Implement `toGramWithHeader` in `libs/gram/src/Gram/Serialize.hs` for serialization with a leading header record
+- [X] T010 [P] [US3] Add unit and property-based tests for new serialization functions in `libs/gram/tests/Spec/Gram/SerializeSpec.hs` and `libs/gram/tests/Spec/Gram/RoundtripSpec.hs`
 
 ---
 
@@ -74,12 +74,12 @@
 
 **Purpose**: Documentation updates, backward compatibility, and final integration
 
-- [ ] T011 [P] Update `libs/gram/src/Gram.hs` to export all new container-aware parsing and serialization functions
-- [ ] T012 Update `fromGram` and `toGram` in `libs/gram/src/Gram/Parse.hs` and `libs/gram/src/Gram/Serialize.hs` to maintain backward compatibility using the `Gram.Root` mapping
-- [ ] T013 [P] Update `docs/reference/PORTING-GUIDE.md` to include container-aware parsing and serialization in Phase 3
-- [ ] T014 [P] Update `docs/reference/features/gram-serialization.md` to document the new API functions
-- [ ] T015 [P] Update `docs/reference/SPECIFICATION.md` to include container support in the Gram library feature table
-- [ ] T016 Run full test suite including round-trip tests and verify SC-001 (performance with 10k patterns)
+- [X] T011 [P] Update `libs/gram/src/Gram.hs` to export all new container-aware parsing and serialization functions
+- [X] T012 Update `fromGram` and `toGram` in `libs/gram/src/Gram/Parse.hs` and `libs/gram/src/Gram/Serialize.hs` to maintain backward compatibility using the `Gram.Root` mapping
+- [X] T013 [P] Update `docs/reference/PORTING-GUIDE.md` to include container-aware parsing and serialization in Phase 3
+- [X] T014 [P] Update `docs/reference/features/gram-serialization.md` to document the new API functions
+- [X] T015 [P] Update `docs/reference/SPECIFICATION.md` to include container support in the Gram library feature table
+- [X] T016 Run full test suite including round-trip tests and verify SC-001 (performance with 10k patterns)
 
 ---
 

@@ -38,8 +38,8 @@
 
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
-| Serialization (`toGram`) | ✅ Implemented | `libs/gram/src/Gram/Serialize.hs` | Handles all value types, nested patterns, relationships |
-| Parsing (`fromGram`) | ✅ Implemented | `libs/gram/src/Gram/Parse.hs` | Supports standard and extended values, relationships, nesting |
+| Parsing (`fromGram`) | ✅ Implemented | `libs/gram/src/Gram/Parse.hs` | Supports single-root wrapping, list parsing, and header separation |
+| Serialization (`toGram`) | ✅ Implemented | `libs/gram/src/Gram/Serialize.hs` | Supports single pattern, list serialization, and header serialization |
 | Validation | ✅ Implemented | `libs/gram/src/Gram/Validate.hs` | Duplicate definition, undefined reference, arity checking |
 | Round-Trip Verification | ✅ Implemented | Tests | Validated against full test corpus |
 

@@ -42,12 +42,22 @@
 -- Internal implementation details and helper functions are not exported through
 -- this module, ensuring a clean public API.
 module Gram
-  ( module Gram.Serialize
-  , module Gram.Parse
-  , module Gram.Validate
+  ( -- * Parsing
+    fromGram
+  , fromGramWithIds
+  , fromGramList
+  , fromGramWithHeader
+  , ParseError(..)
+    -- * Serialization
+  , toGram
+  , toGramList
+  , toGramWithHeader
+    -- * Validation
+  , validate
+  , ValidationError(..)
   ) where
 
-import Gram.Serialize
-import Gram.Parse
-import Gram.Validate
+import Gram.Serialize (toGram, toGramList, toGramWithHeader)
+import Gram.Parse (fromGram, fromGramWithIds, fromGramList, fromGramWithHeader, ParseError(..))
+import Gram.Validate (validate, ValidationError(..))
 

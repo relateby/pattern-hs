@@ -55,6 +55,8 @@
 -- "(n:Person {name:\"Alice\"})"
 module Gram.Serialize
   ( toGram
+  , toGramList
+  , toGramWithHeader
   , codefenceThreshold
   ) where
 
@@ -346,6 +348,21 @@ serializePatternElements elems
       -- Otherwise serialize as a full pattern (recursive call to toGram)
       | otherwise = toGram (Pattern (Subject ident lbls props) nested)
 
+-- | Serialize a list of Patterns to gram notation.
+toGramList :: [Pattern Subject] -> String
+toGramList = intercalate "\n" . map toGram
+
+-- | Serialize a header record and a list of Patterns to gram notation.
+toGramWithHeader :: Map String Value -> [Pattern Subject] -> String
+toGramWithHeader header patterns =
+  let headerStr = serializePropertyRecord header
+      patternsStr = toGramList patterns
+  in case (null headerStr, null patternsStr) of
+       (True, True) -> "{}"
+       (False, True) -> trimLeadingSpace headerStr
+       (True, False) -> patternsStr
+       (False, False) -> trimLeadingSpace headerStr ++ "\n" ++ patternsStr
+
 -- | Serialize a Pattern Subject to gram notation.
 --
 -- Converts a Pattern Subject data structure into its gram notation
@@ -389,89 +406,91 @@ toGram p@(Pattern subj elems)
   | Just edges <- isWalkPattern p = serializeWalkPattern edges
   | Just (rel, left, right) <- isEdgePattern p = serializeEdgePattern rel left right
   | otherwise = serializeSubjectAsSubject subj elems  -- Has elements -> subject syntax
-  where
-    -- | Check if subject is the Implicit Root
-    -- Identified by "Gram.Root" label.
-    isImplicitRoot :: Subject -> Bool
-    isImplicitRoot (Subject (Symbol "") lbls _) = "Gram.Root" `Set.member` lbls
-    isImplicitRoot _ = False
 
-    -- | Serialize pattern elements for implicit root (record + elements).
-    -- Note: We do NOT serialize the "Gram.Root" label itself, as it is implicit in the file structure.
-    serializeImplicitElements :: Map String Value -> [Pattern Subject] -> String
-    serializeImplicitElements props' elems' = 
-      let propsStr = if Map.null props' then "" else serializePropertyRecord props'
-          elemsStr = intercalate "\n" (map toGram elems')
-      in case (null propsStr, null elemsStr) of
-           (True, True) -> "{}" -- Empty graph/root
-           (False, True) -> trimLeadingSpace propsStr -- Remove leading space from serializePropertyRecord
-           (True, False) -> elemsStr
-           (False, False) -> trimLeadingSpace propsStr ++ "\n" ++ elemsStr
+-- | Check if subject is the Implicit Root
+-- Identified by "Gram.Root" label.
+isImplicitRoot :: Subject -> Bool
+isImplicitRoot (Subject (Symbol "") lbls _) = "Gram.Root" `Set.member` lbls
+isImplicitRoot _ = False
 
-    trimLeadingSpace (' ':xs) = xs
-    trimLeadingSpace xs = xs
+-- | Serialize pattern elements for implicit root (record + elements).
+-- Note: We do NOT serialize the "Gram.Root" label itself, as it is implicit in the file structure.
+serializeImplicitElements :: Map String Value -> [Pattern Subject] -> String
+serializeImplicitElements props' elems' = 
+  let propsStr = if Map.null props' then "" else serializePropertyRecord props'
+      elemsStr = intercalate "\n" (map toGram elems')
+  in case (null propsStr, null elemsStr) of
+       (True, True) -> "{}" -- Empty graph/root
+       (False, True) -> trimLeadingSpace propsStr -- Remove leading space from serializePropertyRecord
+       (True, False) -> elemsStr
+       (False, False) -> trimLeadingSpace propsStr ++ "\n" ++ elemsStr
 
-    -- | Check if pattern is a Walk Pattern: [Gram.Walk | edge1, edge2, ...]
-    isWalkPattern :: Pattern Subject -> Maybe [Pattern Subject]
-    isWalkPattern (Pattern (Subject _ lbls _) edges)
-      | "Gram.Walk" `Set.member` lbls = Just edges
-      | otherwise = Nothing
+-- | Helper to trim leading space from property records
+trimLeadingSpace :: String -> String
+trimLeadingSpace (' ':xs) = xs
+trimLeadingSpace xs = xs
 
-    -- | Serialize a Walk Pattern as chained path: (a)->(b)->(c)
-    -- Assumes edges are connected: (a)->(b), (b)->(c), etc.
-    -- We serialize the first edge fully: (a)->(b)
-    -- Then for subsequent edges, we only serialize the relationship and right node: ->(c)
-    serializeWalkPattern :: [Pattern Subject] -> String
-    serializeWalkPattern [] = ""
-    serializeWalkPattern [e] = toGram e -- Fallback to normal serialization for single edge
-    serializeWalkPattern (first:rest) = 
-      toGram first ++ concatMap serializeConnectedEdge rest
+-- | Check if pattern is a Walk Pattern: [Gram.Walk | edge1, edge2, ...]
+isWalkPattern :: Pattern Subject -> Maybe [Pattern Subject]
+isWalkPattern (Pattern (Subject _ lbls _) edges)
+  | "Gram.Walk" `Set.member` lbls = Just edges
+  | otherwise = Nothing
 
-    -- | Helper to serialize subsequent edges in a walk: -[rel]->(right)
-    -- We assume the left node of this edge matches the right node of the previous one,
-    -- so we skip serializing the left node.
-    serializeConnectedEdge :: Pattern Subject -> String
-    serializeConnectedEdge p' = 
-      case isEdgePattern p' of
-        Just (rel, _, right) -> "-" ++ serializeRelationship rel ++ "->" ++ toGram right
-        Nothing -> " | " ++ toGram p -- Fallback if walk contains non-edge (shouldn't happen in valid walks)
+-- | Serialize a Walk Pattern as chained path: (a)->(b)->(c)
+-- Assumes edges are connected: (a)->(b), (b)->(c), etc.
+-- We serialize the first edge fully: (a)->(b)
+-- Then for subsequent edges, we only serialize the relationship and right node: ->(c)
+serializeWalkPattern :: [Pattern Subject] -> String
+serializeWalkPattern [] = ""
+serializeWalkPattern [e] = toGram e -- Fallback to normal serialization for single edge
+serializeWalkPattern (first:rest) = 
+  toGram first ++ concatMap serializeConnectedEdge rest
 
-    -- | Check if pattern is an Edge Pattern: [rel | left, right]
-    -- Note: This assumes the parser's convention where an edge is a pattern
-    -- whose value is the relationship subject and has exactly two elements (nodes).
-    -- We MUST verify that left and right are atomic (Nodes), otherwise we might
-    -- falsely identify a list of 2 paths as an edge!
-    isEdgePattern :: Pattern Subject -> Maybe (Subject, Pattern Subject, Pattern Subject)
-    isEdgePattern (Pattern r [l@(Pattern _ []), r_node@(Pattern _ [])]) = Just (r, l, r_node)
-    isEdgePattern _ = Nothing
+-- | Helper to serialize subsequent edges in a walk: -[rel]->(right)
+-- We assume the left node of this edge matches the right node of the previous one,
+-- so we skip serializing the left node.
+serializeConnectedEdge :: Pattern Subject -> String
+serializeConnectedEdge p' = 
+  case isEdgePattern p' of
+    Just (rel, _, right) -> "-" ++ serializeRelationship rel ++ "->" ++ toGram right
+    Nothing -> " | " ++ toGram p' -- Fallback if walk contains non-edge (shouldn't happen in valid walks)
 
-    -- | Serialize an Edge Pattern as path syntax: (left)-[rel]->(right)
-    serializeEdgePattern :: Subject -> Pattern Subject -> Pattern Subject -> String
-    serializeEdgePattern rel left right =
-      toGram left ++ "-" ++ serializeRelationship rel ++ "->" ++ toGram right
+-- | Check if pattern is an Edge Pattern: [rel | left, right]
+-- Note: This assumes the parser's convention where an edge is a pattern
+-- whose value is the relationship subject and has exactly two elements (nodes).
+-- We MUST verify that left and right are atomic (Nodes), otherwise we might
+-- falsely identify a list of 2 paths as an edge!
+isEdgePattern :: Pattern Subject -> Maybe (Subject, Pattern Subject, Pattern Subject)
+isEdgePattern (Pattern r [l@(Pattern _ []), r_node@(Pattern _ [])]) = Just (r, l, r_node)
+isEdgePattern _ = Nothing
 
-    -- | Serialize relationship part: [rel] or just - if anonymous/empty
-    serializeRelationship :: Subject -> String
-    serializeRelationship (Subject (Symbol "") lbls props)
-      | Set.null lbls && Map.null props = ""  -- Anonymous relationship: returns empty string so result is -- + "" + -> = -->
-      | otherwise = "[" ++ serializeLabels lbls ++ serializePropertyRecord props ++ "]"
-    serializeRelationship (Subject ident lbls props) =
-      "[" ++ serializeIdentity ident ++ serializeLabels lbls ++ serializePropertyRecord props ++ "]"
+-- | Serialize an Edge Pattern as path syntax: (left)-[rel]->(right)
+serializeEdgePattern :: Subject -> Pattern Subject -> Pattern Subject -> String
+serializeEdgePattern rel left right =
+  toGram left ++ "-" ++ serializeRelationship rel ++ "->" ++ toGram right
 
-    serializeSubjectAsNode :: Subject -> String
-    serializeSubjectAsNode (Subject ident lbls props) =
-      "(" ++
-      serializeIdentity ident ++
-      serializeLabels lbls ++
-      serializePropertyRecord props ++
-      ")"
-    
-    serializeSubjectAsSubject :: Subject -> [Pattern Subject] -> String
-    serializeSubjectAsSubject (Subject ident lbls props) nested =
-      "[" ++
-      serializeIdentity ident ++
-      serializeLabels lbls ++
-      serializePropertyRecord props ++
-      (if not (null nested) then " | " else "") ++
-      serializePatternElements nested ++
-      "]"
+-- | Serialize relationship part: [rel] or just - if anonymous/empty
+serializeRelationship :: Subject -> String
+serializeRelationship (Subject (Symbol "") lbls props)
+  | Set.null lbls && Map.null props = ""  -- Anonymous relationship: returns empty string so result is -- + "" + -> = -->
+  | otherwise = "[" ++ serializeLabels lbls ++ serializePropertyRecord props ++ "]"
+serializeRelationship (Subject ident lbls props) =
+  "[" ++ serializeIdentity ident ++ serializeLabels lbls ++ serializePropertyRecord props ++ "]"
+
+serializeSubjectAsNode :: Subject -> String
+serializeSubjectAsNode (Subject ident lbls props) =
+  "(" ++
+  serializeIdentity ident ++
+  serializeLabels lbls ++
+  serializePropertyRecord props ++
+  ")"
+
+serializeSubjectAsSubject :: Subject -> [Pattern Subject] -> String
+serializeSubjectAsSubject (Subject ident lbls props) nested =
+  "[" ++
+  serializeIdentity ident ++
+  serializeLabels lbls ++
+  serializePropertyRecord props ++
+  (if not (null nested) then " | " else "") ++
+  serializePatternElements nested ++
+  "]"

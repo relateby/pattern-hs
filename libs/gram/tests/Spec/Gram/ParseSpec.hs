@@ -7,7 +7,7 @@
 module Spec.Gram.ParseSpec where
 
 import Test.Hspec
-import Gram.Parse (fromGram, fromGramWithIds, ParseError(..))
+import Gram.Parse (fromGram, fromGramWithIds, fromGramList, fromGramWithHeader, ParseError(..))
 import Gram.Serialize (toGram)
 import qualified Gram.Transform as Transform
 import Pattern.Core (Pattern(..))
@@ -22,6 +22,41 @@ spec :: Spec
 spec = do
   describe "Gram.Parse" $ do
     
+    describe "fromGramWithIds" $ do
+      it "assigns unique IDs to anonymous subjects" $ do
+        case fromGramWithIds "() ()" of
+          Right p -> do
+            length (elements p) `shouldBe` 2
+          Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+    describe "fromGramList" $ do
+      it "parses multiple patterns as a list" $ do
+        case fromGramList "(a) (b)" of
+          Right [p1, p2] -> do
+            identity (value p1) `shouldBe` Symbol "a"
+            identity (value p2) `shouldBe` Symbol "b"
+          _ -> expectationFailure "Should have parsed two patterns"
+
+      it "returns empty list for empty input" $ do
+        case fromGramList "" of
+          Right [] -> return ()
+          _ -> expectationFailure "Should have returned empty list"
+
+    describe "fromGramWithHeader" $ do
+      it "separates leading header from patterns" $ do
+        case fromGramWithHeader "{v:1} (a)" of
+          Right (Just header, [p]) -> do
+            Map.lookup "v" header `shouldBe` Just (VInteger 1)
+            identity (value p) `shouldBe` Symbol "a"
+          _ -> expectationFailure "Should have separated header and pattern"
+
+      it "returns Nothing for header if no leading record" $ do
+        case fromGramWithHeader "(a) (b)" of
+          Right (Nothing, [p1, p2]) -> do
+            identity (value p1) `shouldBe` Symbol "a"
+            identity (value p2) `shouldBe` Symbol "b"
+          _ -> expectationFailure "Should have returned Nothing for header"
+
     describe "fromGram" $ do
       
       describe "node parsing (from corpus: nodes.txt)" $ do

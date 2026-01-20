@@ -88,6 +88,20 @@ The Subject library provides a specialized value type for graph data (identity, 
 
 Gram serialization converts `Pattern Subject` to/from text notation. It requires both Pattern and Subject to be complete.
 
+#### Gram Documents
+
+A Gram Document represents the top-level container for patterns, potentially including a header record for metadata.
+
+1. **Serialization**
+   - `toGram :: Pattern Subject -> String`: Serialize a single pattern.
+   - `toGramList :: [Pattern Subject] -> String`: Serialize multiple patterns.
+   - `toGramWithHeader :: PropertyRecord -> [Pattern Subject] -> String`: Serialize a header and patterns.
+
+2. **Parsing**
+   - `fromGram :: String -> Either ParseError (Pattern Subject)`: Parse to a single pattern (wraps multiple patterns).
+   - `fromGramList :: String -> Either ParseError [Pattern Subject]`: Parse to a list of patterns.
+   - `fromGramWithHeader :: String -> Either ParseError (Maybe PropertyRecord, [Pattern Subject])`: Parse to an optional header and patterns.
+
 #### Implementation Order:
 1. **Serialization (`toGram`)**
    - Convert `Pattern Subject` to gram notation string

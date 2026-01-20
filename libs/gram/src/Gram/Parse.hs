@@ -68,11 +68,13 @@
 module Gram.Parse
   ( fromGram
   , fromGramWithIds
+  , fromGramList
+  , fromGramWithHeader
   , parseGram
   , ParseError(..)
   ) where
 
-import Gram.CST (Gram(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..), Symbol(..), Annotation(..), Value)
+import Gram.CST (GramDoc(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..), Symbol(..), Annotation(..), Value)
 import qualified Gram.Transform as Transform
 import qualified Pattern.Core as Core
 import qualified Subject.Core as CoreSub
@@ -752,29 +754,44 @@ parseAnnotatedPattern = do
   element <- parsePatternElement
   return $ AnnotatedPattern anns [element]
 
-parseGram :: Parser Gram
+parseGram :: Parser GramDoc
 parseGram = do
   optionalSpace
   rootRecord <- optional (try parsePropertyRecord)
   optionalSpace
   
-  firstPatterns <- if rootRecord == Nothing
-    then (:[]) <$> parseAnnotatedPattern
-    else optional (try parseAnnotatedPattern) >>= \p -> return $ maybe [] (:[]) p
+  -- Parse first pattern if it exists
+  firstPatterns <- optional (try parseAnnotatedPattern) >>= \p -> return $ maybe [] (:[]) p
     
   additionalPatterns <- many (try (do
     optionalSpaceWithNewlines
     -- Commas are NOT allowed as separators at the top level in strict gram
     -- void $ optional (char ',')
     nextChar <- lookAhead (satisfy (const True))
-    if nextChar == '(' || nextChar == '[' || nextChar == '@'
+    if nextChar == '(' || nextChar == '[' || nextChar == '@' || nextChar == '{'
       then parseAnnotatedPattern
       else fail "no pattern"))
       
   optionalSpaceWithNewlines
   eof
   
-  return $ Gram rootRecord (firstPatterns ++ additionalPatterns)
+  return $ GramDoc rootRecord (firstPatterns ++ additionalPatterns)
+
+-- | Parse gram notation string into a list of Pattern Subjects.
+fromGramList :: String -> Either ParseError [Core.Pattern CoreSub.Subject]
+fromGramList input = do
+  let stripped = stripComments input
+  case parse parseGram "gram" stripped of
+    Left err -> Left (convertError err)
+    Right cst -> Right (Transform.transformGramList cst)
+
+-- | Parse gram notation string into an optional header record and a list of patterns.
+fromGramWithHeader :: String -> Either ParseError (Maybe (Map String V.Value), [Core.Pattern CoreSub.Subject])
+fromGramWithHeader input = do
+  let stripped = stripComments input
+  case parse parseGram "gram" stripped of
+    Left err -> Left (convertError err)
+    Right cst -> Right (Transform.transformGramWithHeader cst)
 
 -- | Parse gram notation string into a Pattern Subject.
 --

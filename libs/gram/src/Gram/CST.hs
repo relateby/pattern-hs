@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module Gram.CST
-  ( Gram(..)
+  ( GramDoc(..)
   , AnnotatedPattern(..)
   , PatternElement(..)
   , Path(..)
@@ -24,9 +24,9 @@ import Data.Map (Map)
 import Data.Set (Set)
 import qualified Subject.Value as CoreVal
 
--- | Top-level Gram structure
+-- | Top-level Gram structure (a Document)
 -- gram: optional(record) + repeat(annotated_pattern)
-data Gram = Gram
+data GramDoc = GramDoc
   { gramRecord :: Maybe (Map String Value)
   , gramPatterns :: [AnnotatedPattern]
   } deriving (Show, Eq, Generic)
