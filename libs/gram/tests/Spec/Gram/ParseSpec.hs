@@ -332,8 +332,22 @@ spec = do
               value p `shouldBe` Subject (Symbol "") (Set.singleton "Gram.Root") props
               length (elements p) `shouldBe` 1
             Left err -> expectationFailure $ "Parse failed: " ++ show err
-      
+
       describe "parse error handling" $ do
+        it "fails to parse a bare record in the middle of a document" $ do
+          case fromGramList "(a) {v:1} (b)" of
+            Left _ -> return ()
+            Right _ -> expectationFailure "Should have failed to parse bare record in the middle"
+
+        it "fails to parse an annotated bare record" $ do
+          case fromGramList "@meta(true) {v:1}" of
+            Left _ -> return ()
+            Right _ -> expectationFailure "Should have failed to parse annotated bare record"
+
+        it "fails to parse multiple records at the top level" $ do
+          case fromGramList "{v:1} {v:2}" of
+            Left _ -> return ()
+            Right _ -> expectationFailure "Should have failed to parse multiple records"
         it "handles invalid syntax" $ do
           case fromGram "(invalid" of
             Right _ -> expectationFailure "Should have failed"
