@@ -21,21 +21,21 @@ import qualified Data.Map as Map
 -- | Helper function to test roundtrip: Gram -> JSON -> Gram
 roundtripGramJSON :: String -> Either String String
 roundtripGramJSON gramInput = do
-  -- Parse gram to Pattern
-  pattern <- case Gram.fromGram gramInput of
+  -- Parse gram to [Pattern]
+  patterns <- case Gram.fromGram gramInput of
     Left err -> Left (show err)
-    Right p -> Right p
+    Right ps -> Right ps
   
   -- Convert to JSON
-  let jsonBytes = encode pattern
+  let jsonBytes = encode patterns
   
-  -- Parse JSON back to Pattern
-  pattern' <- case decode jsonBytes of
-    Just p -> Right p
-    Nothing -> Left "Failed to decode JSON back to Pattern"
+  -- Parse JSON back to [Pattern]
+  patterns' <- case (decode jsonBytes :: Maybe [Pattern.Pattern Subject.Subject]) of
+    Just ps -> Right ps
+    Nothing -> Left "Failed to decode JSON back to Pattern list"
   
   -- Convert back to Gram
-  let gramOutput = Gram.toGram pattern'
+  let gramOutput = Gram.toGram patterns'
   
   return gramOutput
 
@@ -75,6 +75,25 @@ testRoundtrip filePath = it ("roundtrips " ++ filePath) $ do
 
 spec :: Spec
 spec = do
+  describe "Root record roundtrip (fromGram / toGram)" $ do
+    it "roundtrips {h:1}\\n(a) via fromGram . toGram . fromGram" $ do
+      let input = "{h:1}\n(a)"
+      case Gram.fromGram input of
+        Right ps -> do
+          let out = Gram.toGram ps
+          out `shouldBe` "{h:1}\n(a)"
+          case Gram.fromGram out of
+            Right ps' -> ps `shouldBe` ps'
+            Left e -> expectationFailure $ "Reparse failed: " ++ show e
+        Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+    it "roundtrips {}" $ do
+      case Gram.fromGram "{}" of
+        Right [p] -> do
+          Gram.toGram [p] `shouldBe` "{}"
+          Gram.fromGram "{}" `shouldBe` Right [p]
+        _ -> expectationFailure "fromGram {} should return [p]"
+
   describe "JSON Roundtrip Tests" $ do
     
     describe "Custom Edge Case Roundtrip Tests" $ do

@@ -17,37 +17,37 @@ spec = do
       let input = "(node)"
       case Gram.fromGram input of
         Left _ -> expectationFailure "Failed to parse test input"
-        Right pattern -> do
+        Right [pattern] -> do
           let opts = Types.defaultOutputOptions { Types.deterministic = True }
-          let output1 = JSON.patternToJSON opts pattern
-          let output2 = JSON.patternToJSON opts pattern
+          let output1 = JSON.patternsToJSON opts [pattern]
+          let output2 = JSON.patternsToJSON opts [pattern]
           output1 `shouldBe` output2
     
     it "same input produces same output with --value-only" $ do
       let input = "(node)"
       case Gram.fromGram input of
         Left _ -> expectationFailure "Failed to parse test input"
-        Right pattern -> do
+        Right [pattern] -> do
           let opts = Types.defaultOutputOptions { Types.valueOnly = True }
-          let output1 = JSON.patternToJSON opts pattern
-          let output2 = JSON.patternToJSON opts pattern
+          let output1 = JSON.patternsToJSON opts [pattern]
+          let output2 = JSON.patternsToJSON opts [pattern]
           output1 `shouldBe` output2
     
     it "deterministic output contains fixed timestamp" $ do
       let input = "(node)"
       case Gram.fromGram input of
         Left _ -> expectationFailure "Failed to parse test input"
-        Right pattern -> do
+        Right [pattern] -> do
           let opts = Types.defaultOutputOptions { Types.deterministic = True }
-          let output = JSON.patternToJSON opts pattern
+          let output = JSON.patternsToJSON opts [pattern]
           T.isInfixOf (T.pack "1970-01-01T00:00:00+0000") output `shouldBe` True
     
     it "deterministic output contains fixed hash" $ do
       let input = "(node)"
       case Gram.fromGram input of
         Left _ -> expectationFailure "Failed to parse test input"
-        Right pattern -> do
+        Right [pattern] -> do
           let opts = Types.defaultOutputOptions { Types.deterministic = True }
-          let output = JSON.patternToJSON opts pattern
+          let output = JSON.patternsToJSON opts [pattern]
           T.isInfixOf (T.pack "0000000000000000000000000000000000000000000000000000000000000000") output `shouldBe` True
 

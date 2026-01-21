@@ -39,6 +39,9 @@
 module Gram.Transform
   ( transformGram
   , transformGramWithIds
+  , transformGramList
+  , transformGramWithHeader
+  , transformPattern
   , assignIdentities
   ) where
 
@@ -54,7 +57,7 @@ import Data.Char (isDigit)
 
 type Transform = State Int
 
--- | Transform a CST Gram into a Core Pattern Subject.
+-- | Transform a CST GramDoc into a list of Core Pattern Subject.
 --
 -- This function preserves anonymous subjects as 'Symbol ""' to enable
 -- round-trip compatibility. Anonymous subjects in the gram notation
@@ -62,12 +65,29 @@ type Transform = State Int
 --
 -- If you need unique IDs assigned to anonymous subjects, use
 -- 'transformGramWithIds' instead.
-transformGram :: CST.Gram -> P.Pattern S.Subject
-transformGram gram = evalState (transformGram' gram) 0
+transformGram :: CST.GramDoc -> [P.Pattern S.Subject]
+transformGram = transformGramList
+
+-- | Transform a CST GramDoc into a list of Core Pattern Subject.
+-- A leading bare record (header) is represented as an anonymous pattern with
+-- no elements (@Pattern (Subject (Symbol \"\") Set.empty props) []@) and
+-- prepended as the first element. Use 'transformGramWithHeader' to obtain
+-- the header as 'Maybe PropertyRecord' separately from the pattern list.
+transformGramList :: CST.GramDoc -> [P.Pattern S.Subject]
+transformGramList (CST.GramDoc record patterns) =
+  let pats = evalState (mapM transformPattern patterns) 0
+  in case record of
+    Just props -> P.Pattern (S.Subject (S.Symbol "") Set.empty props) [] : pats
+    Nothing -> pats
+
+-- | Transform a CST GramDoc into a header and list of Core Pattern Subject.
+transformGramWithHeader :: CST.GramDoc -> (Maybe (Map String V.Value), [P.Pattern S.Subject])
+transformGramWithHeader (CST.GramDoc record patterns) =
+  (record, evalState (mapM transformPattern patterns) 0)
 
 -- | Find the maximum numeric suffix of IDs matching "#<N>" in the CST
-findMaxId :: CST.Gram -> Int
-findMaxId (CST.Gram _ patterns) = maximum (0 : concatMap scanPattern patterns)
+findMaxId :: CST.GramDoc -> Int
+findMaxId (CST.GramDoc _ patterns) = maximum (0 : concatMap scanPattern patterns)
   where
     scanPattern (CST.AnnotatedPattern _ elements) = concatMap scanElement elements
 
@@ -98,22 +118,6 @@ findMaxId (CST.Gram _ patterns) = maximum (0 : concatMap scanPattern patterns)
 
     parseGeneratedId ('#':rest) | all isDigit rest && not (null rest) = Just (read rest)
     parseGeneratedId _ = Nothing
-
-transformGram' :: CST.Gram -> Transform (P.Pattern S.Subject)
-transformGram' (CST.Gram record patterns) =
-  case (record, patterns) of
-    (Just props, []) -> 
-      -- Only record
-      return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") props) []
-    (Just props, pats) -> do
-      pats' <- mapM transformPattern pats
-      -- Explicit root record.
-      return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") props) pats'
-    (Nothing, [p]) ->
-      transformPattern p
-    (Nothing, pats) -> do
-      pats' <- mapM transformPattern pats
-      return $ P.Pattern (S.Subject (S.Symbol "") (Set.singleton "Gram.Root") Map.empty) pats'
 
 transformPattern :: CST.AnnotatedPattern -> Transform (P.Pattern S.Subject)
 transformPattern (CST.AnnotatedPattern annotations elements) = do
@@ -266,11 +270,12 @@ assignIdentities' (P.Pattern subj elems) = do
   newElems <- mapM assignIdentities' elems
   return $ P.Pattern newSubj newElems
 
--- | Transform a CST Gram into a Core Pattern Subject with ID assignment.
+-- | Transform a CST GramDoc into a list of Core Pattern Subject with ID assignment.
 --
--- This function is equivalent to applying 'assignIdentities' to the result
--- of 'transformGram'. It assigns unique sequential IDs (e.g., @#1@, @#2@)
--- to all anonymous subjects in the parsed pattern.
+-- This function is equivalent to applying 'assignIdentities' to each pattern
+-- in the result of 'transformGram', threading the ID counter across the list
+-- so IDs are unique across the whole document. It assigns unique sequential IDs
+-- (e.g., @#1@, @#2@) to all anonymous subjects in the parsed patterns.
 --
 -- Use this function when you need unique identifiers for anonymous subjects,
 -- such as for graph algorithms or when distinguishing between anonymous
@@ -278,5 +283,8 @@ assignIdentities' (P.Pattern subj elems) = do
 --
 -- For round-trip compatibility, use 'transformGram' instead, which preserves
 -- anonymity.
-transformGramWithIds :: CST.Gram -> P.Pattern S.Subject
-transformGramWithIds = assignIdentities . transformGram
+transformGramWithIds :: CST.GramDoc -> [P.Pattern S.Subject]
+transformGramWithIds gram =
+  let patterns = transformGram gram
+      start = maximum (0 : map findMaxIdInPattern patterns) + 1
+  in evalState (mapM assignIdentities' patterns) start

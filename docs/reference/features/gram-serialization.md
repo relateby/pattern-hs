@@ -24,12 +24,17 @@ toGram :: Pattern Subject -> String
 
 Converts a `Pattern Subject` to gram notation string.
 
-**Handles**:
-- All value types (standard and extended)
-- Nested patterns
-- Relationships
-- Anonymous subjects
-- Labels and properties
+### `toGramList` - Serialize multiple patterns
+
+```haskell
+toGramList :: [Pattern Subject] -> String
+```
+
+### `toGramWithHeader` - Serialize header and patterns
+
+```haskell
+toGramWithHeader :: PropertyRecord -> [Pattern Subject] -> String
+```
 
 ## Parsing
 
@@ -39,13 +44,19 @@ Converts a `Pattern Subject` to gram notation string.
 fromGram :: String -> Either ParseError (Pattern Subject)
 ```
 
-Parses gram notation to `Pattern Subject`.
+Parses gram notation to a single `Pattern Subject`. If the document contains multiple patterns or a leading record, they are wrapped in a pattern with the label `Gram.Root`.
 
-**Supports**:
-- Standard and extended values
-- Relationships
-- Nesting
-- Pattern and path notation
+### `fromGramList` - Parse to list of patterns
+
+```haskell
+fromGramList :: String -> Either ParseError [Pattern Subject]
+```
+
+### `fromGramWithHeader` - Parse to header and patterns
+
+```haskell
+fromGramWithHeader :: String -> Either ParseError (Maybe PropertyRecord, [Pattern Subject])
+```
 
 ## JSON Serialization
 

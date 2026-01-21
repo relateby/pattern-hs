@@ -31,6 +31,13 @@
 -- Gram.Validate are available through this module. See individual module
 -- documentation for detailed information about specific functionality.
 --
+-- == Root record and first-pattern
+--
+-- @fromGram@ and @toGram@ preserve a leading bare record as the first pattern
+-- (anonymous identity, no labels, no elements). @fromGramWithHeader@ and
+-- @toGramWithHeader@ keep the header as @Maybe PropertyRecord@ / @PropertyRecord@
+-- separate from the pattern list.
+--
 -- == Re-export Structure
 --
 -- This module re-exports:
@@ -42,12 +49,21 @@
 -- Internal implementation details and helper functions are not exported through
 -- this module, ensuring a clean public API.
 module Gram
-  ( module Gram.Serialize
-  , module Gram.Parse
-  , module Gram.Validate
+  ( -- * Parsing
+    fromGram
+  , fromGramWithIds
+  , fromGramWithHeader
+  , ParseError(..)
+    -- * Serialization
+  , toGram
+  , toGramWithHeader
+  , serializePattern
+    -- * Validation
+  , validate
+  , ValidationError(..)
   ) where
 
-import Gram.Serialize
-import Gram.Parse
-import Gram.Validate
+import Gram.Serialize (toGram, toGramWithHeader, serializePattern)
+import Gram.Parse (fromGram, fromGramWithIds, fromGramWithHeader, ParseError(..))
+import Gram.Validate (validate, ValidationError(..))
 

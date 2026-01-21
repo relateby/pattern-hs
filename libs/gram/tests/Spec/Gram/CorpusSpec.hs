@@ -238,15 +238,15 @@ testRoundTripCorpus = do
         
         let roundTripFailures = concatMap (\(file, name, original, result) ->
               case result of
-                Right pattern -> 
-                  let serialized = toGram pattern
+                Right patterns -> 
+                  let serialized = toGram patterns
                       reparsed = fromGram serialized
                   in case reparsed of
-                    Right reparsedPattern -> 
-                      -- Use structural equality (Subject has Eq instance that handles Symbol "" correctly)
-                      if pattern == reparsedPattern
+                    Right reparsedPatterns -> 
+                      -- Use structural equality
+                      if patterns == reparsedPatterns
                         then []
-                        else [(file, name, original, "Round-trip structure mismatch\nOriginal: " ++ show pattern ++ "\nReparsed: " ++ show reparsedPattern)]
+                        else [(file, name, original, "Round-trip structure mismatch\nOriginal: " ++ show patterns ++ "\nReparsed: " ++ show reparsedPatterns)]
                     Left err -> [(file, name, original, "Failed to reparse: " ++ show err)]
                 Left _ -> []
               ) successfulParses

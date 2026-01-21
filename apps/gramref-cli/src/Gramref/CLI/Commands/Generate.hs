@@ -122,7 +122,7 @@ runGenerate opts = do
   case generateType opts of
     GenPattern -> do
       let patterns = take (generateCount opts) $ generatePatterns gen (generateComplexity opts)
-      mapM_ (Output.formatOutput (generateFormat opts) outputOpts) patterns
+      Output.formatOutput (generateFormat opts) outputOpts patterns
       return ExitSuccess
     GenSuite -> do
       let testSuite = generateTestSuite (generateCount opts) gen (generateComplexity opts)
@@ -219,12 +219,16 @@ generateTestCase :: Int -> StdGen -> String -> TestCase
 generateTestCase caseNum gen complexity =
   let name = T.pack $ "test_case_" ++ printf "%03d" caseNum
       description = T.pack $ "Generated test case " ++ show caseNum ++ " with " ++ complexity ++ " complexity"
-      (pattern, gramNotation) = generatePatternForComplexity gen complexity
+      (_, gramNotation) = generatePatternForComplexity gen complexity
       input = TestInput "gram_notation" (T.pack gramNotation)
-      -- Parse the gram notation to ensure it's valid, then use the parsed pattern
+      -- Parse the gram notation and use the parsed result; on parse failure, record
+      -- the error as expected so we don't mask round-trip bugs or produce inconsistent
+      -- test data (expected pattern when the input doesn't parse).
       expected = case Gram.fromGram gramNotation of
-        Right pat -> TestExpected "pattern" (patternToJSONValue pat)
-        Left _ -> TestExpected "pattern" (patternToJSONValue pattern)  -- Fallback to generated pattern
+        Right pats -> case pats of
+          [pat] -> TestExpected "pattern" (patternToJSONValue pat)
+          _ -> TestExpected "patternList" (toJSON pats)
+        Left err -> TestExpected "parseError" (toJSON (show err))
       operations = Nothing  -- TODO: Add operations generation
   in TestCase name description input expected operations
 
@@ -309,7 +313,7 @@ generateMinimalPattern gen =
 generateBasicPattern :: StdGen -> (Pattern.Pattern Subject.Subject, String)
 generateBasicPattern gen =
   let (pattern, _, _) = generateBasicPatternWithGen gen
-      gramNotation = Gram.toGram pattern
+      gramNotation = Gram.serializePattern pattern
   in (pattern, gramNotation)
 
 generateBasicPatternWithGen :: StdGen -> (Pattern.Pattern Subject.Subject, String, StdGen)
@@ -331,7 +335,7 @@ generateBasicPatternWithGen gen =
 generateStandardPattern :: StdGen -> (Pattern.Pattern Subject.Subject, String)
 generateStandardPattern gen =
   let (pattern, _, _) = generateStandardPatternWithGen gen
-      gramNotation = Gram.toGram pattern
+      gramNotation = Gram.serializePattern pattern
   in (pattern, gramNotation)
 
 generateStandardPatternWithGen :: StdGen -> (Pattern.Pattern Subject.Subject, String, StdGen)
@@ -389,7 +393,7 @@ generateComplexPattern gen =
       symbol = Subject.Symbol ("node" ++ show n)
       subject = Subject.Subject symbol labels props
       pattern = Pattern.Pattern subject elements
-      gramNotation = Gram.toGram pattern
+      gramNotation = Gram.serializePattern pattern
   in (pattern, gramNotation)
 
 generateAdversarialPattern :: StdGen -> (Pattern.Pattern Subject.Subject, String)
@@ -416,7 +420,7 @@ generateAdversarialPattern gen =
       symbol = Subject.Symbol ("node" ++ show n)
       subject = Subject.Subject symbol labels props
       pattern = Pattern.Pattern subject elements
-      gramNotation = Gram.toGram pattern
+      gramNotation = Gram.serializePattern pattern
   in (pattern, gramNotation)
 
 -- Pattern generation (existing)

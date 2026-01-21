@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Gramref.CLI.JSON
-  ( patternToJSON
+  ( patternsToJSON
   , errorToJSON
   , canonicalizeJSON
   , Meta(..)
@@ -88,16 +88,16 @@ data ErrorWrapper = ErrorWrapper
 instance ToJSON ErrorWrapper where
   toJSON = genericToJSON defaultOptions { fieldLabelModifier = drop 5 }
 
--- Pattern serialization to JSON
-patternToJSON :: Types.OutputOptions -> Pattern.Pattern Subject.Subject -> T.Text
-patternToJSON opts pat = unsafePerformIO $ do
+-- Patterns serialization to JSON
+patternsToJSON :: Types.OutputOptions -> [Pattern.Pattern Subject.Subject] -> T.Text
+patternsToJSON opts pats = unsafePerformIO $ do
   let opts' = Types.enforceDeterministicCanonical opts
-  let patternVal = toJSON pat  -- Use the ToJSON instance from Gram.JSON
+  let patternsVal = toJSON pats  -- Use the ToJSON instance from Gram.JSON
   
   -- Handle value-only output
   if Types.valueOnly opts' 
     then do
-      let jsonVal = if Types.canonical opts' then GramJSON.canonicalizeJSON patternVal else patternVal
+      let jsonVal = if Types.canonical opts' then GramJSON.canonicalizeJSON patternsVal else patternsVal
       -- Use encode for canonical output (encodePretty only affects top-level keys)
       let jsonBytes = encode jsonVal
       return $ TE.decodeUtf8 $ BSL.toStrict jsonBytes
@@ -117,8 +117,8 @@ patternToJSON opts pat = unsafePerformIO $ do
                 , metaHash = ""  -- Will compute after encoding
                 }
             , successResult = PatternResult
-                { resultType = "Pattern"
-                , resultValue = patternVal
+                { resultType = "PatternList"
+                , resultValue = patternsVal
                 }
             , successDiagnostics = Nothing
             }

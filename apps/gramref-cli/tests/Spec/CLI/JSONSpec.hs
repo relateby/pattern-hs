@@ -54,9 +54,9 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.canonical = True, Types.valueOnly = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Parse back to verify structure
             case Aeson.eitherDecodeStrict (TE.encodeUtf8 output) of
               Left _ -> expectationFailure "Output is not valid JSON"
@@ -73,22 +73,22 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left err -> expectationFailure $ "Failed to parse test input: " ++ show err
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.canonical = True, Types.valueOnly = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Verify output is deterministic and contains sorted keys
-            output2 <- return $ JSON.patternToJSON opts pattern
+            output2 <- return $ JSON.patternsToJSON opts [pattern]
             output `shouldBe` output2
       
       it "produces byte-for-byte identical output across runs" $ do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             -- Use deterministic flag to ensure identical output
             let opts = Types.defaultOutputOptions { Types.canonical = True, Types.deterministic = True }
-            output1 <- return $ JSON.patternToJSON opts pattern
-            output2 <- return $ JSON.patternToJSON opts pattern
+            output1 <- return $ JSON.patternsToJSON opts [pattern]
+            output2 <- return $ JSON.patternsToJSON opts [pattern]
             output1 `shouldBe` output2
     
     describe "--canonical --value-only combination" $ do
@@ -97,16 +97,16 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions 
                   { Types.canonical = True
                   , Types.valueOnly = True
                   }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Should not contain metadata
             T.isInfixOf (T.pack "Meta") output `shouldBe` False
             -- Should be deterministic
-            output2 <- return $ JSON.patternToJSON opts pattern
+            output2 <- return $ JSON.patternsToJSON opts [pattern]
             output `shouldBe` output2
     
     describe "--deterministic auto-enables --canonical" $ do
@@ -115,7 +115,7 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.deterministic = True }
             let opts' = Types.enforceDeterministicCanonical opts
             Types.canonical opts' `shouldBe` True
@@ -126,10 +126,10 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             -- Test that hash computation works correctly with canonical mode
             let opts = Types.defaultOutputOptions { Types.canonical = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- The output should be valid JSON with a hash field
             -- The hash should be computed from the canonicalized JSON (before hash is added)
             T.isInfixOf (T.pack "Hash") output `shouldBe` True

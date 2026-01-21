@@ -79,8 +79,8 @@ runTransform opts = do
     Left err -> do
       Output.formatError (transformFormat opts) outputOpts (show err)
       return (ExitFailure 1)
-    Right pattern -> do
-      let transformed = applyTransform (transformOperation opts) pattern
+    Right patterns -> do
+      let transformed = map (applyTransform (transformOperation opts)) patterns
       Output.formatOutput (transformFormat opts) outputOpts transformed
       return ExitSuccess
 

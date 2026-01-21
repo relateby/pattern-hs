@@ -20,9 +20,9 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.valueOnly = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Should not contain "Meta" or "Result" wrapper
             T.isInfixOf (T.pack "Meta") output `shouldBe` False
             T.isInfixOf (T.pack "Result") output `shouldBe` False
@@ -42,10 +42,10 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.valueOnly = True }
-            output1 <- return $ JSON.patternToJSON opts pattern
-            output2 <- return $ JSON.patternToJSON opts pattern
+            output1 <- return $ JSON.patternsToJSON opts [pattern]
+            output2 <- return $ JSON.patternsToJSON opts [pattern]
             output1 `shouldBe` output2
     
     describe "--deterministic flag" $ do
@@ -54,9 +54,9 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.deterministic = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Should contain fixed timestamp
             T.isInfixOf (T.pack "1970-01-01T00:00:00+0000") output `shouldBe` True
       
@@ -64,9 +64,9 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.deterministic = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Should contain fixed hash (all zeros)
             T.isInfixOf (T.pack "0000000000000000000000000000000000000000000000000000000000000000") output `shouldBe` True
       
@@ -74,10 +74,10 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.deterministic = True }
-            output1 <- return $ JSON.patternToJSON opts pattern
-            output2 <- return $ JSON.patternToJSON opts pattern
+            output1 <- return $ JSON.patternsToJSON opts [pattern]
+            output2 <- return $ JSON.patternsToJSON opts [pattern]
             output1 `shouldBe` output2
     
     describe "--value-only --deterministic combination" $ do
@@ -86,18 +86,18 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions 
                   { Types.valueOnly = True
                   , Types.deterministic = True
                   }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Should not contain metadata
             T.isInfixOf (T.pack "Meta") output `shouldBe` False
             -- Should contain pattern structure
             T.isInfixOf (T.pack "subject") output `shouldBe` True
             -- Should be deterministic
-            output2 <- return $ JSON.patternToJSON opts pattern
+            output2 <- return $ JSON.patternsToJSON opts [pattern]
             output `shouldBe` output2
     
     describe "Integration test for parse command with --value-only" $ do
@@ -106,9 +106,9 @@ spec = do
         let input = "(test)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.valueOnly = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Verify it's valid JSON and contains pattern data
             T.isInfixOf (T.pack "subject") output `shouldBe` True
             T.isInfixOf (T.pack "elements") output `shouldBe` True
@@ -119,9 +119,9 @@ spec = do
         let input = "()"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions { Types.valueOnly = True }
-            let output = JSON.patternToJSON opts pattern
+            let output = JSON.patternsToJSON opts [pattern]
             -- Should produce valid JSON even for empty pattern
             T.isInfixOf (T.pack "subject") output `shouldBe` True
             T.isInfixOf (T.pack "elements") output `shouldBe` True
@@ -130,19 +130,19 @@ spec = do
         let input = "(node)"
         case Gram.fromGram input of
           Left _ -> expectationFailure "Failed to parse test input"
-          Right pattern -> do
+          Right [pattern] -> do
             let opts = Types.defaultOutputOptions 
                   { Types.valueOnly = True
                   , Types.deterministic = True
                   , Types.canonical = True
                   }
             let opts' = Types.enforceDeterministicCanonical opts
-            let output = JSON.patternToJSON opts' pattern
+            let output = JSON.patternsToJSON opts' [pattern]
             -- Should not contain metadata
             T.isInfixOf (T.pack "Meta") output `shouldBe` False
             -- Should contain pattern structure
             T.isInfixOf (T.pack "subject") output `shouldBe` True
             -- Should be deterministic
-            output2 <- return $ JSON.patternToJSON opts' pattern
+            output2 <- return $ JSON.patternsToJSON opts' [pattern]
             output `shouldBe` output2
 

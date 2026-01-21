@@ -11,6 +11,9 @@ import Gramref.CLI.Types (OutputFormat(..), OutputOptions(..), outputOptionsPars
 import qualified Gramref.CLI.Output as Output
 import qualified Gram.Parse as Gram
 import qualified Gram.Serialize as Gram
+import qualified Gram.JSON ()  -- ToJSON/FromJSON for Pattern
+import qualified Pattern.Core as Pattern
+import qualified Subject.Core as Subject
 import Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Lazy as BSL
 import System.Exit (ExitCode(..))
@@ -72,12 +75,12 @@ runConvert opts = do
         Left err -> do
           Output.formatError FormatJSON outputOpts (show err)
           return (ExitFailure 1)
-        Right pattern -> case convertTo opts of
+        Right patterns -> case convertTo opts of
           ConvertGram -> do
-            putStrLn (Gram.toGram pattern)
+            putStrLn (Gram.toGram patterns)
             return ExitSuccess
           ConvertJSON -> do
-            Output.formatOutput FormatJSON outputOpts pattern
+            Output.formatOutput FormatJSON outputOpts patterns
             return ExitSuccess
           _ -> do
             Output.formatError FormatJSON outputOpts ("Conversion to " ++ show (convertTo opts) ++ " not yet implemented")
@@ -85,16 +88,22 @@ runConvert opts = do
     
     ConvertJSON -> do
       jsonInput <- BSL.readFile (convertInputFile opts)
-      case eitherDecode jsonInput of
+      -- Support both JSON array of patterns and single pattern object (backward compat)
+      let patternsE = case (eitherDecode jsonInput :: Either String [Pattern.Pattern Subject.Subject]) of
+            Right ps -> Right ps
+            Left _ -> case (eitherDecode jsonInput :: Either String (Pattern.Pattern Subject.Subject)) of
+              Right p -> Right [p]
+              Left err -> Left err
+      case patternsE of
         Left err -> do
           Output.formatError FormatJSON outputOpts ("JSON parse error: " ++ err)
           return (ExitFailure 1)
-        Right pattern -> case convertTo opts of
+        Right patterns -> case convertTo opts of
           ConvertGram -> do
-            putStrLn (Gram.toGram pattern)
+            putStrLn (Gram.toGram patterns)
             return ExitSuccess
           ConvertJSON -> do
-            Output.formatOutput FormatJSON outputOpts pattern
+            Output.formatOutput FormatJSON outputOpts patterns
             return ExitSuccess
           _ -> do
             Output.formatError FormatJSON outputOpts ("Conversion to " ++ show (convertTo opts) ++ " not yet implemented")

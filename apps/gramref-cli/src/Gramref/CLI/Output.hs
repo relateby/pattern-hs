@@ -11,10 +11,10 @@ import qualified Pattern.Core as Pattern
 import qualified Subject.Core as Subject
 import qualified Data.Text.IO as TIO
 
-formatOutput :: OutputFormat -> OutputOptions -> Pattern.Pattern Subject.Subject -> IO ()
-formatOutput FormatJSON opts pat = TIO.putStrLn (JSON.patternToJSON opts pat)
-formatOutput FormatGram _ pat = putStrLn (Gram.toGram pat)
-formatOutput FormatDebug _ pat = print pat
+formatOutput :: OutputFormat -> OutputOptions -> [Pattern.Pattern Subject.Subject] -> IO ()
+formatOutput FormatJSON opts pats = TIO.putStrLn (JSON.patternsToJSON opts pats)
+formatOutput FormatGram _ pats = putStrLn (Gram.toGram pats)
+formatOutput FormatDebug _ pats = print pats
 
 formatError :: OutputFormat -> OutputOptions -> String -> IO ()
 formatError FormatJSON opts err = TIO.putStrLn (JSON.errorToJSON opts err)

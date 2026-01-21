@@ -68,16 +68,18 @@
 module Gram.Parse
   ( fromGram
   , fromGramWithIds
+  , fromGramWithHeader
   , parseGram
   , ParseError(..)
   ) where
 
-import Gram.CST (Gram(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..), Symbol(..), Annotation(..), Value)
+import Gram.CST (GramDoc(..), AnnotatedPattern(..), PatternElement(..), Path(..), PathSegment(..), Node(..), Relationship(..), SubjectPattern(..), SubjectData(..), Identifier(..), Symbol(..), Annotation(..), Value)
 import qualified Gram.Transform as Transform
 import qualified Pattern.Core as Core
 import qualified Subject.Core as CoreSub
 import qualified Subject.Value as V
 
+import Data.Char (isSpace)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -752,20 +754,20 @@ parseAnnotatedPattern = do
   element <- parsePatternElement
   return $ AnnotatedPattern anns [element]
 
-parseGram :: Parser Gram
+parseGram :: Parser GramDoc
 parseGram = do
-  optionalSpace
+  optionalSpaceWithNewlines
   rootRecord <- optional (try parsePropertyRecord)
-  optionalSpace
+  optionalSpaceWithNewlines
   
-  firstPatterns <- if rootRecord == Nothing
-    then (:[]) <$> parseAnnotatedPattern
-    else optional (try parseAnnotatedPattern) >>= \p -> return $ maybe [] (:[]) p
+  -- A Gram document must have either a leading record or at least one pattern.
+  -- This ensures fromGram "" fails as it did previously.
+  firstPatterns <- case rootRecord of
+    Nothing -> (:[]) <$> parseAnnotatedPattern
+    Just _  -> optional (try parseAnnotatedPattern) >>= \p -> return $ maybe [] (:[]) p
     
   additionalPatterns <- many (try (do
     optionalSpaceWithNewlines
-    -- Commas are NOT allowed as separators at the top level in strict gram
-    -- void $ optional (char ',')
     nextChar <- lookAhead (satisfy (const True))
     if nextChar == '(' || nextChar == '[' || nextChar == '@'
       then parseAnnotatedPattern
@@ -774,28 +776,44 @@ parseGram = do
   optionalSpaceWithNewlines
   eof
   
-  return $ Gram rootRecord (firstPatterns ++ additionalPatterns)
+  return $ GramDoc rootRecord (firstPatterns ++ additionalPatterns)
 
--- | Parse gram notation string into a Pattern Subject.
+-- | Parse gram notation into an optional header and a list of patterns.
 --
--- This function preserves anonymous subjects as 'Symbol ""' to enable
--- round-trip compatibility. Anonymous subjects in the gram notation
--- (e.g., @()@, @()-[]->()@) will be represented with empty identity.
+-- Returns @(Maybe PropertyRecord, [Pattern Subject])@. The leading bare record,
+-- if present, is only in the 'Maybe'; it is /not/ in the pattern list. Empty
+-- or whitespace-only input yields @Right (Nothing, [])@.
+fromGramWithHeader :: String -> Either ParseError (Maybe (Map String V.Value), [Core.Pattern CoreSub.Subject])
+fromGramWithHeader input = do
+  let stripped = stripComments input
+  if null (dropWhile isSpace (concat (lines stripped)))
+    then Right (Nothing, [])
+    else case parse parseGram "gram" stripped of
+      Left err -> Left (convertError err)
+      Right cst -> Right (Transform.transformGramWithHeader cst)
+
+-- | Parse gram notation into a list of 'Pattern' 'Subject'.
 --
--- If you need unique IDs assigned to anonymous subjects, use
--- 'fromGramWithIds' instead.
-fromGram :: String -> Either ParseError (Core.Pattern CoreSub.Subject)
+-- A leading bare record is represented as an anonymous, no-elements pattern
+-- (@Pattern (Subject (Symbol \"\") Set.empty props) []@) and placed first in
+-- the list. Empty or whitespace-only input yields @Right []@.
+--
+-- This function preserves anonymous subjects as 'Symbol \"\"' for round-trip
+-- compatibility. Use 'fromGramWithIds' to assign generated IDs.
+fromGram :: String -> Either ParseError [Core.Pattern CoreSub.Subject]
 fromGram input = do
   let stripped = stripComments input
-  case parse parseGram "gram" stripped of
-    Left err -> Left (convertError err)
-    Right cst -> Right (Transform.transformGram cst)
+  if null (dropWhile isSpace (concat (lines stripped)))
+    then Right []
+    else case parse parseGram "gram" stripped of
+      Left err -> Left (convertError err)
+      Right cst -> Right (Transform.transformGram cst)
 
--- | Parse gram notation string into a Pattern Subject with ID assignment.
+-- | Parse gram notation string into a list of Pattern Subjects with ID assignment.
 --
--- This function is equivalent to applying 'Transform.assignIdentities' to the
--- result of 'fromGram'. It assigns unique sequential IDs (e.g., @#1@, @#2@)
--- to all anonymous subjects in the parsed pattern.
+-- This function is equivalent to applying 'Transform.assignIdentities' to each
+-- pattern in the result of 'fromGram'. It assigns unique sequential IDs
+-- (e.g., @#1@, @#2@) to all anonymous subjects in the parsed patterns.
 --
 -- Use this function when you need unique identifiers for anonymous subjects,
 -- such as for graph algorithms or when distinguishing between anonymous
@@ -803,9 +821,11 @@ fromGram input = do
 --
 -- For round-trip compatibility, use 'fromGram' instead, which preserves
 -- anonymity.
-fromGramWithIds :: String -> Either ParseError (Core.Pattern CoreSub.Subject)
+fromGramWithIds :: String -> Either ParseError [Core.Pattern CoreSub.Subject]
 fromGramWithIds input = do
   let stripped = stripComments input
-  case parse parseGram "gram" stripped of
-    Left err -> Left (convertError err)
-    Right cst -> Right (Transform.transformGramWithIds cst)
+  if null (dropWhile isSpace (concat (lines stripped)))
+    then Right []
+    else case parse parseGram "gram" stripped of
+      Left err -> Left (convertError err)
+      Right cst -> Right (Transform.transformGramWithIds cst)

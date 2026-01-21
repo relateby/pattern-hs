@@ -9,7 +9,6 @@ import Options.Applicative
 import Gramref.CLI.Types (OutputFormat(..), OutputOptions(..), outputOptionsParser, enforceDeterministicCanonical)
 import qualified Gramref.CLI.Output as Output
 import qualified Gram.Parse as Gram
-import qualified Pattern.Core as Pattern
 import System.Exit (ExitCode(..))
 
 data MatchOptions = MatchOptions
@@ -55,14 +54,13 @@ runMatch opts = do
     (_, Left err) -> do
       Output.formatError (matchFormat opts) outputOpts ("Data parse error: " ++ show err)
       return (ExitFailure 1)
-    (Right pattern, Right dataPattern) -> do
-      -- For now, use simple structural matching
-      -- TODO: Implement full pattern matching DSL
-      if Pattern.matches pattern dataPattern
+    (Right patterns, Right dataPatterns) -> do
+      -- For now, use simple structural matching of lists
+      if patterns == dataPatterns
         then do
-          Output.formatOutput (matchFormat opts) outputOpts dataPattern
+          Output.formatOutput (matchFormat opts) outputOpts dataPatterns
           return ExitSuccess
         else do
-          Output.formatError (matchFormat opts) outputOpts "Pattern does not match data"
+          Output.formatError (matchFormat opts) outputOpts "Pattern(s) do not match data"
           return (ExitFailure 2)
 

@@ -51,7 +51,7 @@ runParse opts = do
     Left err -> do
       Output.formatError (parseFormat opts) outputOpts (show err)
       return (ExitFailure 1)
-    Right pattern -> do
-      Output.formatOutput (parseFormat opts) outputOpts pattern
+    Right patterns -> do
+      Output.formatOutput (parseFormat opts) outputOpts patterns
       return ExitSuccess
 
