@@ -31,15 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Mandatory Compliance Checks:**
-
-- **Code Quality (NON-NEGOTIABLE)**: Does the design provide clear, self-documenting code structure? Are all public APIs documented with examples?
-- **Testing Standards (NON-NEGOTIABLE)**: Is the testing strategy comprehensive? Are category-theoretic properties testable? Are property-based tests included where applicable?
-- **Conceptual Consistency**: Does the design align with category theory formalisms? Are functors, morphisms, and natural transformations correctly identified?
-- **Mathematical Clarity**: Are formal definitions provided? Is notation consistent with mathematical conventions?
-- **Multi-Language Reference Alignment**: Can the core design be translated to other languages? Are language-specific concerns separated from core concepts?
-
-**Violations must be documented in Complexity Tracking section below.**
+[Gates determined based on constitution file]
 
 ## Project Structure
 
