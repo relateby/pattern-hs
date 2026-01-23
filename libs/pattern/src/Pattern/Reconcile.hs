@@ -9,6 +9,24 @@
 -- with different or evolving content. Reconciliation transforms such patterns into
 -- coherent ones where each identity appears exactly once.
 --
+-- == Problem Statement
+--
+-- Currently nothing prevents the same identity from appearing multiple times with
+-- different content in a @Pattern Subject@. This can arise from:
+--
+-- * Parsing gram notation with duplicate node definitions
+-- * Streaming pattern updates where identities evolve over time
+-- * Merging patterns from different sources
+-- * References: atomic patterns pointing to fuller definitions elsewhere
+--
+-- == Solution Overview
+--
+-- The 'reconcile' operation normalizes patterns using configurable policies:
+--
+-- 1. **Collect**: Group all occurrences by identity
+-- 2. **Reconcile**: Resolve duplicates according to policy
+-- 3. **Rebuild**: Construct normalized pattern with each identity appearing once
+--
 -- == Quick Start
 --
 -- >>> import Pattern.Core (Pattern(..), pattern, point)
@@ -17,15 +35,89 @@
 -- >>>
 -- >>> -- Reconcile with LastWriteWins policy
 -- >>> reconcile LastWriteWins patternWithDuplicates
+-- >>>
+-- >>> -- Get detailed report
+-- >>> let (result, report) = reconcileWithReport LastWriteWins pattern
+-- >>> reportDuplicatesFound report  -- Number of duplicate identities
 --
 -- == Reconciliation Policies
 --
--- * 'LastWriteWins' - Keep the last occurrence of each identity
--- * 'FirstWriteWins' - Keep the first occurrence of each identity
--- * 'Merge' - Combine all occurrences using a configurable strategy
--- * 'Strict' - Fail if any duplicates have different content
+-- * 'LastWriteWins' - Keep the last occurrence of each identity. Useful for
+--   streaming updates where the most recent value is authoritative.
 --
--- See 'reconcile' for the main entry point.
+-- * 'FirstWriteWins' - Keep the first occurrence of each identity. Useful when
+--   initial definitions are authoritative.
+--
+-- * @'Merge' strategy@ - Combine all occurrences using a configurable 3-dimensional
+--   strategy for labels, properties, and elements. Useful for data integration.
+--
+-- * 'Strict' - Fail with detailed error if any duplicates have different content.
+--   Useful for validation and debugging.
+--
+-- == Merge Strategies
+--
+-- The 'Merge' policy uses a 'MergeStrategy' with three independent dimensions:
+--
+-- * __Labels__: 'UnionLabels', 'IntersectLabels', or 'ReplaceLabels'
+-- * __Properties__: 'ShallowMerge', 'DeepMerge', or 'ReplaceProperties'
+-- * __Elements__: 'UnionElements', 'AppendElements', or 'ReplaceElements'
+--
+-- The 'defaultMergeStrategy' uses @UnionLabels@, @ShallowMerge@, and @UnionElements@
+-- for sensible defaults that preserve all information.
+--
+-- == Reference Completion
+--
+-- Atomic patterns (no elements, empty labels/properties) are automatically completed
+-- when a fuller definition exists for the same identity. This enables efficient
+-- reference-based pattern construction.
+--
+-- == Performance
+--
+-- Reconciliation runs in O(n) time and O(k) space where n is total subjects and
+-- k is unique identities. Tested with 10,000+ subjects.
+--
+-- == Common Usage Patterns
+--
+-- === After Parsing
+--
+-- @
+-- parsed <- parseGramNotation input
+-- case 'reconcile' 'LastWriteWins' parsed of
+--   Right normalized -> storePattern normalized
+--   Left err -> handleError err
+-- @
+--
+-- === Merging from Multiple Sources
+--
+-- @
+-- let combined = Pattern root [pattern1, pattern2, pattern3]
+--     strategy = 'defaultMergeStrategy' { 'propertyMerge' = 'DeepMerge' }
+-- case 'reconcile' ('Merge' strategy) combined of
+--   Right merged -> processMerged merged
+--   Left err -> handleConflicts err
+-- @
+--
+-- === Validation
+--
+-- @
+-- case 'reconcile' 'Strict' pattern of
+--   Right _ -> pure ()  -- Pattern is coherent
+--   Left (ReconcileError msg conflicts) -> reportConflicts conflicts
+-- @
+--
+-- === With Reporting
+--
+-- @
+-- let (result, report) = 'reconcileWithReport' policy pattern
+-- logInfo $ "Resolved " ++ show ('reportDuplicatesFound' report) ++ " duplicates"
+-- @
+--
+-- == See Also
+--
+-- * 'reconcile' - Main entry point for reconciliation
+-- * 'reconcileWithReport' - Reconciliation with detailed statistics
+-- * 'needsReconciliation' - Fast check for duplicate identities
+-- * 'findConflicts' - Extract conflicts without reconciling
 
 module Pattern.Reconcile
   ( -- * Reconciliation Policies
@@ -417,7 +509,9 @@ reconcileOccurrences LastWriteWins occurrences =
   in Pattern subject allElements
 reconcileOccurrences FirstWriteWins occurrences =
   let patterns = map fst occurrences
-      subject = value (head patterns)  -- Take first occurrence's subject
+      subject = case patterns of
+                  (p:_) -> value p  -- Take first occurrence's subject
+                  [] -> error "reconcileOccurrences: empty occurrence list"
       allElements = mergeElements UnionElements (map elements patterns)  -- Union all elements
   in Pattern subject allElements
 reconcileOccurrences (Merge strategy) occurrences =
