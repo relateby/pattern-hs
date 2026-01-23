@@ -186,23 +186,23 @@
 
 ### Property Tests for User Story 4
 
-- [ ] T064 [P] [US4] Property test: reference resolution is complete (all atomic patterns with full definitions replaced) in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
+- [x] T064 [P] [US4] Property test: reference resolution is complete (all atomic patterns with full definitions replaced) in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
 
 ### Unit Tests for User Story 4
 
-- [ ] T065 [P] [US4] Unit test: atomic reference replaced with full definition in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T066 [P] [US4] Unit test: all atomic occurrences preserved (no full definition) in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T067 [P] [US4] Unit test: circular references resolved (A→B, B→A both appear once) in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T068 [P] [US4] Unit test: self-referential pattern handled (subject contains itself) in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T069 [P] [US4] Unit test: orphan references preserved as-is in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T065 [P] [US4] Unit test: atomic reference replaced with full definition in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T066 [P] [US4] Unit test: all atomic occurrences preserved (no full definition) in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T067 [P] [US4] Unit test: circular references resolved (A→B, B→A both appear once) in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T068 [P] [US4] Unit test: self-referential pattern handled (subject contains itself) in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T069 [P] [US4] Unit test: orphan references preserved as-is in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
 
 ### Implementation for User Story 4
 
-- [ ] T070 [US4] Implement isRefinementOf function to check if one Subject refines another in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T071 [US4] Implement isReference function to detect atomic patterns with full definitions elsewhere in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T072 [US4] Enhance rebuildPattern to detect and complete references using canonical map in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T073 [US4] Add cycle detection to rebuildPattern using visited set in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T074 [US4] Add Haddock documentation for reference functions with examples in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T070 [US4] Implement isRefinementOf function to check if one Subject refines another in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T071 [US4] Implement isReference function to detect atomic patterns with full definitions elsewhere in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T072 [US4] Enhance rebuildPattern to detect and complete references using canonical map in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T073 [US4] Add cycle detection to rebuildPattern using visited set in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T074 [US4] Add Haddock documentation for reference functions with examples in libs/pattern/src/Pattern/Reconcile.hs
 
 **Checkpoint**: Reference completion works - all user stories 1-4 independently functional
 

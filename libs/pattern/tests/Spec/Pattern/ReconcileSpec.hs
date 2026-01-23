@@ -353,8 +353,95 @@ spec = do
           needsReconciliation pattern `shouldBe` False
 
     describe "User Story 4: Complete Partial References (P3)" $ do
-      it "placeholder - tests will be added during implementation" $
-        pendingWith "US4 implementation pending"
+      describe "Reference Completion" $ do
+        it "replaces atomic reference with full definition" $ do
+          let atomic = Subject (Symbol "alice") Set.empty Map.empty
+              full = Subject (Symbol "alice") (Set.singleton "Person") (Map.singleton "age" (VInteger 30))
+              child = Subject (Symbol "child") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root
+                [ Pattern atomic []
+                , Pattern full [Pattern child []]
+                ]
+
+          case reconcile LastWriteWins pattern of
+            Right (Pattern _ [Pattern result resultElems]) -> do
+              -- Should have alice once with full content
+              Subj.identity result `shouldBe` Symbol "alice"
+              Subj.labels result `shouldBe` Set.singleton "Person"
+              Subj.properties result `shouldBe` Map.singleton "age" (VInteger 30)
+              -- Should have child element
+              length resultElems `shouldBe` 1
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "preserves all atomic occurrences when no full definition exists" $ do
+          let atomic1 = Subject (Symbol "alice") Set.empty Map.empty
+              atomic2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern atomic1 [], Pattern atomic2 []]
+
+          case reconcile LastWriteWins pattern of
+            Right (Pattern _ [Pattern result []]) -> do
+              -- Should preserve atomic pattern
+              Subj.identity result `shouldBe` Symbol "alice"
+              Subj.labels result `shouldBe` Set.empty
+              Subj.properties result `shouldBe` Map.empty
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "resolves circular references (A→B, B→A both appear once)" $ do
+          let a = Subject (Symbol "a") Set.empty Map.empty
+              b = Subject (Symbol "b") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              -- A contains B, B contains A (circular)
+              pattern = Pattern root
+                [ Pattern a [Pattern b [Pattern a []]]
+                ]
+
+              -- Helper to collect all identities in tree
+              collectAllIds (Pattern subj elems) =
+                Subj.identity subj : concatMap collectAllIds elems
+
+          case reconcile LastWriteWins pattern of
+            Right reconciled -> do
+              let allIds = collectAllIds reconciled
+              -- Each identity should appear exactly once in entire tree
+              length allIds `shouldBe` length (Set.fromList allIds)
+              -- Both A and B should be present
+              Set.fromList allIds `shouldBe` Set.fromList [Symbol "root", Symbol "a", Symbol "b"]
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "handles self-referential pattern (subject contains itself)" $ do
+          let alice = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              -- Alice contains alice (self-reference)
+              pattern = Pattern root [Pattern alice [Pattern alice []]]
+
+          case reconcile LastWriteWins pattern of
+            Right (Pattern _ [Pattern result resultElems]) -> do
+              -- Should have alice once
+              Subj.identity result `shouldBe` Symbol "alice"
+              -- Self-reference should be detected and not duplicated
+              let childIds = map (Subj.identity . value) resultElems
+              childIds `shouldNotContain` [Symbol "alice"]
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "preserves orphan references as-is" $ do
+          let alice = Subject (Symbol "alice") Set.empty Map.empty
+              bob = Subject (Symbol "bob") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              -- Alice is atomic but has no full definition elsewhere
+              pattern = Pattern root [Pattern alice [], Pattern bob []]
+
+          case reconcile LastWriteWins pattern of
+            Right (Pattern _ elems) -> do
+              length elems `shouldBe` 2
+              let ids = map (Subj.identity . value) elems
+              Set.fromList ids `shouldBe` Set.fromList [Symbol "alice", Symbol "bob"]
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
 
     describe "User Story 5: Track Reconciliation Actions (P4)" $ do
       it "placeholder - tests will be added during implementation" $

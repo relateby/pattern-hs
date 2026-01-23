@@ -295,3 +295,21 @@ spec = do
           in if s1 == s2'
              then isRight result  -- Same content, should succeed
              else isLeft result   -- Different content, should fail
+
+    describe "User Story 4: Complete Partial References (P3)" $ do
+      it "reference resolution is complete - all atomic patterns with full definitions replaced" $
+        property $ \(fuller :: Subject) (child :: Pattern Subject) ->
+          let atomic = Subject (Subj.identity fuller) Set.empty Map.empty  -- Empty atomic reference
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root
+                [ Pattern atomic []  -- Atomic reference
+                , Pattern fuller [child]  -- Full definition with elements
+                ]
+          in case reconcile LastWriteWins pattern of
+               Left _ -> property True  -- Error case doesn't apply
+               Right (Pattern _ elems) ->
+                 -- After reconciliation, the atomic reference should be completed
+                 -- Count how many times the identity appears
+                 let ids = map (Subj.identity . value) elems
+                     occurrences = length $ filter (== Subj.identity fuller) ids
+                 in occurrences === 1  -- Identity appears exactly once
