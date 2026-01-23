@@ -120,6 +120,37 @@ instance Arbitrary (Pattern Subject) where
         elems <- vectorOf numElements (resize (n `div` 2) arbitrary)
         return $ Pattern subject elems
 
+-- ============================================================================
+-- Helper Functions
+-- ============================================================================
+
+-- | Collect all identity symbols from a pattern (including duplicates).
+collectAllIdentities :: Pattern Subject -> [Symbol]
+collectAllIdentities (Pattern subject elems) =
+  identity subject : concatMap collectAllIdentities elems
+
+-- | Generate a pattern with guaranteed duplicate identities for testing.
+-- This is useful for testing reconciliation behavior with known duplicates.
+patternWithDuplicates :: Gen (Pattern Subject)
+patternWithDuplicates = sized $ \n -> do
+  -- Generate a base subject
+  baseSubject <- arbitrary
+  let baseId = identity baseSubject
+
+  -- Generate 2-4 subjects with the same identity but different content
+  numDuplicates <- choose (2, min 4 (max 2 n))
+  duplicates <- vectorOf numDuplicates (subjectWithId baseId)
+
+  -- Create a root pattern containing the duplicates
+  root <- arbitrary
+  return $ Pattern root (map (\s -> Pattern s []) duplicates)
+  where
+    subjectWithId :: Symbol -> Gen Subject
+    subjectWithId sym = do
+      labels <- Set.fromList <$> listOf (QC.elements ["Person", "Entity", "Node"])
+      props <- Map.fromList <$> listOf ((,) <$> QC.elements ["k1", "k2", "k3"] <*> arbitrary)
+      return $ Subject sym labels props
+
 -- | Main property test suite specification.
 spec :: Spec
 spec = do
@@ -131,16 +162,72 @@ spec = do
 
     -- Placeholder sections for property tests
     describe "Idempotence Properties" $ do
-      it "placeholder - properties will be added during implementation" $
-        pendingWith "Idempotence properties pending"
+      it "reconciling twice is the same as reconciling once (LastWriteWins)" $
+        property $ \(pattern :: Pattern Subject) ->
+          case reconcile LastWriteWins pattern of
+            Left _ -> property True  -- Error is consistent
+            Right once ->
+              case reconcile LastWriteWins once of
+                Left _ -> counterexample "Second reconcile failed but first succeeded" False
+                Right twice -> once === twice
+
+      it "reconciling twice is the same as reconciling once (FirstWriteWins)" $
+        property $ \(pattern :: Pattern Subject) ->
+          case reconcile FirstWriteWins pattern of
+            Left _ -> property True  -- Error is consistent
+            Right once ->
+              case reconcile FirstWriteWins once of
+                Left _ -> counterexample "Second reconcile failed but first succeeded" False
+                Right twice -> once === twice
+
+      it "reconciling twice is the same as reconciling once (Merge)" $
+        property $ \(pattern :: Pattern Subject) ->
+          case reconcile (Merge defaultMergeStrategy) pattern of
+            Left _ -> property True  -- Error is consistent
+            Right once ->
+              case reconcile (Merge defaultMergeStrategy) once of
+                Left _ -> counterexample "Second reconcile failed but first succeeded" False
+                Right twice -> once === twice
 
     describe "Identity Preservation Properties" $ do
-      it "placeholder - properties will be added during implementation" $
-        pendingWith "Identity preservation properties pending"
+      -- Note: Full identity preservation (all unique identities preserved) requires
+      -- proper element merging with UnionElements strategy, which is implemented
+      -- in Phase 4 (User Story 2). For Phase 3, we test that each identity appears
+      -- at most once after reconciliation.
+
+      it "each identity appears at most once after reconciliation (LastWriteWins)" $
+        property $ \(pattern :: Pattern Subject) ->
+          case reconcile LastWriteWins pattern of
+            Left _ -> property True  -- Error case doesn't apply
+            Right reconciled ->
+              let ids = collectAllIdentities reconciled
+              in length ids === length (Set.fromList ids)
+
+      it "each identity appears at most once after reconciliation (FirstWriteWins)" $
+        property $ \(pattern :: Pattern Subject) ->
+          case reconcile FirstWriteWins pattern of
+            Left _ -> property True  -- Error case doesn't apply
+            Right reconciled ->
+              let ids = collectAllIdentities reconciled
+              in length ids === length (Set.fromList ids)
+
+      -- Full Merge support with element deduplication is implemented in Phase 4
+      it "each identity appears at most once after reconciliation (Merge)" $
+        pendingWith "Full Merge with element deduplication is Phase 4 (User Story 2)"
 
     describe "Determinism Properties" $ do
-      it "placeholder - properties will be added during implementation" $
-        pendingWith "Determinism properties pending"
+      it "reconciling the same pattern twice gives identical results (LastWriteWins)" $
+        property $ \(pattern :: Pattern Subject) ->
+          reconcile LastWriteWins pattern === reconcile LastWriteWins pattern
+
+      it "reconciling the same pattern twice gives identical results (FirstWriteWins)" $
+        property $ \(pattern :: Pattern Subject) ->
+          reconcile FirstWriteWins pattern === reconcile FirstWriteWins pattern
+
+      it "reconciling the same pattern twice gives identical results (Merge)" $
+        property $ \(pattern :: Pattern Subject) ->
+          let policy = Merge defaultMergeStrategy
+          in reconcile policy pattern === reconcile policy pattern
 
     describe "Merge Strategy Properties" $ do
       it "placeholder - properties will be added during implementation" $
