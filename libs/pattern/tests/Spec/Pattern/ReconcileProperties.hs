@@ -18,6 +18,7 @@ import qualified Subject.Core as Subj
 import Subject.Value (Value(..), RangeValue(..))
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import Data.Either (isLeft, isRight)
 
 -- ============================================================================
 -- Arbitrary Instances for Property Testing
@@ -269,3 +270,28 @@ spec = do
               strategy = defaultMergeStrategy { propertyMerge = ReplaceProperties }
               merged = mergeSubjects strategy s1 s2'
           in Subj.properties merged === Subj.properties s2'
+
+      it "UnionElements deduplicates elements by identity" $
+        property $ \(p1 :: Pattern Subject) (p2 :: Pattern Subject) ->
+          -- Force same identity for root, reconcile with UnionElements
+          let p2' = p2 { value = (value p2) { Subj.identity = Subj.identity (value p1) }}
+              root = value p1
+              pattern = Pattern root [p1, p2']
+              strategy = defaultMergeStrategy { elementMerge = UnionElements }
+          in case reconcile (Merge strategy) pattern of
+               Left _ -> property True  -- Error case doesn't apply
+               Right (Pattern _ elems) ->
+                 -- Each identity should appear at most once in elements
+                 let ids = map (Subj.identity . value) elems
+                 in length ids === length (Set.fromList ids)
+
+    describe "User Story 3: Validate Pattern Coherence (P3)" $ do
+      it "Strict mode is accurate - reports error iff duplicates with different content exist" $
+        property $ \(s1 :: Subject) (s2 :: Subject) ->
+          let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern s1 [], Pattern s2' []]
+              result = reconcile Strict pattern
+          in if s1 == s2'
+             then isRight result  -- Same content, should succeed
+             else isLeft result   -- Different content, should fail

@@ -206,18 +206,151 @@ spec = do
             Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
 
       describe "Element Merge Strategies" $ do
-        it "UnionElements deduplicates elements by identity" $
-          pendingWith "Element merging not yet implemented"
+        it "UnionElements deduplicates elements by identity" $ do
+          let child1 = Subject (Symbol "child") (Set.singleton "A") Map.empty
+              child2 = Subject (Symbol "child") (Set.singleton "B") Map.empty
+              other = Subject (Symbol "other") Set.empty Map.empty
 
-        it "AppendElements concatenates all element lists" $
-          pendingWith "Element merging not yet implemented"
+              alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
 
-        it "ReplaceElements uses later element list" $
-          pendingWith "Element merging not yet implemented"
+              pattern = Pattern root
+                [ Pattern alice1 [Pattern child1 [], Pattern other []]
+                , Pattern alice2 [Pattern child2 []]
+                ]
+              strategy = defaultMergeStrategy { elementMerge = UnionElements }
+
+          case reconcile (Merge strategy) pattern of
+            Right (Pattern _ [Pattern _ elems]) -> do
+              -- Should have child (once) and other
+              length elems `shouldBe` 2
+              let ids = map (Subj.identity . value) elems
+              Set.fromList ids `shouldBe` Set.fromList [Symbol "child", Symbol "other"]
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "AppendElements concatenates all element lists" $ do
+          let child1 = Subject (Symbol "child1") (Set.singleton "A") Map.empty
+              child2 = Subject (Symbol "child2") (Set.singleton "B") Map.empty
+
+              alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+
+              pattern = Pattern root
+                [ Pattern alice1 [Pattern child1 []]
+                , Pattern alice2 [Pattern child2 []]
+                ]
+              strategy = defaultMergeStrategy { elementMerge = AppendElements }
+
+          case reconcile (Merge strategy) pattern of
+            Right (Pattern _ [Pattern _ elems]) -> do
+              -- Should have both children (distinct identities)
+              length elems `shouldBe` 2
+              let ids = map (Subj.identity . value) elems
+              Set.fromList ids `shouldBe` Set.fromList [Symbol "child1", Symbol "child2"]
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "ReplaceElements uses later element list" $ do
+          let child1 = Subject (Symbol "child1") Set.empty Map.empty
+              child2 = Subject (Symbol "child2") Set.empty Map.empty
+
+              alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+
+              pattern = Pattern root
+                [ Pattern alice1 [Pattern child1 []]
+                , Pattern alice2 [Pattern child2 []]
+                ]
+              strategy = defaultMergeStrategy { elementMerge = ReplaceElements }
+
+          case reconcile (Merge strategy) pattern of
+            Right (Pattern _ [Pattern _ elems]) -> do
+              -- Should only have alice2's elements
+              length elems `shouldBe` 1
+              case elems of
+                [Pattern child _] -> Subj.identity child `shouldBe` Symbol "child2"
+                _ -> expectationFailure "Expected single element"
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
 
     describe "User Story 3: Validate Pattern Coherence (P3)" $ do
-      it "placeholder - tests will be added during implementation" $
-        pendingWith "US3 implementation pending"
+      describe "Strict Mode" $ do
+        it "returns ReconcileError with conflict details when conflicts exist" $ do
+          let alice1 = Subject (Symbol "alice") (Set.singleton "Person") (Map.singleton "age" (VInteger 30))
+              alice2 = Subject (Symbol "alice") (Set.singleton "Employee") (Map.singleton "dept" (VString "Engineering"))
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+
+          case reconcile Strict pattern of
+            Left (ReconcileError msg conflicts) -> do
+              msg `shouldContain` "Duplicate"
+              length conflicts `shouldBe` 1
+              case conflicts of
+                [Conflict cid existing incoming paths] -> do
+                  cid `shouldBe` Symbol "alice"
+                  existing `shouldBe` alice1
+                  incoming `shouldBe` alice2
+                  length paths `shouldBe` 2
+                _ -> expectationFailure "Expected single conflict"
+            Right _ -> expectationFailure "Expected reconciliation to fail"
+
+        it "returns success when pattern is coherent (no conflicts)" $ do
+          let alice1 = Subject (Symbol "alice") (Set.singleton "Person") (Map.singleton "age" (VInteger 30))
+              alice2 = Subject (Symbol "alice") (Set.singleton "Person") (Map.singleton "age" (VInteger 30))
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+
+          case reconcile Strict pattern of
+            Right result -> result `shouldBe` pattern
+            Left err -> expectationFailure $ "Expected success, got: " ++ show err
+
+      describe "findConflicts" $ do
+        it "returns all conflicts without reconciling" $ do
+          let alice1 = Subject (Symbol "alice") (Set.singleton "A") Map.empty
+              alice2 = Subject (Symbol "alice") (Set.singleton "B") Map.empty
+              bob1 = Subject (Symbol "bob") Set.empty (Map.singleton "k" (VInteger 1))
+              bob2 = Subject (Symbol "bob") Set.empty (Map.singleton "k" (VInteger 2))
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root
+                [ Pattern alice1 []
+                , Pattern bob1 []
+                , Pattern alice2 []
+                , Pattern bob2 []
+                ]
+
+          let conflicts = findConflicts pattern
+          length conflicts `shouldBe` 2
+          let ids = map conflictId conflicts
+          Set.fromList ids `shouldBe` Set.fromList [Symbol "alice", Symbol "bob"]
+
+        it "returns empty list for coherent pattern" $ do
+          let alice1 = Subject (Symbol "alice") (Set.singleton "Person") Map.empty
+              alice2 = Subject (Symbol "alice") (Set.singleton "Person") Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+
+          findConflicts pattern `shouldBe` []
+
+      describe "needsReconciliation" $ do
+        it "returns true when pattern has duplicate identities" $ do
+          let alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+
+          needsReconciliation pattern `shouldBe` True
+
+        it "returns false when all identities are unique" $ do
+          let alice = Subject (Symbol "alice") Set.empty Map.empty
+              bob = Subject (Symbol "bob") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice [], Pattern bob []]
+
+          needsReconciliation pattern `shouldBe` False
 
     describe "User Story 4: Complete Partial References (P3)" $ do
       it "placeholder - tests will be added during implementation" $

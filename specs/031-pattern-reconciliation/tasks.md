@@ -113,36 +113,36 @@
 
 ### Property Tests for User Story 2
 
-- [ ] T029 [P] [US2] Property test: merge strategies correctly combine content (UnionLabels includes all labels) in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
-- [ ] T030 [P] [US2] Property test: ShallowMerge combines all top-level properties in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
-- [ ] T031 [P] [US2] Property test: UnionElements deduplicates by identity in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
+- [x] T029 [P] [US2] Property test: merge strategies correctly combine content (UnionLabels includes all labels) in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
+- [x] T030 [P] [US2] Property test: ShallowMerge combines all top-level properties in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
+- [x] T031 [P] [US2] Property test: UnionElements deduplicates by identity in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
 
 ### Unit Tests for User Story 2
 
-- [ ] T032 [P] [US2] Unit test: UnionLabels combines all labels from all occurrences in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T033 [P] [US2] Unit test: IntersectLabels keeps only common labels in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T034 [P] [US2] Unit test: ReplaceLabels uses later labels in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T035 [P] [US2] Unit test: ShallowMerge merges top-level property keys in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T036 [P] [US2] Unit test: DeepMerge recursively merges nested maps in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T037 [P] [US2] Unit test: ReplaceProperties completely replaces properties in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T038 [P] [US2] Unit test: UnionElements deduplicates elements by identity in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T039 [P] [US2] Unit test: AppendElements concatenates all element lists in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T040 [P] [US2] Unit test: ReplaceElements uses later element list in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T032 [P] [US2] Unit test: UnionLabels combines all labels from all occurrences in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T033 [P] [US2] Unit test: IntersectLabels keeps only common labels in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T034 [P] [US2] Unit test: ReplaceLabels uses later labels in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T035 [P] [US2] Unit test: ShallowMerge merges top-level property keys in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T036 [P] [US2] Unit test: DeepMerge recursively merges nested maps in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T037 [P] [US2] Unit test: ReplaceProperties completely replaces properties in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T038 [P] [US2] Unit test: UnionElements deduplicates elements by identity in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T039 [P] [US2] Unit test: AppendElements concatenates all element lists in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T040 [P] [US2] Unit test: ReplaceElements uses later element list in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
 
 ### Implementation for User Story 2
 
-- [ ] T041 [US2] Implement mergeLabels function for UnionLabels strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T042 [US2] Implement mergeLabels function for IntersectLabels strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T043 [US2] Implement mergeLabels function for ReplaceLabels strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T044 [US2] Implement mergeProperties function for ShallowMerge strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T045 [US2] Implement mergeProperties function for DeepMerge strategy (recursive) in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T046 [US2] Implement mergeProperties function for ReplaceProperties strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T047 [US2] Implement mergeElements function for UnionElements strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T048 [US2] Implement mergeElements function for AppendElements strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T049 [US2] Implement mergeElements function for ReplaceElements strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T050 [US2] Implement mergeSubjects function combining labels, properties, and elements per strategy in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T051 [US2] Implement reconcileOccurrences for Merge policy using mergeSubjects in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T052 [US2] Add Haddock documentation for merge strategy functions with examples in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T041 [US2] Implement mergeLabels function for UnionLabels strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T042 [US2] Implement mergeLabels function for IntersectLabels strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T043 [US2] Implement mergeLabels function for ReplaceLabels strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T044 [US2] Implement mergeProperties function for ShallowMerge strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T045 [US2] Implement mergeProperties function for DeepMerge strategy (recursive) in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T046 [US2] Implement mergeProperties function for ReplaceProperties strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T047 [US2] Implement mergeElements function for UnionElements strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T048 [US2] Implement mergeElements function for AppendElements strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T049 [US2] Implement mergeElements function for ReplaceElements strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T050 [US2] Implement mergeSubjects function combining labels, properties, and elements per strategy in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T051 [US2] Implement reconcileOccurrences for Merge policy using mergeSubjects in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T052 [US2] Add Haddock documentation for merge strategy functions with examples in libs/pattern/src/Pattern/Reconcile.hs
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - full merge functionality available
 
@@ -156,23 +156,23 @@
 
 ### Property Tests for User Story 3
 
-- [ ] T053 [P] [US3] Property test: Strict mode is accurate (reports error iff duplicates with different content exist) in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
+- [x] T053 [P] [US3] Property test: Strict mode is accurate (reports error iff duplicates with different content exist) in libs/pattern/tests/Spec/Pattern/ReconcileProperties.hs
 
 ### Unit Tests for User Story 3
 
-- [ ] T054 [P] [US3] Unit test: Strict mode with conflicts returns ReconcileError with conflict details in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T055 [P] [US3] Unit test: Strict mode with coherent pattern returns success in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T056 [P] [US3] Unit test: findConflicts returns all conflicts without reconciling in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
-- [ ] T057 [P] [US3] Unit test: needsReconciliation returns true for duplicates, false otherwise in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T054 [P] [US3] Unit test: Strict mode with conflicts returns ReconcileError with conflict details in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T055 [P] [US3] Unit test: Strict mode with coherent pattern returns success in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T056 [P] [US3] Unit test: findConflicts returns all conflicts without reconciling in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
+- [x] T057 [P] [US3] Unit test: needsReconciliation returns true for duplicates, false otherwise in libs/pattern/tests/Spec/Pattern/ReconcileSpec.hs
 
 ### Implementation for User Story 3
 
-- [ ] T058 [US3] Implement subjectsDiffer function to compare two Subjects for content equality in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T059 [US3] Implement buildConflict function to create Conflict from duplicate occurrences in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T060 [US3] Implement reconcileOccurrences for Strict policy (detect conflicts, fail if found) in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T061 [US3] Implement findConflicts function to extract conflicts without reconciling in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T062 [US3] Implement needsReconciliation function to check for duplicate identities in libs/pattern/src/Pattern/Reconcile.hs
-- [ ] T063 [US3] Add Haddock documentation for validation functions with examples in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T058 [US3] Implement subjectsDiffer function to compare two Subjects for content equality in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T059 [US3] Implement buildConflict function to create Conflict from duplicate occurrences in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T060 [US3] Implement reconcileOccurrences for Strict policy (detect conflicts, fail if found) in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T061 [US3] Implement findConflicts function to extract conflicts without reconciling in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T062 [US3] Implement needsReconciliation function to check for duplicate identities in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T063 [US3] Add Haddock documentation for validation functions with examples in libs/pattern/src/Pattern/Reconcile.hs
 
 **Checkpoint**: All core reconciliation policies now work - validation and diagnostics available
 

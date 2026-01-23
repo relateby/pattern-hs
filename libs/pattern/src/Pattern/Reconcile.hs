@@ -403,15 +403,57 @@ reconcileNonStrict policy pattern =
   in fst $ rebuildPattern Set.empty canonicalMap pattern
 
 -- | Reconcile occurrences of a single identity according to policy.
-reconcileOccurrences :: ReconciliationPolicy -> [(Subject, Path)] -> Subject
+--
+-- Returns the canonical Pattern for this identity, which includes both
+-- the reconciled Subject and the merged elements.
+--
+-- For LastWriteWins/FirstWriteWins: take the chosen occurrence's Subject,
+-- but collect all unique elements from all occurrences (to preserve nested structure).
+reconcileOccurrences :: ReconciliationPolicy -> [(Pattern Subject, Path)] -> Pattern Subject
 reconcileOccurrences LastWriteWins occurrences =
-  fst . last $ occurrences  -- Take last occurrence
+  let patterns = map fst occurrences
+      subject = value (last patterns)  -- Take last occurrence's subject
+      allElements = mergeElements UnionElements (map elements patterns)  -- Union all elements
+  in Pattern subject allElements
 reconcileOccurrences FirstWriteWins occurrences =
-  fst . head $ occurrences  -- Take first occurrence
+  let patterns = map fst occurrences
+      subject = value (head patterns)  -- Take first occurrence's subject
+      allElements = mergeElements UnionElements (map elements patterns)  -- Union all elements
+  in Pattern subject allElements
 reconcileOccurrences (Merge strategy) occurrences =
-  foldl1 (mergeSubjects strategy) (map fst occurrences)
+  let patterns = map fst occurrences
+      subjects = map value patterns
+      mergedSubject = foldl1 (mergeSubjects strategy) subjects
+      mergedElements = mergeElements (elementMerge strategy) (map elements patterns)
+  in Pattern mergedSubject mergedElements
 reconcileOccurrences Strict _ =
   error "Strict policy should be handled separately"
+
+-- | Merge element lists according to strategy.
+--
+-- Note: For AppendElements, we concatenate without deduplication, allowing
+-- duplicate identities (useful for event logs). For UnionElements, we
+-- deduplicate by identity. For ReplaceElements, we take the last list.
+mergeElements :: ElementMerge -> [[Pattern Subject]] -> [Pattern Subject]
+mergeElements ReplaceElements elemLists =
+  case reverse elemLists of
+    [] -> []
+    (latest:_) -> latest  -- Use last element list
+mergeElements AppendElements elemLists =
+  concat elemLists  -- Concatenate all lists, allow duplicates
+mergeElements UnionElements elemLists =
+  let allElements = concat elemLists
+      -- Deduplicate by identity: collect all elements, reconcile duplicates
+      -- by their identity, keep one of each (using firstWriteWins for now)
+      elementMap = foldr insertElement Map.empty allElements
+  in Map.elems elementMap
+  where
+    insertElement :: Pattern Subject -> Map Symbol (Pattern Subject) -> Map Symbol (Pattern Subject)
+    insertElement pat m =
+      let elemId = identity (value pat)
+      in case Map.lookup elemId m of
+           Nothing -> Map.insert elemId pat m
+           Just existing -> Map.insert elemId existing m  -- Keep first
 
 -- | Reconcile with Strict policy - fails if duplicates have different content.
 reconcileStrict :: Pattern Subject -> Either ReconcileError (Pattern Subject)
@@ -423,22 +465,31 @@ reconcileStrict pattern =
               "Duplicate identities with different content found"
               conflicts
 
--- | Rebuild pattern with canonical subjects, tracking visited identities.
+-- | Rebuild pattern with canonical patterns, tracking visited identities.
 --
 -- Traverses the pattern in the same order as original, but replaces each
--- subject with its canonical version from the map. Skips elements whose
--- identity has already been visited (deduplication).
+-- pattern with its canonical version from the map (which includes merged
+-- subject and elements). Skips elements whose identity has already been
+-- visited (deduplication).
 --
 -- Returns both the rebuilt pattern and the updated set of visited identities
 -- (including all IDs emitted in the entire subtree).
-rebuildPattern :: Set Symbol -> Map Symbol Subject -> Pattern Subject -> (Pattern Subject, Set Symbol)
+rebuildPattern :: Set Symbol -> Map Symbol (Pattern Subject) -> Pattern Subject -> (Pattern Subject, Set Symbol)
 rebuildPattern visited canonicalMap (Pattern subj elems) =
   let subjId = identity subj
-      canonical = Map.findWithDefault subj subjId canonicalMap
-      visited' = Set.insert subjId visited
-      -- Rebuild child elements, accumulating visited set across siblings and their descendants
-      (rebuiltElems, finalVisited) = foldl rebuildElem ([], visited') elems
-  in (Pattern canonical (reverse rebuiltElems), finalVisited)  -- reverse because we built backwards
+      canonical = case Map.lookup subjId canonicalMap of
+                    Just (Pattern canonSubj canonElems) ->
+                      -- Use canonical subject and elements from the map
+                      -- But still recursively reconcile those elements
+                      let visited' = Set.insert subjId visited
+                          (rebuiltCanonElems, finalVisited) = foldl rebuildElem ([], visited') canonElems
+                      in (Pattern canonSubj (reverse rebuiltCanonElems), finalVisited)
+                    Nothing ->
+                      -- Not in canonical map, use as-is but still recursively rebuild children
+                      let visited' = Set.insert subjId visited
+                          (rebuiltElems, finalVisited) = foldl rebuildElem ([], visited') elems
+                      in (Pattern subj (reverse rebuiltElems), finalVisited)
+  in canonical
   where
     rebuildElem :: ([Pattern Subject], Set Symbol) -> Pattern Subject -> ([Pattern Subject], Set Symbol)
     rebuildElem (acc, vis) elem =
@@ -519,25 +570,25 @@ findConflicts pattern =
   let occurrenceMap = collectByIdentity pattern
   in concatMap checkIdentity (Map.toList occurrenceMap)
   where
-    checkIdentity :: (Symbol, [(Subject, Path)]) -> [Conflict]
+    checkIdentity :: (Symbol, [(Pattern Subject, Path)]) -> [Conflict]
     checkIdentity (sym, [(_, _)]) = []  -- Single occurrence, no conflict
-    checkIdentity (sym, occurrences@((first, firstPath):rest)) =
-      [ Conflict sym first incoming [firstPath, incomingPath]
+    checkIdentity (sym, occurrences@((Pattern first _, firstPath):rest)) =
+      [ Conflict sym first (value incoming) [firstPath, incomingPath]
       | (incoming, incomingPath) <- rest
-      , incoming /= first
+      , value incoming /= first
       ]
     checkIdentity _ = []
 
--- | Collect all subject occurrences grouped by identity.
+-- | Collect all pattern occurrences grouped by identity.
 --
 -- Traverses a pattern and builds a map from each identity to all its
--- occurrences along with their paths in the pattern structure.
+-- occurrences (full Pattern structures) along with their paths.
 --
 -- ==== Implementation
 --
 -- Uses a depth-first traversal with path tracking. For each pattern node:
 --
--- 1. Record the subject at current path
+-- 1. Record the full Pattern at current path
 -- 2. Recursively collect from child elements with extended paths
 -- 3. Group all occurrences by identity symbol
 --
@@ -547,22 +598,22 @@ findConflicts pattern =
 -- >>> let alice2 = Subject (Symbol "alice") (Set.singleton "Employee") Map.empty
 -- >>> let pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
 -- >>> collectByIdentity pattern
--- Map.fromList [(Symbol "alice", [(alice1, [0]), (alice2, [1])])]
-collectByIdentity :: Pattern Subject -> Map Symbol [(Subject, Path)]
+-- Map.fromList [(Symbol "alice", [(Pattern alice1 [], [0]), (Pattern alice2 [], [1])])]
+collectByIdentity :: Pattern Subject -> Map Symbol [(Pattern Subject, Path)]
 collectByIdentity pattern =
   let occurrences = collectWithPath [] pattern
   in foldr insertOccurrence Map.empty occurrences
   where
-    -- Collect all (Subject, Path) pairs via DFS
-    collectWithPath :: Path -> Pattern Subject -> [(Subject, Path)]
-    collectWithPath path (Pattern subj elems) =
-      (subj, path) : concatMap (\(idx, elem) -> collectWithPath (path ++ [idx]) elem)
-                                (zip [0..] elems)
+    -- Collect all (Pattern, Path) pairs via DFS
+    collectWithPath :: Path -> Pattern Subject -> [(Pattern Subject, Path)]
+    collectWithPath path pat@(Pattern subj elems) =
+      (pat, path) : concatMap (\(idx, elem) -> collectWithPath (path ++ [idx]) elem)
+                               (zip [0..] elems)
 
     -- Insert an occurrence into the map
-    insertOccurrence :: (Subject, Path) -> Map Symbol [(Subject, Path)] -> Map Symbol [(Subject, Path)]
-    insertOccurrence (subj, path) =
-      Map.insertWith (++) (identity subj) [(subj, path)]
+    insertOccurrence :: (Pattern Subject, Path) -> Map Symbol [(Pattern Subject, Path)] -> Map Symbol [(Pattern Subject, Path)]
+    insertOccurrence (pat, path) =
+      Map.insertWith (++) (identity (value pat)) [(pat, path)]
 
 -- | Determine if one Subject is a refinement of another.
 --
@@ -636,12 +687,44 @@ mergeSubjects strategy s1 s2
       in Subject (identity s1) mergedLabels mergedProps
 
 -- | Merge label sets according to strategy.
+--
+-- * 'UnionLabels': combine all labels from both sets
+-- * 'IntersectLabels': keep only labels present in both sets
+-- * 'ReplaceLabels': use only labels from second set
+--
+-- ==== Examples
+--
+-- >>> mergeLabels UnionLabels (Set.fromList ["A", "B"]) (Set.fromList ["B", "C"])
+-- Set.fromList ["A", "B", "C"]
+--
+-- >>> mergeLabels IntersectLabels (Set.fromList ["A", "B"]) (Set.fromList ["B", "C"])
+-- Set.fromList ["B"]
+--
+-- >>> mergeLabels ReplaceLabels (Set.fromList ["A", "B"]) (Set.fromList ["C"])
+-- Set.fromList ["C"]
 mergeLabels :: LabelMerge -> Set String -> Set String -> Set String
 mergeLabels UnionLabels l1 l2 = Set.union l1 l2
 mergeLabels IntersectLabels l1 l2 = Set.intersection l1 l2
 mergeLabels ReplaceLabels _ l2 = l2
 
 -- | Merge property maps according to strategy.
+--
+-- * 'ShallowMerge': combine top-level keys, later values win on conflicts
+-- * 'DeepMerge': recursively merge nested structures (maps within values)
+-- * 'ReplaceProperties': use only properties from second map
+--
+-- ==== Examples
+--
+-- >>> let p1 = Map.fromList [("a", VInteger 1), ("b", VInteger 2)]
+-- >>> let p2 = Map.fromList [("b", VInteger 3), ("c", VInteger 4)]
+-- >>> mergeProperties ShallowMerge p1 p2
+-- Map.fromList [("a", VInteger 1), ("b", VInteger 3), ("c", VInteger 4)]
+--
+-- >>> mergeProperties ReplaceProperties p1 p2
+-- Map.fromList [("b", VInteger 3), ("c", VInteger 4)]
+--
+-- DeepMerge recursively merges nested map values when both values are maps.
+-- For scalar conflicts, later values win.
 mergeProperties :: PropertyMerge -> Map String value -> Map String value -> Map String value
 mergeProperties ReplaceProperties _ p2 = p2
 mergeProperties ShallowMerge p1 p2 = Map.union p2 p1  -- p2 values win on conflict
