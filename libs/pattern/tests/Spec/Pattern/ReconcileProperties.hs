@@ -14,6 +14,7 @@ import Test.Hspec
 import Pattern.Core (Pattern(..))
 import Pattern.Reconcile
 import Subject.Core (Subject(..), Symbol(..))
+import qualified Subject.Core as Subj
 import Subject.Value (Value(..), RangeValue(..))
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -127,7 +128,7 @@ instance Arbitrary (Pattern Subject) where
 -- | Collect all identity symbols from a pattern (including duplicates).
 collectAllIdentities :: Pattern Subject -> [Symbol]
 collectAllIdentities (Pattern subject elems) =
-  identity subject : concatMap collectAllIdentities elems
+  Subj.identity subject : concatMap collectAllIdentities elems
 
 -- | Generate a pattern with guaranteed duplicate identities for testing.
 -- This is useful for testing reconciliation behavior with known duplicates.
@@ -135,7 +136,7 @@ patternWithDuplicates :: Gen (Pattern Subject)
 patternWithDuplicates = sized $ \n -> do
   -- Generate a base subject
   baseSubject <- arbitrary
-  let baseId = identity baseSubject
+  let baseId = Subj.identity baseSubject
 
   -- Generate 2-4 subjects with the same identity but different content
   numDuplicates <- choose (2, min 4 (max 2 n))
@@ -147,9 +148,9 @@ patternWithDuplicates = sized $ \n -> do
   where
     subjectWithId :: Symbol -> Gen Subject
     subjectWithId sym = do
-      labels <- Set.fromList <$> listOf (QC.elements ["Person", "Entity", "Node"])
+      lbls <- Set.fromList <$> listOf (QC.elements ["Person", "Entity", "Node"])
       props <- Map.fromList <$> listOf ((,) <$> QC.elements ["k1", "k2", "k3"] <*> arbitrary)
-      return $ Subject sym labels props
+      return $ Subject sym lbls props
 
 -- | Main property test suite specification.
 spec :: Spec
@@ -230,5 +231,41 @@ spec = do
           in reconcile policy pattern === reconcile policy pattern
 
     describe "Merge Strategy Properties" $ do
-      it "placeholder - properties will be added during implementation" $
-        pendingWith "Merge strategy properties pending"
+      it "UnionLabels includes all labels from all occurrences" $
+        property $ \(s1 :: Subject) (s2 :: Subject) ->
+          let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
+              strategy = defaultMergeStrategy { labelMerge = UnionLabels }
+              merged = mergeSubjects strategy s1 s2'
+              expectedLabels = Set.union (Subj.labels s1) (Subj.labels s2')
+          in Subj.labels merged === expectedLabels
+
+      it "IntersectLabels keeps only common labels" $
+        property $ \(s1 :: Subject) (s2 :: Subject) ->
+          let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
+              strategy = defaultMergeStrategy { labelMerge = IntersectLabels }
+              merged = mergeSubjects strategy s1 s2'
+              expectedLabels = Set.intersection (Subj.labels s1) (Subj.labels s2')
+          in Subj.labels merged === expectedLabels
+
+      it "ReplaceLabels uses only the second set of labels" $
+        property $ \(s1 :: Subject) (s2 :: Subject) ->
+          let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
+              strategy = defaultMergeStrategy { labelMerge = ReplaceLabels }
+              merged = mergeSubjects strategy s1 s2'
+          in Subj.labels merged === Subj.labels s2'
+
+      it "ShallowMerge combines all top-level properties" $
+        property $ \(s1 :: Subject) (s2 :: Subject) ->
+          let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
+              strategy = defaultMergeStrategy { propertyMerge = ShallowMerge }
+              merged = mergeSubjects strategy s1 s2'
+              -- ShallowMerge: p2 wins on conflicts, union of keys
+              allKeys = Set.union (Map.keysSet (Subj.properties s1)) (Map.keysSet (Subj.properties s2'))
+          in Map.keysSet (Subj.properties merged) === allKeys
+
+      it "ReplaceProperties uses only the second property map" $
+        property $ \(s1 :: Subject) (s2 :: Subject) ->
+          let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
+              strategy = defaultMergeStrategy { propertyMerge = ReplaceProperties }
+              merged = mergeSubjects strategy s1 s2'
+          in Subj.properties merged === Subj.properties s2'
