@@ -14,6 +14,9 @@ import qualified Subject.Core as Subj
 import Subject.Value (Value(..))
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import System.CPUTime (getCPUTime)
+import Text.Printf (printf)
+import Data.String (fromString)
 
 -- | Main test suite specification.
 spec :: Spec
@@ -519,3 +522,38 @@ spec = do
           Map.lookup (Symbol "charlie") counts `shouldBe` Just 1
           Map.lookup (Symbol "root") counts `shouldBe` Just 1
           Map.size counts `shouldBe` 4  -- alice, bob, charlie, root
+
+    describe "Phase 8: Polish & Cross-Cutting Concerns" $ do
+      it "reconciles 10,000 subjects in under 100ms" $ do
+        let numUniqueSubjects = 5000
+            subjects = [ Subject (fromString $ "s" ++ show i) Set.empty Map.empty | i <- [1..numUniqueSubjects] ]
+            -- Create a pattern with 10,000 total subjects (5,000 unique, each appearing twice)
+            patternToTest = Pattern (Subject (Symbol "root") Set.empty Map.empty) (map (`Pattern` []) (subjects ++ subjects))
+
+        start <- getCPUTime
+        case reconcile LastWriteWins patternToTest of
+          Right reconciled -> do
+            end <- getCPUTime
+            let diff = fromIntegral (end - start) / (10^9) :: Double -- in milliseconds
+            printf "Reconciliation of 10,000 subjects took %.2f ms\n" diff
+            diff `shouldSatisfy` (< 100)
+          Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+      it "reconciles a deeply nested pattern (100+ levels) in under 100ms" $ do
+        let createDeeplyNestedPattern :: Int -> Pattern Subject
+            createDeeplyNestedPattern n =
+              let root = Subject (Symbol "root") Set.empty Map.empty
+                  go i | i > n = []
+                       | otherwise = [Pattern (Subject (fromString $ "n" ++ show i) Set.empty Map.empty) (go (i+1))]
+              in Pattern root (go 1)
+
+            deepPattern = createDeeplyNestedPattern 100
+
+        start <- getCPUTime
+        case reconcile LastWriteWins deepPattern of
+          Right reconciled -> do
+            end <- getCPUTime
+            let diff = fromIntegral (end - start) / (10^9) :: Double -- in milliseconds
+            printf "Reconciliation of 100-level nested pattern took %.2f ms\n" diff
+            diff `shouldSatisfy` (< 100)
+          Left err -> expectationFailure $ "Reconciliation failed: " ++ show err

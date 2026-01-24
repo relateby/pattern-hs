@@ -122,6 +122,16 @@ instance Arbitrary (Pattern Subject) where
         elems <- vectorOf numElements (resize (n `div` 2) arbitrary)
         return $ Pattern subject elems
 
+-- | A wrapper for generating large patterns for memory/performance testing.
+newtype LargePattern = LargePattern (Pattern Subject) deriving Show
+
+instance Arbitrary LargePattern where
+  arbitrary = do
+    let numNodes = 500
+    root <- arbitrary
+    nodes <- vectorOf numNodes (resize 5 arbitrary) -- Each node has up to 5 children
+    return $ LargePattern (Pattern root nodes)
+
 -- ============================================================================
 -- Helper Functions
 -- ============================================================================
@@ -313,3 +323,9 @@ spec = do
                  let ids = map (Subj.identity . value) elems
                      occurrences = length $ filter (== Subj.identity fuller) ids
                  in occurrences === 1  -- Identity appears exactly once
+    
+    describe "Memory Usage Properties" $ do
+      it "handles large patterns without crashing" $
+        property $ \(LargePattern pattern) ->
+          let result = reconcile LastWriteWins pattern
+          in isRight result
