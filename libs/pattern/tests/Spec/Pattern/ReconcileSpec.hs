@@ -1,4 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | Unit tests for Pattern.Reconcile module.
 --
@@ -121,9 +125,9 @@ spec = do
               alice2 = Subject (Symbol "alice") (Set.fromList ["Employee", "User"]) Map.empty
               root = Subject (Symbol "root") Set.empty Map.empty
               pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
-              strategy = defaultMergeStrategy { labelMerge = UnionLabels }
+              strategy = defaultSubjectMergeStrategy { labelMerge = UnionLabels }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements strategy) pattern of
             Right (Pattern _ [Pattern subj _]) ->
               Subj.labels subj `shouldBe` Set.fromList ["Person", "User", "Employee"]
             Right other -> expectationFailure $ "Unexpected structure: " ++ show other
@@ -134,9 +138,9 @@ spec = do
               alice2 = Subject (Symbol "alice") (Set.fromList ["Employee", "User"]) Map.empty
               root = Subject (Symbol "root") Set.empty Map.empty
               pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
-              strategy = defaultMergeStrategy { labelMerge = IntersectLabels }
+              strategy = defaultSubjectMergeStrategy { labelMerge = IntersectLabels }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements strategy) pattern of
             Right (Pattern _ [Pattern subj _]) ->
               Subj.labels subj `shouldBe` Set.singleton "User"
             Right other -> expectationFailure $ "Unexpected structure: " ++ show other
@@ -147,9 +151,9 @@ spec = do
               alice2 = Subject (Symbol "alice") (Set.fromList ["Employee"]) Map.empty
               root = Subject (Symbol "root") Set.empty Map.empty
               pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
-              strategy = defaultMergeStrategy { labelMerge = ReplaceLabels }
+              strategy = defaultSubjectMergeStrategy { labelMerge = ReplaceLabels }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements strategy) pattern of
             Right (Pattern _ [Pattern subj _]) ->
               Subj.labels subj `shouldBe` Set.singleton "Employee"
             Right other -> expectationFailure $ "Unexpected structure: " ++ show other
@@ -163,9 +167,9 @@ spec = do
                                (Map.fromList [("age", VInteger 31), ("role", VString "Engineer")])
               root = Subject (Symbol "root") Set.empty Map.empty
               pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
-              strategy = defaultMergeStrategy { propertyMerge = ShallowMerge }
+              strategy = defaultSubjectMergeStrategy { propertyMerge = ShallowMerge }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements strategy) pattern of
             Right (Pattern _ [Pattern subj _]) -> do
               -- Should have all keys, with alice2's values winning on conflicts
               Map.keys (Subj.properties subj) `shouldMatchList` ["name", "age", "role"]
@@ -182,9 +186,9 @@ spec = do
                                (Map.singleton "role" (VString "Engineer"))
               root = Subject (Symbol "root") Set.empty Map.empty
               pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
-              strategy = defaultMergeStrategy { propertyMerge = ReplaceProperties }
+              strategy = defaultSubjectMergeStrategy { propertyMerge = ReplaceProperties }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements strategy) pattern of
             Right (Pattern _ [Pattern subj _]) ->
               Subj.properties subj `shouldBe` Map.singleton "role" (VString "Engineer")
             Right other -> expectationFailure $ "Unexpected structure: " ++ show other
@@ -199,9 +203,9 @@ spec = do
                                (Map.fromList [("age", VInteger 31), ("role", VString "Engineer")])
               root = Subject (Symbol "root") Set.empty Map.empty
               pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
-              strategy = defaultMergeStrategy { propertyMerge = DeepMerge }
+              strategy = defaultSubjectMergeStrategy { propertyMerge = DeepMerge }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements strategy) pattern of
             Right (Pattern _ [Pattern subj _]) -> do
               -- Should merge properties (current implementation: later wins on conflicts)
               Map.keys (Subj.properties subj) `shouldMatchList` ["name", "age", "role"]
@@ -222,9 +226,8 @@ spec = do
                 [ Pattern alice1 [Pattern child1 [], Pattern other []]
                 , Pattern alice2 [Pattern child2 []]
                 ]
-              strategy = defaultMergeStrategy { elementMerge = UnionElements }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge UnionElements defaultSubjectMergeStrategy) pattern of
             Right (Pattern _ [Pattern _ elems]) -> do
               -- Should have child (once) and other
               length elems `shouldBe` 2
@@ -245,9 +248,8 @@ spec = do
                 [ Pattern alice1 [Pattern child1 []]
                 , Pattern alice2 [Pattern child2 []]
                 ]
-              strategy = defaultMergeStrategy { elementMerge = AppendElements }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge AppendElements defaultSubjectMergeStrategy) pattern of
             Right (Pattern _ [Pattern _ elems]) -> do
               -- Should have both children (distinct identities)
               length elems `shouldBe` 2
@@ -268,9 +270,8 @@ spec = do
                 [ Pattern alice1 [Pattern child1 []]
                 , Pattern alice2 [Pattern child2 []]
                 ]
-              strategy = defaultMergeStrategy { elementMerge = ReplaceElements }
 
-          case reconcile (Merge strategy) pattern of
+          case reconcile (Merge ReplaceElements defaultSubjectMergeStrategy) pattern of
             Right (Pattern _ [Pattern _ elems]) -> do
               -- Should only have alice2's elements
               length elems `shouldBe` 1
@@ -495,7 +496,7 @@ spec = do
                 , Pattern bob2 []
                 ]
 
-          let (result, report) = reconcileWithReport (Merge defaultMergeStrategy) pattern
+          let (result, report) = reconcileWithReport (Merge UnionElements defaultSubjectMergeStrategy) pattern
           reportMergesPerformed report `shouldBe` 2  -- alice and bob merged
 
         it "returns correct subjectCounts map" $ do
@@ -557,3 +558,60 @@ spec = do
             printf "Reconciliation of 100-level nested pattern took %.2f ms\n" diff
             diff `shouldSatisfy` (< 100)
           Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+    describe "Generic Capability: Simple Song" $ do
+      it "reconciles a song where chorus is defined once and referenced elsewhere" $ do
+        let chorusFull = TaggedString "chorus" (Set.singleton "Chorus") "This is the full chorus text."
+            chorusRef = TaggedString "chorus" Set.empty "ref"
+            verse1 = TaggedString "v1" (Set.singleton "Verse") "First verse."
+            verse2 = TaggedString "v2" (Set.singleton "Verse") "Second verse."
+            
+            song = Pattern (TaggedString "song" Set.empty "My Song")
+              [ Pattern chorusRef []
+              , Pattern verse1 []
+              , Pattern chorusFull []
+              , Pattern verse2 []
+              , Pattern chorusRef []
+              ]
+            
+            -- Policy: Merge with our simple () strategy, Union elements (though they are empty here)
+            policy = Merge UnionElements ()
+        
+        case reconcile policy song of
+          Right (Pattern _ elems) -> do
+            -- UnionElements deduplicates. Map.elems returns in key order ("chorus", "v1", "v2")
+            length elems `shouldBe` 3
+            
+            -- Verify chorus is fully resolved
+            case elems of
+              (chorus:_) -> do -- "chorus" comes before "v1", "v2"
+                tsId (value chorus) `shouldBe` "chorus"
+                tsContent (value chorus) `shouldBe` "This is the full chorus text."
+                tsTags (value chorus) `shouldBe` Set.singleton "Chorus"
+              [] -> expectationFailure "Expected elements"
+            
+            -- Verify others exist
+            let ids = map (tsId . value) elems
+            ids `shouldContain` ["v1", "v2"]
+            
+          Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+-- | Custom type for Generic Reconciliation Test
+data TaggedString = TaggedString
+  { tsId :: String
+  , tsTags :: Set.Set String
+  , tsContent :: String
+  } deriving (Eq, Show, Ord)
+
+instance HasIdentity TaggedString String where
+  identity = tsId
+
+instance Mergeable TaggedString where
+  -- Simple strategy: union tags, longer content wins
+  type MergeStrategy TaggedString = ()
+  merge _ (TaggedString i1 t1 c1) (TaggedString _ t2 c2) =
+    TaggedString i1 (Set.union t1 t2) (if length c1 > length c2 then c1 else c2)
+
+instance Refinable TaggedString where
+  isRefinementOf full partial =
+    tsId full == tsId partial && length (tsContent full) >= length (tsContent partial)

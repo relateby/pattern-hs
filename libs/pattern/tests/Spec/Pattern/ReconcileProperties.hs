@@ -25,19 +25,18 @@ import Data.Either (isLeft, isRight)
 -- ============================================================================
 
 -- | Generate arbitrary ReconciliationPolicy for testing.
-instance Arbitrary ReconciliationPolicy where
+instance Arbitrary (ReconciliationPolicy SubjectMergeStrategy) where
   arbitrary = oneof
     [ pure LastWriteWins
     , pure FirstWriteWins
-    , Merge <$> arbitrary
+    , Merge <$> arbitrary <*> arbitrary
     , pure Strict
     ]
 
--- | Generate arbitrary MergeStrategy for testing.
-instance Arbitrary MergeStrategy where
-  arbitrary = MergeStrategy
+-- | Generate arbitrary SubjectMergeStrategy for testing.
+instance Arbitrary SubjectMergeStrategy where
+  arbitrary = SubjectMergeStrategy
     <$> arbitrary
-    <*> arbitrary
     <*> arbitrary
 
 -- | Generate arbitrary LabelMerge strategy for testing.
@@ -56,8 +55,8 @@ instance Arbitrary PropertyMerge where
     , pure DeepMerge
     ]
 
--- | Generate arbitrary ElementMerge strategy for testing.
-instance Arbitrary ElementMerge where
+-- | Generate arbitrary ElementMergeStrategy for testing.
+instance Arbitrary ElementMergeStrategy where
   arbitrary = oneof
     [ pure ReplaceElements
     , pure AppendElements
@@ -194,10 +193,10 @@ spec = do
 
       it "reconciling twice is the same as reconciling once (Merge)" $
         property $ \(pattern :: Pattern Subject) ->
-          case reconcile (Merge defaultMergeStrategy) pattern of
+          case reconcile (Merge UnionElements defaultSubjectMergeStrategy) pattern of
             Left _ -> property True  -- Error is consistent
             Right once ->
-              case reconcile (Merge defaultMergeStrategy) once of
+              case reconcile (Merge UnionElements defaultSubjectMergeStrategy) once of
                 Left _ -> counterexample "Second reconcile failed but first succeeded" False
                 Right twice -> once === twice
 
@@ -238,38 +237,38 @@ spec = do
 
       it "reconciling the same pattern twice gives identical results (Merge)" $
         property $ \(pattern :: Pattern Subject) ->
-          let policy = Merge defaultMergeStrategy
+          let policy = Merge UnionElements defaultSubjectMergeStrategy
           in reconcile policy pattern === reconcile policy pattern
 
     describe "Merge Strategy Properties" $ do
       it "UnionLabels includes all labels from all occurrences" $
         property $ \(s1 :: Subject) (s2 :: Subject) ->
           let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
-              strategy = defaultMergeStrategy { labelMerge = UnionLabels }
-              merged = mergeSubjects strategy s1 s2'
+              strategy = defaultSubjectMergeStrategy { labelMerge = UnionLabels }
+              merged = merge strategy s1 s2'
               expectedLabels = Set.union (Subj.labels s1) (Subj.labels s2')
           in Subj.labels merged === expectedLabels
 
       it "IntersectLabels keeps only common labels" $
         property $ \(s1 :: Subject) (s2 :: Subject) ->
           let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
-              strategy = defaultMergeStrategy { labelMerge = IntersectLabels }
-              merged = mergeSubjects strategy s1 s2'
+              strategy = defaultSubjectMergeStrategy { labelMerge = IntersectLabels }
+              merged = merge strategy s1 s2'
               expectedLabels = Set.intersection (Subj.labels s1) (Subj.labels s2')
           in Subj.labels merged === expectedLabels
 
       it "ReplaceLabels uses only the second set of labels" $
         property $ \(s1 :: Subject) (s2 :: Subject) ->
           let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
-              strategy = defaultMergeStrategy { labelMerge = ReplaceLabels }
-              merged = mergeSubjects strategy s1 s2'
+              strategy = defaultSubjectMergeStrategy { labelMerge = ReplaceLabels }
+              merged = merge strategy s1 s2'
           in Subj.labels merged === Subj.labels s2'
 
       it "ShallowMerge combines all top-level properties" $
         property $ \(s1 :: Subject) (s2 :: Subject) ->
           let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
-              strategy = defaultMergeStrategy { propertyMerge = ShallowMerge }
-              merged = mergeSubjects strategy s1 s2'
+              strategy = defaultSubjectMergeStrategy { propertyMerge = ShallowMerge }
+              merged = merge strategy s1 s2'
               -- ShallowMerge: p2 wins on conflicts, union of keys
               allKeys = Set.union (Map.keysSet (Subj.properties s1)) (Map.keysSet (Subj.properties s2'))
           in Map.keysSet (Subj.properties merged) === allKeys
@@ -277,8 +276,8 @@ spec = do
       it "ReplaceProperties uses only the second property map" $
         property $ \(s1 :: Subject) (s2 :: Subject) ->
           let s2' = s2 { Subj.identity = Subj.identity s1 }  -- Force same identity
-              strategy = defaultMergeStrategy { propertyMerge = ReplaceProperties }
-              merged = mergeSubjects strategy s1 s2'
+              strategy = defaultSubjectMergeStrategy { propertyMerge = ReplaceProperties }
+              merged = merge strategy s1 s2'
           in Subj.properties merged === Subj.properties s2'
 
       it "UnionElements deduplicates elements by identity" $
@@ -287,8 +286,7 @@ spec = do
           let p2' = p2 { value = (value p2) { Subj.identity = Subj.identity (value p1) }}
               root = value p1
               pattern = Pattern root [p1, p2']
-              strategy = defaultMergeStrategy { elementMerge = UnionElements }
-          in case reconcile (Merge strategy) pattern of
+          in case reconcile (Merge UnionElements defaultSubjectMergeStrategy) pattern of
                Left _ -> property True  -- Error case doesn't apply
                Right (Pattern _ elems) ->
                  -- Each identity should appear at most once in elements
