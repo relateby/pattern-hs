@@ -16,17 +16,20 @@ The reconciliation data model consists of policy types that control behavior, re
 
 **Definition**:
 ```haskell
-data ReconciliationPolicy
+data ReconciliationPolicy s
   = LastWriteWins          -- ^ Keep the last occurrence of each identity
   | FirstWriteWins         -- ^ Keep the first occurrence of each identity
-  | Merge MergeStrategy    -- ^ Merge all occurrences using strategy
+  | Merge ElementMergeStrategy s    -- ^ Merge all occurrences using strategies
   | Strict                 -- ^ Fail if any duplicates have different content
   deriving (Eq, Show)
 ```
 
+**Type Parameters**:
+- `s` is the value-specific merge strategy (e.g., `SubjectMergeStrategy` for `Pattern Subject`)
+
 **Relationships**:
 - Used as input to `reconcile` and `reconcileWithReport` functions
-- `Merge` variant contains a `MergeStrategy` (composition)
+- `Merge` variant contains both `ElementMergeStrategy` and a value-specific strategy `s`
 - Determines how `Conflict` errors are handled in `Strict` mode
 
 **Validation Rules**:
@@ -37,16 +40,41 @@ data ReconciliationPolicy
 
 ---
 
-### MergeStrategy
+### ElementMergeStrategy
 
-**Purpose**: Configures how Subject content (labels, properties, elements) should be merged when combining duplicate identities.
+**Purpose**: Configures how the children (elements) of a pattern should be merged when combining duplicate identities.
 
 **Definition**:
 ```haskell
-data MergeStrategy = MergeStrategy
+data ElementMergeStrategy
+  = ReplaceElements    -- ^ Later element lists replace earlier ones
+  | AppendElements     -- ^ Concatenate all element lists
+  | UnionElements      -- ^ Deduplicate elements by identity
+  deriving (Eq, Show)
+```
+
+**Relationships**:
+- First parameter in `Merge` constructor of `ReconciliationPolicy`
+- Applied to `Pattern.elements` (list of patterns) during merge operations
+- Works independently of value-specific merge strategies
+
+**Validation Rules**:
+- All strategy options are valid
+
+**Usage Constraints**:
+- `UnionElements` requires identity comparison, so only applicable to patterns with identifiable values
+
+---
+
+### SubjectMergeStrategy
+
+**Purpose**: Configures how Subject content (labels and properties) should be merged when combining duplicate identities.
+
+**Definition**:
+```haskell
+data SubjectMergeStrategy = SubjectMergeStrategy
   { labelMerge    :: LabelMerge
   , propertyMerge :: PropertyMerge
-  , elementMerge  :: ElementMerge
   } deriving (Eq, Show)
 
 data LabelMerge
@@ -60,30 +88,21 @@ data PropertyMerge
   | ShallowMerge       -- ^ Merge top-level keys (later wins on conflict)
   | DeepMerge          -- ^ Recursive merge of nested map structures
   deriving (Eq, Show)
-
-data ElementMerge
-  = ReplaceElements    -- ^ Later element lists replace earlier ones
-  | AppendElements     -- ^ Concatenate all element lists
-  | UnionElements      -- ^ Deduplicate elements by identity
-  deriving (Eq, Show)
 ```
 
 **Relationships**:
-- Contained within `ReconciliationPolicy` (in `Merge` variant)
-- Applied to `Subject` fields during merge operations
-- Each sub-strategy operates on a specific `Subject` component:
+- Second parameter in `Merge` constructor of `ReconciliationPolicy` (when reconciling `Pattern Subject`)
+- Applied to `Subject` fields during merge operations:
   - `LabelMerge` → `Subject.labels` (Set of labels)
   - `PropertyMerge` → `Subject.properties` (Map of key-value pairs)
-  - `ElementMerge` → `Pattern.elements` (List of patterns)
 
 **Validation Rules**:
 - All strategy combinations are valid
-- Default strategy is `MergeStrategy UnionLabels ShallowMerge UnionElements`
+- Default strategy is `defaultSubjectMergeStrategy = SubjectMergeStrategy UnionLabels ShallowMerge`
 
 **Usage Constraints**:
 - `DeepMerge` requires property values to be compatible for merging (maps can merge, scalars use last-write-wins)
 - `IntersectLabels` may result in empty label sets if no common labels exist
-- `UnionElements` requires identity comparison, so only applicable to `Pattern Subject`
 
 ---
 
@@ -243,15 +262,17 @@ type CanonicalMap = Map Symbol Subject
 ## Relationships Diagram
 
 ```text
-ReconciliationPolicy
+ReconciliationPolicy s
 ├─ LastWriteWins
 ├─ FirstWriteWins
-├─ Merge
-│  └─ MergeStrategy
-│     ├─ LabelMerge (UnionLabels | IntersectLabels | ReplaceLabels)
-│     ├─ PropertyMerge (ReplaceProperties | ShallowMerge | DeepMerge)
-│     └─ ElementMerge (ReplaceElements | AppendElements | UnionElements)
+├─ Merge ElementMergeStrategy s
+│  ├─ ElementMergeStrategy (ReplaceElements | AppendElements | UnionElements)
+│  └─ s (value-specific strategy, e.g., SubjectMergeStrategy)
 └─ Strict
+
+SubjectMergeStrategy
+├─ labelMerge: LabelMerge (UnionLabels | IntersectLabels | ReplaceLabels)
+└─ propertyMerge: PropertyMerge (ReplaceProperties | ShallowMerge | DeepMerge)
 
 Conflict
 ├─ conflictId: Symbol
@@ -279,7 +300,8 @@ Path = [Int]
 | Entity | Required Validations | When Validated |
 |--------|----------------------|----------------|
 | ReconciliationPolicy | None (ADT exhaustive) | Construction |
-| MergeStrategy | None (all combinations valid) | Construction |
+| ElementMergeStrategy | None (ADT exhaustive) | Construction |
+| SubjectMergeStrategy | None (all combinations valid) | Construction |
 | Conflict | Identity match, different content, non-empty locations | During conflict detection |
 | ReconcileError | Non-empty conflicts for conflict errors | During error construction |
 | ReconcileReport | Non-negative counts, count consistency | During report accumulation |

@@ -312,11 +312,17 @@ We will implement merge strategies using algebraic data types with smart combina
 ### Implementation Pattern
 
 ```haskell
--- Merge strategy configuration
-data MergeStrategy = MergeStrategy
+-- Element merge strategy (separate from value-specific strategies)
+data ElementMergeStrategy
+  = ReplaceElements    -- Later elements replace earlier
+  | AppendElements     -- Concatenate element lists
+  | UnionElements      -- Deduplicate by identity
+  deriving (Eq, Show)
+
+-- Subject-specific merge strategy
+data SubjectMergeStrategy = SubjectMergeStrategy
   { labelMerge :: LabelMerge
   , propertyMerge :: PropertyMerge
-  , elementMerge :: ElementMerge
   } deriving (Eq, Show)
 
 data LabelMerge
@@ -331,22 +337,15 @@ data PropertyMerge
   | DeepMerge          -- Recursive merge of nested structures
   deriving (Eq, Show)
 
-data ElementMerge
-  = ReplaceElements    -- Later elements replace earlier
-  | AppendElements     -- Concatenate element lists
-  | UnionElements      -- Deduplicate by identity
-  deriving (Eq, Show)
-
 -- Default strategy for common case
-defaultMergeStrategy :: MergeStrategy
-defaultMergeStrategy = MergeStrategy
+defaultSubjectMergeStrategy :: SubjectMergeStrategy
+defaultSubjectMergeStrategy = SubjectMergeStrategy
   { labelMerge = UnionLabels
   , propertyMerge = ShallowMerge
-  , elementMerge = UnionElements
   }
 
 -- Merge two subjects according to strategy
-mergeSubjects :: MergeStrategy -> Subject -> Subject -> Subject
+mergeSubjects :: SubjectMergeStrategy -> Subject -> Subject -> Subject
 mergeSubjects strategy s1 s2 = Subject
   { identity = identity s1  -- Identity is invariant
   , labels = mergeLabels (labelMerge strategy) (labels s1) (labels s2)
@@ -381,22 +380,17 @@ mergePropertiesDeep = Map.unionWith mergeValues
 -- Convenience constructors for common strategies
 
 -- Strategy: Union everything (typical for data integration)
-unionStrategy :: MergeStrategy
-unionStrategy = MergeStrategy UnionLabels ShallowMerge UnionElements
+unionSubjectStrategy :: SubjectMergeStrategy
+unionSubjectStrategy = SubjectMergeStrategy UnionLabels ShallowMerge
 
 -- Strategy: Replace everything (typical for updates)
-replaceStrategy :: MergeStrategy
-replaceStrategy = MergeStrategy ReplaceLabels ReplaceProperties ReplaceElements
-
--- Strategy: Accumulate (typical for event sourcing)
-accumulateStrategy :: MergeStrategy
-accumulateStrategy = MergeStrategy UnionLabels ShallowMerge AppendElements
+replaceSubjectStrategy :: SubjectMergeStrategy
+replaceSubjectStrategy = SubjectMergeStrategy ReplaceLabels ReplaceProperties
 
 -- Builder pattern for custom strategies
-customStrategy :: MergeStrategy
-customStrategy = defaultMergeStrategy
+customSubjectStrategy :: SubjectMergeStrategy
+customSubjectStrategy = defaultSubjectMergeStrategy
   { propertyMerge = DeepMerge
-  , elementMerge = AppendElements
   }
 ```
 
@@ -589,11 +583,13 @@ instance Arbitrary ReconciliationPolicy where
     , pure Strict
     ]
 
-instance Arbitrary MergeStrategy where
-  arbitrary = MergeStrategy
+instance Arbitrary SubjectMergeStrategy where
+  arbitrary = SubjectMergeStrategy
     <$> arbitrary
     <*> arbitrary
-    <*> arbitrary
+
+instance Arbitrary ElementMergeStrategy where
+  arbitrary = elements [ReplaceElements, AppendElements, UnionElements]
 ```
 
 ### Shrinking for Better Error Messages
@@ -887,7 +883,7 @@ reconcileOrThrow policy pat =
 
 -- Pattern: Provide helper for common case
 reconcileSafe :: Pattern Subject -> Pattern Subject
-reconcileSafe = reconcileOrThrow (Merge defaultMergeStrategy)
+reconcileSafe = reconcileOrThrow (Merge UnionElements defaultSubjectMergeStrategy)
 
 -- Pattern: Provide reporting variant
 reconcileWithReport :: ReconciliationPolicy
@@ -921,7 +917,7 @@ data ReconcileReport = ReconcileReport
 
 ## Implementation Checklist
 
-- [ ] Define core types (`ReconciliationPolicy`, `MergeStrategy`, `ReconcileError`)
+- [ ] Define core types (`ReconciliationPolicy`, `SubjectMergeStrategy`, `ElementMergeStrategy`, `ReconcileError`)
 - [ ] Implement `collectByIdentity` using `Map.Strict`
 - [ ] Implement `rebuildPattern` with explicit stack and visited set
 - [ ] Implement merge strategies for labels, properties, elements
