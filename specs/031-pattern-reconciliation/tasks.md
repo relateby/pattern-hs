@@ -56,12 +56,12 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T007 [P] Define ReconciliationPolicy data type (LastWriteWins, FirstWriteWins, Merge, Strict) in libs/pattern/src/Pattern/Reconcile.hs
-- [x] T008 [P] Define MergeStrategy and sub-strategy types (LabelMerge, PropertyMerge, ElementMerge) in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T008 [P] Define SubjectMergeStrategy, ElementMergeStrategy and sub-strategy types (LabelMerge, PropertyMerge) in libs/pattern/src/Pattern/Reconcile.hs
 - [x] T009 [P] Define Conflict data type with identity, subjects, and paths in libs/pattern/src/Pattern/Reconcile.hs
 - [x] T010 [P] Define ReconcileError data type with message and conflicts list in libs/pattern/src/Pattern/Reconcile.hs
 - [x] T011 [P] Define ReconcileReport data type with statistics fields in libs/pattern/src/Pattern/Reconcile.hs
 - [x] T012 [P] Define Path type alias as [Int] in libs/pattern/src/Pattern/Reconcile.hs
-- [x] T013 Implement defaultMergeStrategy constant (UnionLabels, ShallowMerge, UnionElements) in libs/pattern/src/Pattern/Reconcile.hs
+- [x] T013 Implement defaultSubjectMergeStrategy constant (UnionLabels, ShallowMerge) in libs/pattern/src/Pattern/Reconcile.hs
 - [x] T014 Add Eq and Show instances for all policy and strategy types in libs/pattern/src/Pattern/Reconcile.hs
 
 **Checkpoint**: Foundation ready - all types defined and exported ✅

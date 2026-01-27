@@ -68,7 +68,7 @@ case reconcile LastWriteWins pattern of
 Use this when you want to combine information from all occurrences.
 
 ```haskell
-import Pattern.Reconcile (MergeStrategy(..), defaultMergeStrategy, Merge)
+import Pattern.Reconcile (ElementMergeStrategy(..), SubjectMergeStrategy(..), defaultSubjectMergeStrategy, Merge)
 
 -- Create subjects with complementary information
 let alice1 = Subject (Symbol "alice") (Set.singleton "Person")
@@ -81,7 +81,7 @@ let alice1 = Subject (Symbol "alice") (Set.singleton "Person")
 let pattern = pattern root [point alice1, point alice2]
 
 -- Reconcile: merge all information
-case reconcile (Merge defaultMergeStrategy) pattern of
+case reconcile (Merge UnionElements defaultSubjectMergeStrategy) pattern of
   Right normalized -> do
     -- Success! normalized has alice with:
     --   labels: ["Person", "Employee"]
@@ -129,17 +129,16 @@ case reconcile Strict pattern of
 Use this when you need fine-grained control over merging.
 
 ```haskell
-import Pattern.Reconcile (MergeStrategy(..), LabelMerge(..), PropertyMerge(..), ElementMerge(..))
+import Pattern.Reconcile (SubjectMergeStrategy(..), ElementMergeStrategy(..), LabelMerge(..), PropertyMerge(..))
 
 -- Create custom strategy
-let customStrategy = MergeStrategy
+let customStrategy = SubjectMergeStrategy
       { labelMerge = IntersectLabels       -- Keep only common labels
       , propertyMerge = ReplaceProperties  -- Last properties win completely
-      , elementMerge = AppendElements      -- Concatenate element lists
       }
 
 -- Use custom strategy
-case reconcile (Merge customStrategy) pattern of
+case reconcile (Merge AppendElements customStrategy) pattern of
   Right normalized -> print normalized
   Left err -> print err
 ```
@@ -225,7 +224,7 @@ let root = Subject (Symbol "combined") Set.empty Map.empty
     combined = pattern root [pattern1, pattern2, pattern3]
 
 -- Merge with union strategy (combine all information)
-case reconcile (Merge defaultMergeStrategy) combined of
+case reconcile (Merge UnionElements defaultSubjectMergeStrategy) combined of
   Right unified -> savePattern unified
   Left err -> handleMergeError err
 ```
@@ -256,9 +255,33 @@ Choose the right reconciliation policy for your use case:
 
 ## Merge Strategy Guide
 
-When using `Merge` policy, choose strategies for each dimension:
+When using `Merge` policy, you need to specify two strategies:
+1. `ElementMergeStrategy` - How to merge the element lists
+2. `SubjectMergeStrategy` - How to merge Subject content (labels and properties)
 
-### Label Merge Strategies
+Example: `Merge UnionElements defaultSubjectMergeStrategy`
+
+### Element Merge Strategies
+
+- **UnionElements**: Deduplicate elements by identity
+  - Use when: Elements represent related entities
+  - Example: Merging relationship patterns
+
+- **AppendElements**: Concatenate all element lists
+  - Use when: Order matters and duplicates are meaningful
+  - Example: Event sequences, history logs
+
+- **ReplaceElements**: Later elements completely replace earlier
+  - Use when: Element list is complete replacement
+  - Example: Overriding relationship structure
+
+### Subject Merge Strategies
+
+The `SubjectMergeStrategy` type has two fields: `labelMerge` and `propertyMerge`.
+
+Default: `defaultSubjectMergeStrategy = SubjectMergeStrategy UnionLabels ShallowMerge`
+
+#### Label Merge Strategies
 
 - **UnionLabels** (default): Combine all labels from all occurrences
   - Use when: Labels are additive classifications
@@ -272,7 +295,7 @@ When using `Merge` policy, choose strategies for each dimension:
   - Use when: Labels represent single classification that can change
   - Example: Status labels that transition
 
-### Property Merge Strategies
+#### Property Merge Strategies
 
 - **ShallowMerge** (default): Merge top-level keys, later wins on conflict
   - Use when: Properties are mostly independent
@@ -285,20 +308,6 @@ When using `Merge` policy, choose strategies for each dimension:
 - **ReplaceProperties**: Later properties completely replace earlier
   - Use when: Property sets are complete replacements
   - Example: Full document updates
-
-### Element Merge Strategies
-
-- **UnionElements** (default): Deduplicate elements by identity
-  - Use when: Elements represent related entities
-  - Example: Merging relationship patterns
-
-- **AppendElements**: Concatenate all element lists
-  - Use when: Order matters and duplicates are meaningful
-  - Example: Event sequences, history logs
-
-- **ReplaceElements**: Later elements completely replace earlier
-  - Use when: Element list is complete replacement
-  - Example: Overriding relationship structure
 
 ## Error Handling
 

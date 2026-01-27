@@ -143,9 +143,11 @@ A developer performing reconciliation wants detailed reporting on what changes w
 
 - **Pattern Subject**: A recursive structure where Subject values carry identity (Symbol), and may contain nested Pattern Subject elements. This is the primary data structure being reconciled.
 
-- **ReconciliationPolicy**: A strategy specification that determines how duplicate identities are resolved. Four variants: LastWriteWins, FirstWriteWins, Merge (with strategy), and Strict.
+- **ReconciliationPolicy**: A parameterized strategy specification that determines how duplicate identities are resolved. Four variants: LastWriteWins, FirstWriteWins, Merge (with element and value-specific strategies), and Strict.
 
-- **MergeStrategy**: Configuration for content merging composed of three sub-strategies for labels (set union/intersection/replace), properties (shallow/deep merge/replace), and elements (append/union/replace).
+- **ElementMergeStrategy**: Configuration for how element lists are merged (replace/append/union).
+
+- **SubjectMergeStrategy**: Configuration for Subject content merging composed of two sub-strategies for labels (set union/intersection/replace) and properties (shallow/deep merge/replace).
 
 - **Conflict**: Information about a duplicate identity including the identity symbol, the existing and incoming Subject definitions, and the structural locations (paths) where duplicates were found.
 
