@@ -11,11 +11,11 @@
 --
 -- Patterns are represented as:
 --
--- > { "value": Subject, "elements": [Pattern] }
+-- > { "subject": Subject, "elements": [Pattern] }
 --
 -- Subjects are represented as:
 --
--- > { "symbol": String, "labels": [String], "properties": {...} }
+-- > { "identity": String, "labels": [String], "properties": {...} }
 --
 -- Value types use native JSON for simple types and discriminated objects
 -- for complex types (Symbol, TaggedString, Range, Measurement).

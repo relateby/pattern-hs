@@ -5,13 +5,14 @@
  */
 
 /**
- * A pattern with a subject value and nested elements
+ * A pattern with a value and nested elements
+ * Generic type parameter V represents the value type (e.g., Subject for gram serialization)
  */
-export interface Pattern {
-  /** The subject value of this pattern */
-  value: Subject;
+export interface Pattern<V = Subject> {
+  /** The value of this pattern */
+  value: V;
   /** Nested pattern elements */
-  elements: Pattern[];
+  elements: Pattern<V>[];
 }
 
 /**

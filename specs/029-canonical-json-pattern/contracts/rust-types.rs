@@ -5,13 +5,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// A pattern with a subject value and nested elements
+/// A pattern with a value and nested elements
+/// Generic type parameter V represents the value type (e.g., Subject for gram serialization)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Pattern {
-    /// The subject value of this pattern
-    pub value: Subject,
+pub struct Pattern<V = Subject> {
+    /// The value of this pattern
+    pub value: V,
     /// Nested pattern elements
-    pub elements: Vec<Pattern>,
+    pub elements: Vec<Pattern<V>>,
 }
 
 /// A subject with identity, labels, and properties
@@ -173,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_serialize_simple_pattern() {
-        let pattern = Pattern {
+        let pattern: Pattern<Subject> = Pattern {
             value: Subject {
                 identity: "test".to_string(),
                 labels: vec!["Node".to_string()],
@@ -198,7 +199,7 @@ mod tests {
             "elements": []
         }"#;
 
-        let pattern: Pattern = serde_json::from_str(json).unwrap();
+        let pattern: Pattern<Subject> = serde_json::from_str(json).unwrap();
         assert_eq!(pattern.value.identity, "test");
         assert_eq!(pattern.value.labels, vec!["Node"]);
         assert!(pattern.value.properties.is_empty());

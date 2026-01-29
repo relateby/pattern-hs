@@ -8,9 +8,9 @@
     "Pattern": {
       "type": "object",
       "description": "A pattern with a subject value and nested elements",
-      "required": ["value", "elements"],
+      "required": ["subject", "elements"],
       "properties": {
-        "value": {
+        "subject": {
           "$ref": "#/definitions/Subject"
         },
         "elements": {
