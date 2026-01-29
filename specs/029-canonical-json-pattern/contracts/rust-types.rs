@@ -17,8 +17,8 @@ pub struct Pattern {
 /// A subject with identity, labels, and properties
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Subject {
-    /// Identifier for the subject (may be empty for anonymous subjects)
-    pub symbol: String,
+    /// Identity of the subject - a symbol identifier (may be empty for anonymous subjects)
+    pub identity: String,
     /// Type labels for the subject
     pub labels: Vec<String>,
     /// Property map with string keys and value types
@@ -175,7 +175,7 @@ mod tests {
     fn test_serialize_simple_pattern() {
         let pattern = Pattern {
             value: Subject {
-                symbol: "test".to_string(),
+                identity: "test".to_string(),
                 labels: vec!["Node".to_string()],
                 properties: HashMap::new(),
             },
@@ -183,7 +183,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&pattern).unwrap();
-        assert!(json.contains("\"symbol\":\"test\""));
+        assert!(json.contains("\"identity\":\"test\""));
         assert!(json.contains("\"labels\":[\"Node\"]"));
     }
 
@@ -191,7 +191,7 @@ mod tests {
     fn test_deserialize_simple_pattern() {
         let json = r#"{
             "value": {
-                "symbol": "test",
+                "identity": "test",
                 "labels": ["Node"],
                 "properties": {}
             },
@@ -199,7 +199,7 @@ mod tests {
         }"#;
 
         let pattern: Pattern = serde_json::from_str(json).unwrap();
-        assert_eq!(pattern.value.symbol, "test");
+        assert_eq!(pattern.value.identity, "test");
         assert_eq!(pattern.value.labels, vec!["Node"]);
         assert!(pattern.value.properties.is_empty());
         assert!(pattern.elements.is_empty());

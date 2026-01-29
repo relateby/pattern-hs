@@ -53,7 +53,7 @@ echo "(node:Person {name: \"Alice\"})" | gramref parse --format json --value-onl
 # Output:
 {
   "value": {
-    "symbol": "node",
+    "identity": "node",
     "labels": ["Person"],
     "properties": {
       "name": "Alice"
@@ -224,7 +224,7 @@ import { Pattern, Subject, Value } from './pattern';
 // Type-safe pattern construction
 const pattern: Pattern = {
   value: {
-    symbol: "person",
+    identity: "person",
     labels: ["Person"],
     properties: {
       name: "Alice",
@@ -235,7 +235,7 @@ const pattern: Pattern = {
 };
 
 // Parse JSON with type safety
-const json = '{"value": {"symbol": "test", "labels": [], "properties": {}}, "elements": []}';
+const json = '{"value": {"identity": "test", "labels": [], "properties": {}}, "elements": []}';
 const parsed: Pattern = JSON.parse(json);
 ```
 
@@ -249,7 +249,7 @@ fn main() {
     // Parse JSON into Pattern
     let json = r#"{
         "value": {
-            "symbol": "person",
+            "identity": "person",
             "labels": ["Person"],
             "properties": {}
         },
@@ -257,7 +257,7 @@ fn main() {
     }"#;
     
     let pattern: pattern::Pattern = serde_json::from_str(json).unwrap();
-    println!("Symbol: {}", pattern.value.symbol);
+    println!("Identity: {}", pattern.value.identity);
     
     // Serialize Pattern to JSON
     let json_out = serde_json::to_string_pretty(&pattern).unwrap();

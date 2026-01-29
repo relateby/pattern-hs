@@ -26,11 +26,11 @@
     "Subject": {
       "type": "object",
       "description": "A subject with identity, labels, and properties",
-      "required": ["symbol", "labels", "properties"],
+      "required": ["identity", "labels", "properties"],
       "properties": {
-        "symbol": {
+        "identity": {
           "type": "string",
-          "description": "Identifier for the subject (may be empty for anonymous subjects)"
+          "description": "Identity of the subject - a symbol identifier (may be empty for anonymous subjects)"
         },
         "labels": {
           "type": "array",

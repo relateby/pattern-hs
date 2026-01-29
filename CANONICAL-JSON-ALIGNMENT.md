@@ -85,10 +85,10 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### 2. Subject Identity Field: `symbol` vs `identity`
 
-**gram-hs**:
+**gram-hs (CURRENT - CORRECT)**:
 ```json
 {
-  "symbol": "alice",
+  "identity": "alice",
   "labels": ["Person"],
   "properties": {}
 }
@@ -103,7 +103,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 }
 ```
 
-**Impact**: High - Field name mismatch breaks property access.
+**Status**: ✅ **ALIGNED** - Both implementations now use `"identity"`
 
 ---
 
@@ -164,10 +164,9 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
    - Update all references
    - Update documentation
 
-2. **Rename `identity` → `symbol`** in `AstSubject`
-   - Update struct field
-   - Update all references
-   - Update documentation
+2. ~~**Rename `identity` → `symbol`** in `AstSubject`~~ **ALREADY CORRECT**
+   - ✅ Both gram-hs and gram-rs use `"identity"`
+   - No changes needed
 
 3. **Change Integer/Decimal to native JSON**
    - Remove tagging for integers and decimals
@@ -227,6 +226,8 @@ After changes:
 
 ---
 
-**Status**: ⚠️ **ACTION REQUIRED**  
-**Priority**: P1  
+**Status**: ⚠️ **PARTIAL ALIGNMENT - gram-hs contracts updated**
+**Priority**: P1
 **Blocks**: Phase 7 completion, gram-js/gram-py development
+
+**Update (2026-01-29)**: gram-hs implementation and contracts now consistently use `"identity"`. The original analysis was based on outdated JSON Schema. gram-rs should align with this correct format.

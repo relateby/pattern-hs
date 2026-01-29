@@ -18,8 +18,8 @@ export interface Pattern {
  * A subject with identity, labels, and properties
  */
 export interface Subject {
-  /** Identifier for the subject (may be empty for anonymous subjects) */
-  symbol: string;
+  /** Identity of the subject - a symbol identifier (may be empty for anonymous subjects) */
+  identity: string;
   /** Type labels for the subject */
   labels: string[];
   /** Property map with string keys and value types */
