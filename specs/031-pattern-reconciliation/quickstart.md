@@ -26,8 +26,9 @@ dependencies:
 
 ```haskell
 import Pattern.Core (Pattern(..), pattern, point)
-import Pattern.Reconcile (reconcile, ReconciliationPolicy(..))
+import Pattern.Reconcile (reconcile, reconcileWithReport, ReconciliationPolicy(..), ReconcileError(..), ReconcileReport(..), Conflict(..), needsReconciliation, findConflicts)
 import Subject.Core (Subject(..), Symbol(..))
+import Subject.Value (VInteger, VString)
 ```
 
 ## Quick Start Examples
@@ -38,8 +39,8 @@ Use this when you want the latest occurrence of each identity to win.
 
 ```haskell
 import qualified Data.Set as Set
-import qualified Data.Map as Map
-import Subject.Value (VInteger(..))
+import qualified Data.Map.Strict as Map
+import Subject.Value (VInteger, VString)
 
 -- Create subjects with same identity but different properties
 let alice1 = Subject (Symbol "alice") (Set.singleton "Person")
@@ -68,6 +69,8 @@ case reconcile LastWriteWins pattern of
 Use this when you want to combine information from all occurrences.
 
 ```haskell
+import qualified Data.Set as Set
+import qualified Data.Map.Strict as Map
 import Pattern.Reconcile (ElementMergeStrategy(..), SubjectMergeStrategy(..), defaultSubjectMergeStrategy, Merge)
 
 -- Create subjects with complementary information
@@ -98,7 +101,10 @@ case reconcile (Merge UnionElements defaultSubjectMergeStrategy) pattern of
 Use this when you want to detect and report conflicts.
 
 ```haskell
-import Pattern.Reconcile (Strict, findConflicts)
+import qualified Data.Set as Set
+import qualified Data.Map.Strict as Map
+import Pattern.Reconcile (Strict, findConflicts, ReconcileError(..))
+import Subject.Value (VInteger, VString)
 
 -- Create subjects with conflicting information
 let alice1 = Subject (Symbol "alice") (Set.singleton "Person")
@@ -119,7 +125,7 @@ case reconcile Strict pattern of
     -- Error with detailed conflict information
     putStrLn $ "Reconciliation failed: " ++ msg
     putStrLn $ "Found " ++ show (length conflicts) ++ " conflicts"
-    mapM_ print conflicts
+    mapM_ (\c -> putStrLn $ "  " ++ show (conflictId c)) conflicts
 ```
 
 **Result**: Error with detailed information about the status conflict.
@@ -129,7 +135,7 @@ case reconcile Strict pattern of
 Use this when you need fine-grained control over merging.
 
 ```haskell
-import Pattern.Reconcile (SubjectMergeStrategy(..), ElementMergeStrategy(..), LabelMerge(..), PropertyMerge(..))
+import Pattern.Reconcile (SubjectMergeStrategy(..), ElementMergeStrategy(..), LabelMerge(..), PropertyMerge(..), Merge)
 
 -- Create custom strategy
 let customStrategy = SubjectMergeStrategy
@@ -148,7 +154,8 @@ case reconcile (Merge AppendElements customStrategy) pattern of
 Use this when you need statistics about what was reconciled.
 
 ```haskell
-import Pattern.Reconcile (reconcileWithReport)
+import qualified Data.Map.Strict as Map
+import Pattern.Reconcile (reconcileWithReport, ReconcileReport(..))
 
 -- Reconcile and get report
 let (result, report) = reconcileWithReport LastWriteWins pattern
@@ -162,7 +169,7 @@ case result of
 
     -- Show occurrence counts
     putStrLn "Identity occurrence counts:"
-    mapM_ (\(id, count) -> putStrLn $ "  " ++ show id ++ ": " ++ show count)
+    mapM_ (\(ident, count) -> putStrLn $ "  " ++ show ident ++ ": " ++ show count)
           (Map.toList $ reportSubjectCounts report)
   Left err ->
     putStrLn $ "Reconciliation failed: " ++ show err
@@ -173,7 +180,7 @@ case result of
 Use this to detect if reconciliation is needed.
 
 ```haskell
-import Pattern.Reconcile (needsReconciliation, findConflicts)
+import Pattern.Reconcile (needsReconciliation, findConflicts, reconcile)
 
 -- Check if pattern needs reconciliation
 if needsReconciliation pattern
@@ -198,15 +205,17 @@ if needsReconciliation pattern
 ### After Parsing Gram Notation
 
 ```haskell
-import Gram.Parser (parseGram)
+import Text.Megaparsec (parse)
+import Gram.Parse (parseGram)
+import Gram.Transform (fromGram)  -- or fromGramWithIds / fromGramWithHeader as needed
 
--- Parse gram text (may have duplicate IDs)
-case parseGram gramText of
-  Right parsed ->
-    -- Reconcile duplicates from parsing
-    case reconcile LastWriteWins parsed of
-      Right coherent -> processPattern coherent
-      Left err -> handleParseError err
+-- After parsing gram text and converting to Pattern Subject, reconcile duplicates
+case parse parseGram "" gramText of
+  Right gramDoc ->
+    let patternFromGram = fromGram gramDoc
+    in case reconcile LastWriteWins patternFromGram of
+         Right coherent -> processPattern coherent
+         Left err -> handleParseError err
   Left parseErr ->
     handleParseError parseErr
 ```
@@ -320,13 +329,13 @@ case reconcile policy pattern of
     usePattern result
 
   Left (ReconcileError message conflicts) -> do
-    -- Error path - handle conflicts
+    -- Error path - handle conflicts (import ReconcileError, Conflict from Pattern.Reconcile)
     logError message
-    forM_ conflicts $ \conflict -> do
-      putStrLn $ "Conflict for identity: " ++ show (conflictId conflict)
-      putStrLn $ "  Existing: " ++ show (conflictExisting conflict)
-      putStrLn $ "  Incoming: " ++ show (conflictIncoming conflict)
-      putStrLn $ "  Locations: " ++ show (conflictLocations conflict)
+    mapM_ (\c -> do
+      putStrLn $ "Conflict for identity: " ++ show (conflictId c)
+      putStrLn $ "  Existing: " ++ show (conflictExisting c)
+      putStrLn $ "  Incoming: " ++ show (conflictIncoming c)
+      putStrLn $ "  Locations: " ++ show (conflictLocations c)) conflicts
 ```
 
 ## Performance Considerations
