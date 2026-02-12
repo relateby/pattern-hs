@@ -9,7 +9,7 @@
 
 ### User Story 1 - Find User Documentation Easily (Priority: P1) 🎯 MVP
 
-As a developer using the gram-hs library, I need to find user documentation quickly without navigating through multiple nested directories, so that I can start learning and using the library efficiently.
+As a developer using the pattern-hs library, I need to find user documentation quickly without navigating through multiple nested directories, so that I can start learning and using the library efficiently.
 
 **Why this priority**: This is the primary use case - developers need clear, accessible documentation. The current structure with `docs/users/guide/` is unnecessarily nested, and having both `docs/users/guide/` and `docs/users/guides/` creates confusion. Moving the excellent numbered guide to `docs/guide/` makes it immediately discoverable.
 

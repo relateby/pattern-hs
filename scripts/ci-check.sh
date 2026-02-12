@@ -1,5 +1,5 @@
 #!/bin/bash
-# CI Check Script for gram-hs
+# CI Check Script for pattern-hs
 # Runs the same checks that CI would run locally
 
 set -e  # Exit on error
@@ -18,7 +18,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo "=========================================="
-echo "Running CI Checks for gram-hs"
+echo "Running CI Checks for pattern-hs"
 echo "=========================================="
 echo ""
 
@@ -60,4 +60,3 @@ else
     echo -e "${RED}Some CI checks failed${NC}"
     exit 1
 fi
-

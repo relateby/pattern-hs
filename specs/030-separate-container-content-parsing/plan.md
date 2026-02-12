@@ -5,7 +5,7 @@
 
 ## Summary
 
-The core requirement is to refactor the `gram-hs` parsing and serialization behavior to distinguish between a Gram Document (container) and its constituent Patterns (content). This aligns `gram-hs` with the `gram-rs` implementation and improves document-level metadata handling.
+The core requirement is to refactor the `pattern-hs` parsing and serialization behavior to distinguish between a Gram Document (container) and its constituent Patterns (content). This aligns `pattern-hs` with the `gram-rs` implementation and improves document-level metadata handling.
 
 ## Technical Context
 

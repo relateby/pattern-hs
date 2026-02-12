@@ -9,7 +9,7 @@
 
 ### User Story 1 - Find User-Facing Documentation (Priority: P1)
 
-As a Haskell developer using the gram-hs library, I need to quickly find user-facing documentation (installation, quick start, API reference, usage guides) so that I can effectively use the library in my projects without needing to understand implementation details or porting concerns.
+As a Haskell developer using the pattern-hs library, I need to quickly find user-facing documentation (installation, quick start, API reference, usage guides) so that I can effectively use the library in my projects without needing to understand implementation details or porting concerns.
 
 **Why this priority**: This is the primary use case - developers who want to use the library need clear, accessible documentation that focuses on usage rather than implementation. Without this, the library is difficult to adopt.
 
@@ -17,7 +17,7 @@ As a Haskell developer using the gram-hs library, I need to quickly find user-fa
 
 **Acceptance Scenarios**:
 
-1. **Given** a developer wants to use the gram-hs library, **When** they visit the main README, **Then** they see clear installation instructions and quick start examples
+1. **Given** a developer wants to use the pattern-hs library, **When** they visit the main README, **Then** they see clear installation instructions and quick start examples
 2. **Given** a developer needs to understand how to use a specific feature, **When** they navigate to user documentation, **Then** they find usage guides with working examples
 3. **Given** a developer needs API reference, **When** they access the documentation, **Then** they find complete API documentation without implementation details
 
@@ -25,7 +25,7 @@ As a Haskell developer using the gram-hs library, I need to quickly find user-fa
 
 ### User Story 2 - Find Porting Reference Documentation (Priority: P1)
 
-As a developer porting gram-hs to another language, I need to find comprehensive reference documentation (architecture, specification, implementation guide, porting roadmap) so that I can accurately translate the library while maintaining category-theoretic correctness and feature parity.
+As a developer porting pattern-hs to another language, I need to find comprehensive reference documentation (architecture, specification, implementation guide, porting roadmap) so that I can accurately translate the library while maintaining category-theoretic correctness and feature parity.
 
 **Why this priority**: This is equally critical - the project serves as a reference implementation. Porters need authoritative, current documentation that clearly separates what's implemented from what's planned, and provides implementation guidance.
 
@@ -75,7 +75,7 @@ As a developer (user or porter), I need to understand which design documents ref
 - **FR-005**: System MUST clearly mark implementation status (implemented, planned, deferred) on all design documents
 - **FR-006**: System MUST preserve historical development artifacts (specs directory) with clear indication they are historical, not current
 - **FR-007**: System MUST provide a single authoritative specification document that reflects current implementation status
-- **FR-008**: System MUST document how to use the gram-hs CLI tool for testing and validation during porting
+- **FR-008**: System MUST document how to use the pattern-hs CLI tool for testing and validation during porting
 - **FR-009**: System MUST organize design documents to separate implemented features from aspirational designs
 - **FR-010**: System MUST provide feature-by-feature reference documentation for porters with current specifications
 - **FR-011**: System MUST link design documents to current reference documentation for implemented features
@@ -94,7 +94,7 @@ As a developer (user or porter), I need to understand which design documents ref
 
 - Documentation will be organized in a `docs/` directory structure
 - Historical artifacts (specs/, design/) will be preserved but clearly marked
-- The gram-hs CLI tool exists and can be used for testing
+- The pattern-hs CLI tool exists and can be used for testing
 - Documentation can reference both implemented and planned features with clear status
 - Users and porters have different information needs that can be separated
 - Design documents provide valuable context even when describing unimplemented features

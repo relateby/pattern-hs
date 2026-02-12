@@ -1,4 +1,4 @@
-# Canonical JSON Alignment: gram-rs vs gram-hs
+# Canonical JSON Alignment: gram-rs vs pattern-hs
 
 **Date**: January 9, 2026  
 **Status**: ⚠️ **MISALIGNMENTS FOUND**  
@@ -8,22 +8,22 @@
 
 ## 🎯 Goal
 
-Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-hs (spec 029-canonical-json-pattern) to enable interoperability across the gram ecosystem.
+Ensure gram-rs AST output matches the **canonical JSON format** defined by pattern-hs (spec 029-canonical-json-pattern) to enable interoperability across the gram ecosystem.
 
 ---
 
-## 📊 Comparison: gram-hs Canonical Format vs gram-rs AST
+## 📊 Comparison: pattern-hs Canonical Format vs gram-rs AST
 
 ### Pattern Structure
 
-| Field | gram-hs (Canonical) | gram-rs (Current) | Status |
+| Field | pattern-hs (Canonical) | gram-rs (Current) | Status |
 |-------|---------------------|-------------------|--------|
 | Pattern value | `value` | `subject` | ❌ **MISMATCH** |
 | Elements | `elements` | `elements` | ✅ Match |
 
 ### Subject Structure
 
-| Field | gram-hs (Canonical) | gram-rs (Current) | Status |
+| Field | pattern-hs (Canonical) | gram-rs (Current) | Status |
 |-------|---------------------|-------------------|--------|
 | Identity | `symbol` | `identity` | ❌ **MISMATCH** |
 | Labels | `labels` | `labels` | ✅ Match |
@@ -31,7 +31,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### Value Type Discriminators
 
-| Type | gram-hs (Canonical) | gram-rs (Current) | Status |
+| Type | pattern-hs (Canonical) | gram-rs (Current) | Status |
 |------|---------------------|-------------------|--------|
 | Symbol | `{"type": "symbol", "value": "..."}` | `{"type": "Symbol", "value": "..."}` | ❌ **MISMATCH** (case) |
 | Tagged String | `{"type": "tagged", "tag": "...", "content": "..."}` | `{"type": "Tagged", "tag": "...", "content": "..."}` | ❌ **MISMATCH** (case) |
@@ -40,7 +40,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### Simple Types
 
-| Type | gram-hs | gram-rs | Status |
+| Type | pattern-hs | gram-rs | Status |
 |------|---------|---------|--------|
 | Integer | Native JSON `number` | Tagged `{"type": "Integer", "value": n}` | ⚠️ **DIFFERENT APPROACH** |
 | Decimal | Native JSON `number` | Tagged `{"type": "Decimal", "value": n}` | ⚠️ **DIFFERENT APPROACH** |
@@ -55,7 +55,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### 1. Pattern Field Name: `value` vs `subject`
 
-**gram-hs**:
+**pattern-hs**:
 ```json
 {
   "value": {
@@ -85,7 +85,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### 2. Subject Identity Field: `symbol` vs `identity`
 
-**gram-hs (CURRENT - CORRECT)**:
+**pattern-hs (CURRENT - CORRECT)**:
 ```json
 {
   "identity": "alice",
@@ -109,7 +109,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### 3. Value Type Discriminator Case: Lowercase vs Capitalized
 
-**gram-hs**:
+**pattern-hs**:
 ```json
 {
   "type": "symbol",
@@ -131,7 +131,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 ### 4. Integer/Decimal Serialization: Native vs Tagged
 
-**gram-hs** (from schema):
+**pattern-hs** (from schema):
 - Integer: Native JSON number (e.g., `42`)
 - Decimal: Native JSON number (e.g., `3.14`)
 
@@ -139,9 +139,9 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 - Integer: Tagged `{"type": "Integer", "value": 42}`
 - Decimal: Tagged `{"type": "Decimal", "value": 3.14}`
 
-**Impact**: High - This is a fundamental difference in approach. gram-hs uses native JSON for numbers, gram-rs tags them.
+**Impact**: High - This is a fundamental difference in approach. pattern-hs uses native JSON for numbers, gram-rs tags them.
 
-**Note**: Our design decision document says "mixed approach" but gram-hs uses pure native for numbers. Need to align.
+**Note**: Our design decision document says "mixed approach" but pattern-hs uses pure native for numbers. Need to align.
 
 ---
 
@@ -165,7 +165,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
    - Update documentation
 
 2. ~~**Rename `identity` → `symbol`** in `AstSubject`~~ **ALREADY CORRECT**
-   - ✅ Both gram-hs and gram-rs use `"identity"`
+   - ✅ Both pattern-hs and gram-rs use `"identity"`
    - No changes needed
 
 3. **Change Integer/Decimal to native JSON**
@@ -185,7 +185,7 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 5. **Update examples** to show canonical format
 6. **Update READMEs** to reference canonical format
-7. **Add validation** against gram-hs JSON schema
+7. **Add validation** against pattern-hs JSON schema
 
 ---
 
@@ -193,28 +193,28 @@ Ensure gram-rs AST output matches the **canonical JSON format** defined by gram-
 
 After changes:
 
-1. **Round-trip test**: gram-rs JSON → gram-hs parser → gram-rs parser
-2. **Schema validation**: Validate gram-rs JSON against gram-hs schema
+1. **Round-trip test**: gram-rs JSON → pattern-hs parser → gram-rs parser
+2. **Schema validation**: Validate gram-rs JSON against pattern-hs schema
 3. **Example comparison**: Compare outputs for same gram input
 
 ---
 
 ## 📚 References
 
-- **gram-hs JSON Schema**: `../gram-hs/specs/029-canonical-json-pattern/contracts/json-schema.json`
-- **gram-hs Spec**: `../gram-hs/specs/029-canonical-json-pattern/spec.md`
-- **gram-hs Data Model**: `../gram-hs/specs/029-canonical-json-pattern/data-model.md`
-- **gram-hs TypeScript Types**: `../gram-hs/specs/029-canonical-json-pattern/contracts/typescript-types.ts`
+- **pattern-hs JSON Schema**: `../pattern-hs/specs/029-canonical-json-pattern/contracts/json-schema.json`
+- **pattern-hs Spec**: `../pattern-hs/specs/029-canonical-json-pattern/spec.md`
+- **pattern-hs Data Model**: `../pattern-hs/specs/029-canonical-json-pattern/data-model.md`
+- **pattern-hs TypeScript Types**: `../pattern-hs/specs/029-canonical-json-pattern/contracts/typescript-types.ts`
 
 ---
 
 ## 🎯 Recommendation
 
-**Action**: Align gram-rs AST output with gram-hs canonical format **before** Phase 7 completion.
+**Action**: Align gram-rs AST output with pattern-hs canonical format **before** Phase 7 completion.
 
 **Rationale**:
 - Interoperability is a core goal
-- gram-hs is the reference implementation
+- pattern-hs is the reference implementation
 - Breaking changes now are easier than later
 - Downstream projects (gram-js, gram-py) will depend on canonical format
 
@@ -226,8 +226,8 @@ After changes:
 
 ---
 
-**Status**: ⚠️ **PARTIAL ALIGNMENT - gram-hs contracts updated**
+**Status**: ⚠️ **PARTIAL ALIGNMENT - pattern-hs contracts updated**
 **Priority**: P1
 **Blocks**: Phase 7 completion, gram-js/gram-py development
 
-**Update (2026-01-29)**: gram-hs implementation and contracts now consistently use `"identity"`. The original analysis was based on outdated JSON Schema. gram-rs should align with this correct format.
+**Update (2026-01-29)**: pattern-hs implementation and contracts now consistently use `"identity"`. The original analysis was based on outdated JSON Schema. gram-rs should align with this correct format.

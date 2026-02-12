@@ -1,6 +1,6 @@
 # Quickstart: Separation of Container and Content Parsing
 
-This guide shows how to use the new container-aware API in `gram-hs`.
+This guide shows how to use the new container-aware API in `pattern-hs`.
 
 ## Parsing Multiple Patterns
 

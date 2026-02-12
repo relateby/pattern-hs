@@ -32,7 +32,7 @@ import Data.Text (Text)
 generateRustTypes :: Text
 generateRustTypes = T.unlines
   [ "//! Pattern<Subject> Rust Type Definitions"
-  , "//! Generated from gram-hs canonical JSON Schema"
+  , "//! Generated from pattern-hs canonical JSON Schema"
   , "//! Version: 0.1.0"
   , ""
   , "use serde::{Deserialize, Serialize};"

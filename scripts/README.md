@@ -13,7 +13,7 @@ Initializes git submodules required for corpus tests.
 ./scripts/init-submodules.sh
 
 # Or from anywhere
-cd /path/to/gram-hs
+cd /path/to/pattern-hs
 ./scripts/init-submodules.sh
 ```
 
@@ -44,7 +44,7 @@ Runs all CI checks that would be executed in continuous integration:
 ./scripts/ci-check.sh
 
 # Or from anywhere
-cd /path/to/gram-hs
+cd /path/to/pattern-hs
 ./scripts/ci-check.sh
 ```
 
@@ -57,7 +57,7 @@ cd /path/to/gram-hs
 
 ```
 ==========================================
-Running CI Checks for gram-hs
+Running CI Checks for pattern-hs
 ==========================================
 
 Running: Build all packages
@@ -90,4 +90,3 @@ cabal haddock all
 # Test specific library
 cabal test libs/pattern:test --test-show-details=direct
 ```
-

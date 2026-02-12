@@ -1,6 +1,6 @@
 /**
  * Canonical JSON representation of Pattern<Subject>
- * Generated from gram-hs JSON Schema v0.1.0
+ * Generated from pattern-hs JSON Schema v0.1.0
  * @see https://gram.data/schemas/pattern/v0.1.0/pattern.json
  */
 
@@ -154,7 +154,7 @@ export function isValueMap(value: Value): value is { [key: string]: Value } {
  * Type guard to check if a value is a primitive (number, boolean, or string)
  */
 export function isValuePrimitive(
-  value: Value
+  value: Value,
 ): value is number | boolean | string {
   return (
     typeof value === "number" ||

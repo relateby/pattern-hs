@@ -1,4 +1,4 @@
-# Copilot Instructions for gram-hs
+# Copilot Instructions for pattern-hs
 
 ## Project Overview
 
@@ -17,13 +17,13 @@ This is a multi-library Haskell mono-repo providing tools for working with patte
 ## Project Structure
 
 ```
-gram-hs/
+pattern-hs/
 ├── libs/
 │   ├── pattern/          # Core Pattern type and category-theoretic operations
 │   ├── subject/          # Subject library (planned)
 │   └── gram/             # Gram library (planned)
 ├── apps/
-│   └── gram-hs-cli/      # CLI application
+│   └── gramref-cli/      # CLI application
 ├── specs/                # Feature specifications (Speckit workflow)
 ├── .specify/
 │   └── memory/

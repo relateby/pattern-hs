@@ -6,7 +6,7 @@ The project will move away from implicitly wrapping multiple patterns in a `Gram
 
 ### Rationale
 
-1.  **Cross-Language Consistency**: The `gram-rs` implementation has adopted this model, returning `Vec<Pattern<Subject>>` from its primary `parse_gram` function. Aligning `gram-hs` ensures that developers moving between languages encounter the same mental model.
+1.  **Cross-Language Consistency**: The `gram-rs` implementation has adopted this model, returning `Vec<Pattern<Subject>>` from its primary `parse_gram` function. Aligning `pattern-hs` ensures that developers moving between languages encounter the same mental model.
 2.  **Metadata Clarity**: Using a "magic label" (`Gram.Root`) to store file-level metadata is fragile and makes it harder for users to distinguish between intentional pattern labels and parser-injected metadata.
 3.  **Performance and Scaling**: For large documents (SC-001), treating patterns as a stream or list is more efficient than building a single massive nested data structure.
 
@@ -23,7 +23,7 @@ The project will move away from implicitly wrapping multiple patterns in a `Gram
 
 #### API Alignment
 
-| Feature | `gram-rs` | `gram-hs` (Proposed) |
+| Feature | `gram-rs` | `pattern-hs` (Proposed) |
 |---------|-----------|----------------------|
 | Parse multiple | `parse_gram(&str) -> Vec<Pattern>` | `fromGramList :: String -> Either ParseError [Pattern Subject]` |
 | Parse w/ Header | `parse_gram_with_header(&str) -> (Option<Record>, Vec<Pattern>)` | `fromGramWithHeader :: String -> Either ParseError (Maybe PropertyRecord, [Pattern Subject])` |
