@@ -1,4 +1,4 @@
-# Gram HS
+# Pattern HS
 
 A multi-library Haskell mono-repo providing libraries and tools for working with patterns, subjects, and graph structures. The primary library, `pattern`, offers a generalized representation of graph elements, including nodes, relationships, paths and compositions.
 
