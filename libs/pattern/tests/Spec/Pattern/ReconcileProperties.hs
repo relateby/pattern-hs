@@ -222,9 +222,13 @@ spec = do
               let ids = collectAllIdentities reconciled
               in length ids === length (Set.fromList ids)
 
-      -- Full Merge support with element deduplication is implemented in Phase 4
       it "each identity appears at most once after reconciliation (Merge)" $
-        pendingWith "Full Merge with element deduplication is Phase 4 (User Story 2)"
+        property $ \(pattern :: Pattern Subject) ->
+          case reconcile (Merge UnionElements defaultSubjectMergeStrategy) pattern of
+            Left _ -> property True  -- Error case doesn't apply
+            Right reconciled ->
+              let ids = collectAllIdentities reconciled
+              in length ids === length (Set.fromList ids)
 
     describe "Determinism Properties" $ do
       it "reconciling the same pattern twice gives identical results (LastWriteWins)" $
