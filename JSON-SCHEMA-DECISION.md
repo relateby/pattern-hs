@@ -1,4 +1,4 @@
-# JSON Schema Decision Analysis: gram-hs vs gram-rs
+# JSON Schema Decision Analysis: pattern-hs vs gram-rs
 
 **Date**: 2026-01-29
 **Status**: ✅ ALIGNED - Documentation Bug Found
@@ -8,19 +8,19 @@
 
 ## Executive Summary
 
-**CRITICAL FINDING**: gram-hs documentation and implementation are **misaligned**!
+**CRITICAL FINDING**: pattern-hs documentation and implementation are **misaligned**!
 
-- **gram-hs documentation** (Gram/JSON.hs lines 14-18) says: `"value"` and `"symbol"`
-- **gram-hs implementation** (Gram/JSON.hs lines 52-63) uses: `"subject"` and `"identity"`
+- **pattern-hs documentation** (Gram/JSON.hs lines 14-18) says: `"value"` and `"symbol"`
+- **pattern-hs implementation** (Gram/JSON.hs lines 52-63) uses: `"subject"` and `"identity"`
 - **gram-rs implementation** uses: `"subject"` and `"identity"`
 
-**Result**: gram-rs is **already aligned** with gram-hs's actual implementation. The issue is a documentation bug in gram-hs, not a format mismatch.
+**Result**: gram-rs is **already aligned** with pattern-hs's actual implementation. The issue is a documentation bug in pattern-hs, not a format mismatch.
 
 ---
 
 ## Actual Current State
 
-### gram-hs Implementation (ACTUAL)
+### pattern-hs Implementation (ACTUAL)
 ```haskell
 -- From Gram/JSON.hs lines 52-55
 patternToValue (Pattern.Pattern v es) = object
@@ -36,7 +36,7 @@ subjectToValue (Subject.Subject ident labels props) = object
   ]
 ```
 
-### gram-hs Documentation (INCORRECT)
+### pattern-hs Documentation (INCORRECT)
 ```haskell
 -- From Gram/JSON.hs lines 14-18
 -- Patterns are represented as:
@@ -47,7 +47,7 @@ subjectToValue (Subject.Subject ident labels props) = object
 
 ### gram-rs Implementation (ALIGNED)
 ```rust
-// Already uses "subject" and "identity" - matches gram-hs implementation!
+// Already uses "subject" and "identity" - matches pattern-hs implementation!
 ```
 
 ---
@@ -86,26 +86,26 @@ subjectToValue (Subject.Subject ident labels props) = object
 
 Gram notation: `(alice:Person {name: "Alice"})`
 
-- ✅ **gram-hs (`value`)**: Aligns with Pattern conceptual model where "value provides decoration about the elements"
+- ✅ **pattern-hs (`value`)**: Aligns with Pattern conceptual model where "value provides decoration about the elements"
 - ❌ **gram-rs (`subject`)**: Introduces graph-specific terminology not present in gram notation
-- **Winner**: gram-hs - `value` is more neutral and matches the Pattern abstraction
+- **Winner**: pattern-hs - `value` is more neutral and matches the Pattern abstraction
 
 **Consideration 2: Least Surprising Mapping to User Code**
 
 In Haskell: `Pattern { value :: Subject, elements :: [Pattern] }`  
 In Rust: `Pattern<V> { value: V, elements: Vec<Pattern<V>> }`
 
-- ✅ **gram-hs (`value`)**: Direct 1:1 mapping to code field names
+- ✅ **pattern-hs (`value`)**: Direct 1:1 mapping to code field names
 - ❌ **gram-rs (`subject`)**: Introduces semantic mismatch - code says `value`, JSON says `subject`
-- **Winner**: gram-hs - field names match code structure exactly
+- **Winner**: pattern-hs - field names match code structure exactly
 
-**Verdict**: ✅ **gram-hs approach is superior**
+**Verdict**: ✅ **pattern-hs approach is superior**
 
 ---
 
 ### 2. Subject Identity Field: `symbol` vs `identity`
 
-#### gram-hs Approach: `"symbol"`
+#### pattern-hs Approach: `"symbol"`
 ```json
 {
   "symbol": "alice",
@@ -129,7 +129,7 @@ In Rust: `Pattern<V> { value: V, elements: Vec<Pattern<V>> }`
 
 Gram notation: `(alice:Person)`
 
-- ⚠️ **gram-hs (`symbol`)**: Exposes type name rather than semantic meaning
+- ⚠️ **pattern-hs (`symbol`)**: Exposes type name rather than semantic meaning
 - ✅ **gram-rs (`identity`)**: Reflects semantic meaning - this is the identity of the subject
 - **Winner**: gram-rs - field names should reflect semantics, not types
 
@@ -138,19 +138,19 @@ Gram notation: `(alice:Person)`
 In Haskell: `Subject { identity :: Symbol, ... }`
 In Rust: `Subject { identity: Symbol, ... }`
 
-- ❌ **gram-hs (`symbol`)**: Exposes internal type name rather than field name
+- ❌ **pattern-hs (`symbol`)**: Exposes internal type name rather than field name
 - ✅ **gram-rs (`identity`)**: Matches actual field name in both implementations
 - **Winner**: gram-rs - direct field name mapping
 
 **Verdict**: ✅ **gram-rs approach is superior - use `identity`**
 
-**Action**: gram-hs should change `symbol` → `identity` (see GRAM-HS-JSON-ALIGNMENT.todo.md)
+**Action**: pattern-hs should change `symbol` → `identity` (see pattern-hs-JSON-ALIGNMENT.todo.md)
 
 ---
 
 ### 3. Number Serialization: Native vs Tagged
 
-#### gram-hs Approach: Native JSON Numbers
+#### pattern-hs Approach: Native JSON Numbers
 ```json
 {
   "properties": {
@@ -176,35 +176,35 @@ In Rust: `Subject { identity: Symbol, ... }`
 
 Gram notation: `{age: 30, temperature: 98.6}`
 
-- ✅ **gram-hs (native)**: Direct mapping - what you see is what you get
+- ✅ **pattern-hs (native)**: Direct mapping - what you see is what you get
 - ❌ **gram-rs (tagged)**: Adds ceremony not present in gram notation
-- **Winner**: gram-hs - simpler, more intuitive
+- **Winner**: pattern-hs - simpler, more intuitive
 
 **Consideration 2: Least Surprising Mapping to User Code**
 
 When working with JSON in code:
 ```javascript
-// gram-hs approach
+// pattern-hs approach
 const age = pattern.value.properties.age;  // 30
 
 // gram-rs approach  
 const age = pattern.subject.properties.age.value;  // 30
 ```
 
-- ✅ **gram-hs (native)**: Natural property access, works with standard JSON tools
+- ✅ **pattern-hs (native)**: Natural property access, works with standard JSON tools
 - ❌ **gram-rs (tagged)**: Requires unwrapping, breaks JSON tooling expectations
-- **Winner**: gram-hs - much better developer experience
+- **Winner**: pattern-hs - much better developer experience
 
 **Technical Consideration: Type Preservation**
 
-- **gram-hs**: Loses integer/decimal distinction (JSON limitation)
+- **pattern-hs**: Loses integer/decimal distinction (JSON limitation)
   - `2.0` serializes as `2`
   - Handles via semantic equivalence during parsing
 - **gram-rs**: Preserves exact type information
   - Can distinguish `Integer(2)` from `Decimal(2.0)`
   - But adds complexity for marginal benefit
 
-**Verdict**: ✅ **gram-hs approach is strongly superior**
+**Verdict**: ✅ **pattern-hs approach is strongly superior**
 
 The type preservation benefit of gram-rs doesn't justify the complexity cost. JSON's number ambiguity is well-understood and handled via semantic equivalence.
 
@@ -212,7 +212,7 @@ The type preservation benefit of gram-rs doesn't justify the complexity cost. JS
 
 ### 4. Type Discriminator Case: Lowercase vs Capitalized
 
-#### gram-hs Approach: Lowercase
+#### pattern-hs Approach: Lowercase
 ```json
 {
   "type": "symbol",
@@ -234,9 +234,9 @@ The type preservation benefit of gram-rs doesn't justify the complexity cost. JS
 
 Gram notation doesn't expose type discriminators directly.
 
-- ✅ **gram-hs (lowercase)**: Follows JSON/JavaScript conventions
+- ✅ **pattern-hs (lowercase)**: Follows JSON/JavaScript conventions
 - ❌ **gram-rs (capitalized)**: Follows Rust enum conventions
-- **Winner**: gram-hs - JSON is the target format
+- **Winner**: pattern-hs - JSON is the target format
 
 **Consideration 2: Least Surprising Mapping to User Code**
 
@@ -249,19 +249,19 @@ if (value.type === "symbol") { ... }
 if (value.type === "Symbol") { ... }
 ```
 
-- ✅ **gram-hs (lowercase)**: Matches JSON/TypeScript/JavaScript conventions
+- ✅ **pattern-hs (lowercase)**: Matches JSON/TypeScript/JavaScript conventions
 - ❌ **gram-rs (capitalized)**: Leaks Rust implementation detail
-- **Winner**: gram-hs - better cross-language compatibility
+- **Winner**: pattern-hs - better cross-language compatibility
 
-**Verdict**: ✅ **gram-hs approach is superior**
+**Verdict**: ✅ **pattern-hs approach is superior**
 
 ---
 
 ## Additional Considerations
 
-### gram-hs Documentation Quality
+### pattern-hs Documentation Quality
 
-The gram-hs canonical JSON format has:
+The pattern-hs canonical JSON format has:
 - ✅ Comprehensive specification document
 - ✅ Formal JSON Schema (Draft 2020-12)
 - ✅ Generated TypeScript types
@@ -273,8 +273,8 @@ This level of documentation and tooling makes it the **de facto standard**.
 
 ### Ecosystem Impact
 
-Choosing gram-hs format means:
-- ✅ Compatibility with existing gram-hs tooling
+Choosing pattern-hs format means:
+- ✅ Compatibility with existing pattern-hs tooling
 - ✅ Compatibility with future language ports
 - ✅ Leveraging existing JSON Schema for validation
 - ✅ Using proven, battle-tested format
@@ -283,16 +283,16 @@ Choosing gram-hs format means:
 
 ## Detailed Comparison Matrix
 
-| Aspect | gram-hs | gram-rs | Winner | Rationale |
+| Aspect | pattern-hs | gram-rs | Winner | Rationale |
 |--------|---------|---------|--------|-----------|
-| **Pattern field name** | `value` | `subject` | gram-hs | Matches code structure, neutral terminology |
+| **Pattern field name** | `value` | `subject` | pattern-hs | Matches code structure, neutral terminology |
 | **Subject identity field** | `symbol` | `identity` | **gram-rs** | Semantic meaning over type name, matches field names |
-| **Number serialization** | Native JSON | Tagged objects | gram-hs | Simpler, better DX, standard JSON |
-| **Type discriminators** | lowercase | Capitalized | gram-hs | JSON conventions, cross-language |
-| **Documentation** | Comprehensive | Minimal | gram-hs | Formal spec, schema, types |
-| **Tooling** | Schema + generators | None | gram-hs | JSON Schema, TS/Rust types |
-| **Testing** | 235+ tests | Basic | gram-hs | Extensive validation |
-| **Ecosystem** | Reference impl | Port | gram-hs | Established standard |
+| **Number serialization** | Native JSON | Tagged objects | pattern-hs | Simpler, better DX, standard JSON |
+| **Type discriminators** | lowercase | Capitalized | pattern-hs | JSON conventions, cross-language |
+| **Documentation** | Comprehensive | Minimal | pattern-hs | Formal spec, schema, types |
+| **Tooling** | Schema + generators | None | pattern-hs | JSON Schema, TS/Rust types |
+| **Testing** | 235+ tests | Basic | pattern-hs | Extensive validation |
+| **Ecosystem** | Reference impl | Port | pattern-hs | Established standard |
 
 ---
 
@@ -302,7 +302,7 @@ Choosing gram-hs format means:
 
 **Rationale**:
 
-1. **Mostly gram-hs**: Reference implementation with proven tooling
+1. **Mostly pattern-hs**: Reference implementation with proven tooling
 2. **Better Mapping from Gram**: Simpler, more intuitive (native JSON numbers)
 3. **Better Developer Experience**: Standard JSON conventions
 4. **Semantic Field Names**: Use `identity` not `symbol` (gram-rs is correct here)
@@ -316,14 +316,14 @@ Choosing gram-hs format means:
 3. Change to native JSON numbers (remove Integer/Decimal tagging)
 4. Lowercase type discriminators
 
-#### For gram-hs (P0):
+#### For pattern-hs (P0):
 1. Rename `symbol` → `identity` in Subject JSON serialization
 2. Update JSON Schema, TypeScript types, Rust types
 3. Update all documentation and examples
-4. See **GRAM-HS-JSON-ALIGNMENT.todo.md** for detailed tasks
+4. See **pattern-hs-JSON-ALIGNMENT.todo.md** for detailed tasks
 
 #### Coordination (P0):
-1. Complete gram-hs changes first
+1. Complete pattern-hs changes first
 2. Then align gram-rs to updated canonical format
 3. Cross-validate with shared test suite
 4. Update alignment documentation
@@ -332,23 +332,23 @@ Choosing gram-hs format means:
 
 ## Final Decision
 
-**DECISION**: Hybrid approach - mostly gram-hs, but use `identity` field name
+**DECISION**: Hybrid approach - mostly pattern-hs, but use `identity` field name
 
 **Justification**:
-- gram-hs approach is superior for: pattern field name, number serialization, type discriminators
+- pattern-hs approach is superior for: pattern field name, number serialization, type discriminators
 - gram-rs approach is superior for: subject identity field name (semantic over type)
 - Both implementations should align to this hybrid canonical format
 - Co-design allows us to fix issues in either project
 
 **Action Items**:
-1. ✅ Created GRAM-HS-JSON-ALIGNMENT.todo.md for gram-hs changes
+1. ✅ Created pattern-hs-JSON-ALIGNMENT.todo.md for pattern-hs changes
 2. ✅ Updated ALIGNMENT.todo.md Phase 0 for gram-rs changes
-3. Next: Implement gram-hs changes first
+3. Next: Implement pattern-hs changes first
 4. Then: Align gram-rs to updated canonical format
 5. Finally: Cross-validate with shared test suite
 
 ---
 
 **Decision Date**: 2026-01-29
-**Decision Maker**: Co-design (gram-hs + gram-rs teams)
+**Decision Maker**: Co-design (pattern-hs + gram-rs teams)
 **Status**: ✅ Approved

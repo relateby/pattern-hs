@@ -1,5 +1,5 @@
 ---
-description: "Tasks for implementing subject identity and serialization in gram-hs"
+description: "Tasks for implementing subject identity and serialization in pattern-hs"
 ---
 
 # Tasks: Subject Identity and Serialization
@@ -242,4 +242,3 @@ timeout 60 cabal test
 # Normal verification (with timeout):
 timeout 30 cabal test
 ```
-

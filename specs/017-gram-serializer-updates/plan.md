@@ -14,7 +14,7 @@ The technical approach involves modifying `Gram.Serialize.toGram` to detect `Pat
 **Language/Version**: Haskell (GHC 9.6+)
 **Primary Dependencies**: `pattern` (core library), `subject`, `text`, `containers`
 **Testing**: `hspec` for unit and property tests, `QuickCheck` for properties
-**Project Type**: Library (part of `gram-hs` monorepo)
+**Project Type**: Library (part of `pattern-hs` monorepo)
 
 ## Constitution Check
 

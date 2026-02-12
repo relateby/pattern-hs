@@ -37,7 +37,7 @@ import qualified Data.Text as T
 generatePatternSchema :: Value
 generatePatternSchema = object
   [ "$schema" .= ("https://json-schema.org/draft/2020-12/schema" :: T.Text)
-  , "$id" .= ("https://gram-data.github.io/gram-hs/schemas/pattern-subject.json" :: T.Text)
+  , "$id" .= ("https://gram-data.github.io/pattern-hs/schemas/pattern-subject.json" :: T.Text)
   , "title" .= ("Pattern<Subject>" :: T.Text)
   , "description" .= ("Canonical JSON Schema for Pattern<Subject> - a recursive graph pattern structure" :: T.Text)
   , "version" .= ("0.1.0" :: T.Text)
@@ -67,13 +67,13 @@ generatePatternSchema = object
           , "properties" .= object
               [ "type" .= object ["const" .= ("range" :: T.Text)]
               , "lower" .= object
-                  [ "oneOf" .= 
+                  [ "oneOf" .=
                       [ object ["type" .= ("number" :: T.Text)]
                       , object ["type" .= ("null" :: T.Text)]
                       ]
                   ]
               , "upper" .= object
-                  [ "oneOf" .= 
+                  [ "oneOf" .=
                       [ object ["type" .= ("number" :: T.Text)]
                       , object ["type" .= ("null" :: T.Text)]
                       ]

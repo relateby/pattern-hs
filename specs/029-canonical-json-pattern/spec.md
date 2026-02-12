@@ -9,7 +9,7 @@
 
 ### User Story 1 - Access Canonical JSON Format Documentation (Priority: P1)
 
-As a developer porting the gram-hs project to another language, I need a formally specified canonical JSON representation of Pattern<Subject> so that I have a clear, unambiguous target format to implement in my port.
+As a developer porting the pattern-hs project to another language, I need a formally specified canonical JSON representation of Pattern<Subject> so that I have a clear, unambiguous target format to implement in my port.
 
 **Why this priority**: This is foundational - without a formal specification, downstream projects must reverse-engineer the JSON format from code, leading to inconsistencies and bugs. A canonical format enables interoperability between all gram implementations.
 

@@ -1,5 +1,5 @@
 //! Canonical JSON representation of Pattern<Subject>
-//! Generated from gram-hs JSON Schema v0.1.0
+//! Generated from pattern-hs JSON Schema v0.1.0
 //! @see <https://gram.data/schemas/pattern/v0.1.0/pattern.json>
 
 use serde::{Deserialize, Serialize};

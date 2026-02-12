@@ -14,7 +14,7 @@ Add support for multiline strings using triple-backtick codefence syntax in both
 **Storage**: N/A (in-memory transformation)  
 **Testing**: Hspec (unit tests), QuickCheck (property-based tests)  
 **Target Platform**: Cross-platform (library)  
-**Project Type**: Multi-library mono-repo (libs/gram within gram-hs)  
+**Project Type**: Multi-library mono-repo (libs/gram within pattern-hs)  
 **Performance Goals**: N/A (text processing, correctness is priority)  
 **Constraints**: Must maintain 100% backward compatibility with existing gram files  
 **Scale/Scope**: Small feature addition to existing parser/serializer

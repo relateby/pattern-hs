@@ -358,5 +358,5 @@ grep "version" schema.json
 ## Getting Help
 
 - CLI help: `gramref help` or `gramref schema --help`
-- Report issues: [GitHub Issues](https://github.com/gram-data/gram-hs/issues)
+- Report issues: [GitHub Issues](https://github.com/gram-data/pattern-hs/issues)
 - Documentation: [gram.data](https://gram.data)

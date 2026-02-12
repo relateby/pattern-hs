@@ -1,6 +1,6 @@
 # Gram HS
 
-A multi-library Haskell mono-repo providing tools for working with patterns, subjects, and graph structures. The primary library, `pattern`, offers a generalized representation of graph elements using category theory.
+A multi-library Haskell mono-repo providing libraries and tools for working with patterns, subjects, and graph structures. The primary library, `pattern`, offers a generalized representation of graph elements, including nodes, relationships, paths and compositions.
 
 ## Quick Start
 
@@ -106,7 +106,7 @@ cabal test all
 ## Project Structure
 
 ```
-gram-hs/
+pattern-hs/
 ├── libs/
 │   ├── pattern/             # Pattern library
 │   ├── subject/             # Subject library
@@ -115,7 +115,7 @@ gram-hs/
 │   ├── guide/               # User-facing documentation
 │   └── reference/           # Porter-facing documentation
 └── apps/
-    └── gram-hs-cli/         # CLI tool for testing and validation
+    └── pattern-hs-cli/         # CLI tool for testing and validation
 ```
 
 ## Design Goals
