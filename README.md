@@ -115,7 +115,7 @@ pattern-hs/
 │   ├── guide/               # User-facing documentation
 │   └── reference/           # Porter-facing documentation
 └── apps/
-    └── pattern-hs-cli/         # CLI tool for testing and validation
+    └── gramref-cli/         # CLI tool for testing and validation
 ```
 
 ## Design Goals

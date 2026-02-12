@@ -23,7 +23,7 @@ pattern-hs/
 │   ├── subject/          # Subject library (planned)
 │   └── gram/             # Gram library (planned)
 ├── apps/
-│   └── pattern-hs-cli/      # CLI application
+│   └── gramref-cli/      # CLI application
 ├── specs/                # Feature specifications (Speckit workflow)
 ├── .specify/
 │   └── memory/

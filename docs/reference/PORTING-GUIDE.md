@@ -182,13 +182,13 @@ The `pattern-hs` CLI tool serves as the **reference implementation** and **confo
 From the pattern-hs repository root:
 
 ```bash
-cabal build pattern-hs-cli
+cabal build gramref-cli
 ```
 
 Or install globally:
 
 ```bash
-cabal install pattern-hs-cli
+cabal install gramref-cli
 ```
 
 ### Key Testing Workflows
@@ -368,7 +368,7 @@ fi
 
 This ensures your port produces equivalent results to the reference implementation.
 
-**See Also**: `apps/pattern-hs-cli/README.md` for complete CLI documentation
+**See Also**: `apps/gramref-cli/README.md` for complete CLI documentation
 
 ---
 

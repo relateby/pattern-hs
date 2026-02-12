@@ -3,7 +3,7 @@
 **Feature Branch**: `022-cli-improvements`  
 **Created**: 2025-12-27  
 **Status**: Draft  
-**Input**: User description: "improve the gramref CLI tool to make it easier to port this project to other languages. See @design/pattern-hs-cli-improvements.md for details"
+**Input**: User description: "improve the gramref CLI tool to make it easier to port this project to other languages. See @design/gramref-cli-improvements.md for details"
 
 ## User Scenarios & Testing *(mandatory)*
 
