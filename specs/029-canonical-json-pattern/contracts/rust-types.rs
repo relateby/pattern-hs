@@ -1,24 +1,25 @@
 //! Canonical JSON representation of Pattern<Subject>
-//! Generated from gram-hs JSON Schema v0.1.0
+//! Generated from pattern-hs JSON Schema v0.1.0
 //! @see <https://gram.data/schemas/pattern/v0.1.0/pattern.json>
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// A pattern with a subject value and nested elements
+/// A pattern with a value and nested elements
+/// Generic type parameter V represents the value type (e.g., Subject for gram serialization)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Pattern {
-    /// The subject value of this pattern
-    pub value: Subject,
+pub struct Pattern<V = Subject> {
+    /// The value of this pattern
+    pub value: V,
     /// Nested pattern elements
-    pub elements: Vec<Pattern>,
+    pub elements: Vec<Pattern<V>>,
 }
 
 /// A subject with identity, labels, and properties
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Subject {
-    /// Identifier for the subject (may be empty for anonymous subjects)
-    pub symbol: String,
+    /// Identity of the subject - a symbol identifier (may be empty for anonymous subjects)
+    pub identity: String,
     /// Type labels for the subject
     pub labels: Vec<String>,
     /// Property map with string keys and value types
@@ -173,9 +174,9 @@ mod tests {
 
     #[test]
     fn test_serialize_simple_pattern() {
-        let pattern = Pattern {
+        let pattern: Pattern<Subject> = Pattern {
             value: Subject {
-                symbol: "test".to_string(),
+                identity: "test".to_string(),
                 labels: vec!["Node".to_string()],
                 properties: HashMap::new(),
             },
@@ -183,7 +184,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&pattern).unwrap();
-        assert!(json.contains("\"symbol\":\"test\""));
+        assert!(json.contains("\"identity\":\"test\""));
         assert!(json.contains("\"labels\":[\"Node\"]"));
     }
 
@@ -191,15 +192,15 @@ mod tests {
     fn test_deserialize_simple_pattern() {
         let json = r#"{
             "value": {
-                "symbol": "test",
+                "identity": "test",
                 "labels": ["Node"],
                 "properties": {}
             },
             "elements": []
         }"#;
 
-        let pattern: Pattern = serde_json::from_str(json).unwrap();
-        assert_eq!(pattern.value.symbol, "test");
+        let pattern: Pattern<Subject> = serde_json::from_str(json).unwrap();
+        assert_eq!(pattern.value.identity, "test");
         assert_eq!(pattern.value.labels, vec!["Node"]);
         assert!(pattern.value.properties.is_empty());
         assert!(pattern.elements.is_empty());

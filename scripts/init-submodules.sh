@@ -1,5 +1,5 @@
 #!/bin/bash
-# Initialize git submodules for gram-hs
+# Initialize git submodules for pattern-hs
 # This script initializes the tree-sitter-gram submodule required for corpus tests
 
 set -e  # Exit on error
@@ -19,7 +19,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo "=========================================="
-echo "Initializing Git Submodules for gram-hs"
+echo "Initializing Git Submodules for pattern-hs"
 echo "=========================================="
 echo ""
 
@@ -61,4 +61,3 @@ else
     echo "  - Verify git credentials if using private repositories"
     exit 1
 fi
-

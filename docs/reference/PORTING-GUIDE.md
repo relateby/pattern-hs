@@ -5,7 +5,7 @@
 
 ## Overview
 
-This guide provides a recommended implementation order for porting the gram-hs libraries to other languages. The order is designed to minimize dependencies and build a solid foundation before adding serialization capabilities.
+This guide provides a recommended implementation order for porting the pattern-hs libraries to other languages. The order is designed to minimize dependencies and build a solid foundation before adding serialization capabilities.
 
 ## Implementation Phases
 
@@ -173,22 +173,22 @@ Within each phase, follow the feature order from `docs/history/specs/`:
 
 ---
 
-## Using the `gram-hs` CLI Tool for Testing
+## Using the `pattern-hs` CLI Tool for Testing
 
-The `gram-hs` CLI tool serves as the **reference implementation** and **conformance testing tool**. It provides canonical outputs that you can use to validate your port.
+The `pattern-hs` CLI tool serves as the **reference implementation** and **conformance testing tool**. It provides canonical outputs that you can use to validate your port.
 
 ### Building the CLI Tool
 
-From the gram-hs repository root:
+From the pattern-hs repository root:
 
 ```bash
-cabal build gram-hs-cli
+cabal build gramref-cli
 ```
 
 Or install globally:
 
 ```bash
-cabal install gram-hs-cli
+cabal install gramref-cli
 ```
 
 ### Key Testing Workflows
@@ -199,13 +199,13 @@ Generate test patterns and data for your implementation:
 
 ```bash
 # Generate test patterns
-gram-hs generate --type pattern --count 100 --format json > test-patterns.json
+pattern-hs generate --type pattern --count 100 --format json > test-patterns.json
 
 # Generate test graphs
-gram-hs generate --type graph --count 50 --format gram > test-graphs.gram
+pattern-hs generate --type graph --count 50 --format gram > test-graphs.gram
 
 # Generate property-based test suites
-gram-hs generate --type property --complexity standard --format json > property-tests.json
+pattern-hs generate --type property --complexity standard --format json > property-tests.json
 ```
 
 **Use Cases**:
@@ -219,10 +219,10 @@ Use the CLI to get canonical JSON outputs for comparison:
 
 ```bash
 # Parse a gram file and get canonical JSON
-gram-hs parse input.gram --format json > reference-output.json
+pattern-hs parse input.gram --format json > reference-output.json
 
 # Transform a pattern and get canonical result
-gram-hs transform --operation flatten input.gram --format json > reference-flatten.json
+pattern-hs transform --operation flatten input.gram --format json > reference-flatten.json
 ```
 
 **Use Cases**:
@@ -236,10 +236,10 @@ Use the validate command to run conformance tests:
 
 ```bash
 # Run tests against reference implementation
-gram-hs validate test-suite.json
+pattern-hs validate test-suite.json
 
 # Run tests against your port (external command)
-gram-hs validate test-suite.json --runner "your-gram-tool parse"
+pattern-hs validate test-suite.json --runner "your-gram-tool parse"
 ```
 
 **Use Cases**:
@@ -253,7 +253,7 @@ Test your parser and serializer:
 
 ```bash
 # Step 1: Get canonical parse result
-gram-hs parse input.gram --format json > canonical.json
+pattern-hs parse input.gram --format json > canonical.json
 
 # Step 2: Your parser should produce equivalent output
 your-gram-tool parse input.gram > your-output.json
@@ -271,20 +271,20 @@ Verify serialization round-trips:
 cat original.gram
 
 # Parse to canonical JSON
-gram-hs parse original.gram --format json > parsed.json
+pattern-hs parse original.gram --format json > parsed.json
 
 # Serialize back to gram (if your tool supports this)
-gram-hs convert parsed.json --from json --to gram > roundtrip.gram
+pattern-hs convert parsed.json --from json --to gram > roundtrip.gram
 
 # Parse again and compare
-gram-hs parse roundtrip.gram --format json > roundtrip-parsed.json
+pattern-hs parse roundtrip.gram --format json > roundtrip-parsed.json
 
 # Should be equivalent (modulo formatting/ordering)
 ```
 
 ### Output Format: Canonical JSON
 
-All JSON output from `gram-hs` follows strict rules for determinism:
+All JSON output from `pattern-hs` follows strict rules for determinism:
 
 - **Sorted keys**: Object keys are always sorted
 - **Stable formatting**: Consistent whitespace and structure
@@ -306,7 +306,7 @@ Here's a complete workflow for testing your parser:
 
 ```bash
 # 1. Generate test cases
-gram-hs generate --type pattern --count 20 --seed 42 --format gram > test-cases.gram
+pattern-hs generate --type pattern --count 20 --seed 42 --format gram > test-cases.gram
 
 # 2. Split into individual test files (if needed)
 split -l 1 test-cases.gram test-case-
@@ -314,7 +314,7 @@ split -l 1 test-cases.gram test-case-
 # 3. For each test case:
 for file in test-case-*; do
   # Get reference output
-  gram-hs parse "$file" --format json > "${file}.ref.json"
+  pattern-hs parse "$file" --format json > "${file}.ref.json"
   
   # Your parser output
   your-gram-tool parse "$file" > "${file}.your.json"
@@ -351,7 +351,7 @@ The CLI uses standard exit codes for automation:
 Use these in CI/CD pipelines:
 
 ```bash
-if gram-hs validate test-suite.json --runner "your-tool"; then
+if pattern-hs validate test-suite.json --runner "your-tool"; then
   echo "All tests passed"
 else
   echo "Tests failed"
@@ -361,14 +361,14 @@ fi
 
 ### Integration with Your Test Suite
 
-1. **Generate test data** using `gram-hs generate`
-2. **Get reference outputs** using `gram-hs parse/transform`
+1. **Generate test data** using `pattern-hs generate`
+2. **Get reference outputs** using `pattern-hs parse/transform`
 3. **Compare your results** against canonical JSON
-4. **Automate validation** using `gram-hs validate`
+4. **Automate validation** using `pattern-hs validate`
 
 This ensures your port produces equivalent results to the reference implementation.
 
-**See Also**: `apps/gram-hs-cli/README.md` for complete CLI documentation
+**See Also**: `apps/gramref-cli/README.md` for complete CLI documentation
 
 ---
 
@@ -571,7 +571,7 @@ Verify paramorphism properties:
 - [ ] Implement tests alongside code
 - [ ] Reference `docs/reference/features/` for each feature
 - [ ] Check `docs/reference/IMPLEMENTATION.md` for patterns
-- [ ] Build and use `gram-hs` CLI tool for testing
+- [ ] Build and use `pattern-hs` CLI tool for testing
 
 ---
 
@@ -581,4 +581,3 @@ Verify paramorphism properties:
 - **Feature details**: See `docs/reference/features/`
 - **Implementation patterns**: See `docs/reference/IMPLEMENTATION.md`
 - **Historical context**: See `docs/history/specs/` (development sequence)
-

@@ -1,4 +1,4 @@
-# Proposal: Pattern Reconciliation for gram-hs
+# Proposal: Pattern Reconciliation for pattern-hs
 
 ## Summary
 
@@ -467,7 +467,7 @@ This is a **new feature** with no breaking changes:
 
 ## Summary
 
-Adding `reconcile` to gram-hs provides a fundamental operation for working with `Pattern Subject`:
+Adding `reconcile` to pattern-hs provides a fundamental operation for working with `Pattern Subject`:
 
 - **Makes patterns coherent** — resolves duplicates and references
 - **Configurable policies** — different use cases need different resolution strategies  

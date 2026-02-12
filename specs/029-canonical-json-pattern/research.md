@@ -279,7 +279,7 @@ instance FromJSON (Pattern Subject) where
 
 instance FromJSON Subject where
   parseJSON = withObject "Subject" $ \obj -> do
-    sym <- obj .: "symbol"
+    sym <- obj .: "identity"
     labels <- obj .: "labels"
     props <- obj .: "properties"
     return $ Subject sym (Set.fromList labels) props

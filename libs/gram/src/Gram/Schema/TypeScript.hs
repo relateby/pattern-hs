@@ -33,7 +33,7 @@ generateTypeScriptTypes :: Text
 generateTypeScriptTypes = T.unlines
   [ "/**"
   , " * Pattern<Subject> TypeScript Type Definitions"
-  , " * Generated from gram-hs canonical JSON Schema"
+  , " * Generated from pattern-hs canonical JSON Schema"
   , " * Version: 0.1.0"
   , " */"
   , ""

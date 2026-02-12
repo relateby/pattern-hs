@@ -1,8 +1,8 @@
 # gramref CLI Implementation Plan
 
 **Status**: ✅ Implemented  
-**Implementation**: `apps/gram-hs-cli/`  
-**Reference**: See `apps/gram-hs-cli/README.md` for current documentation
+**Implementation**: `apps/gramref-cli/`  
+**Reference**: See `apps/gramref-cli/README.md` for current documentation
 
 ## Overview
 

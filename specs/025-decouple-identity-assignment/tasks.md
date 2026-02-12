@@ -1,5 +1,5 @@
 ---
-description: "Tasks for decoupling identity assignment from transformation in gram-hs"
+description: "Tasks for decoupling identity assignment from transformation in pattern-hs"
 ---
 
 # Tasks: Decouple Identity Assignment from Transformation
@@ -333,4 +333,3 @@ description: "Tasks for decoupling identity assignment from transformation in gr
 - External code using `fromGram` will now get anonymous subjects as `Symbol ""`
 - Code needing IDs should use `fromGramWithIds` or `assignIdentities`
 - Validation is unaffected (operates on CST before transform)
-

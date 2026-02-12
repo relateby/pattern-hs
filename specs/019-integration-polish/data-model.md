@@ -1,6 +1,6 @@
 # Data Model: Public API Surface
 
-The "Data Model" for this feature is the set of exported types and functions that constitute the public API of the `gram-hs` library (specifically the `pattern` package).
+The "Data Model" for this feature is the set of exported types and functions that constitute the public API of the `pattern-hs` library (specifically the `pattern` package).
 
 ## Core Types
 
@@ -56,4 +56,3 @@ The following instances MUST be exported:
 - `Hashable v => Hashable (Pattern v)`
 - `Applicative Pattern`
 - `Comonad Pattern`
-

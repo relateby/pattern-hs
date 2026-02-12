@@ -289,23 +289,23 @@ gramref compare output1.json output2.json --format json
 
 ### 8. Test Case Extraction from Existing Tests
 
-**Problem**: Manual extraction of test cases from gram-hs test files is time-consuming.
+**Problem**: Manual extraction of test cases from pattern-hs test files is time-consuming.
 
 **Requested Solution**: Add `extract-tests` command:
 
 **Example Usage**:
 ```bash
-# Extract test cases from gram-hs test directory
-gramref extract-tests ../gram-hs/tests/ --output test_cases.json
+# Extract test cases from pattern-hs test directory
+gramref extract-tests ../pattern-hs/tests/ --output test_cases.json
 
 # Extract with filtering
-gramref extract-tests ../gram-hs/tests/ --pattern "*.hs" --output test_cases.json
+gramref extract-tests ../pattern-hs/tests/ --pattern "*.hs" --output test_cases.json
 ```
 
 **Use Case**: Automated test case extraction from gramref reference implementation test files.
 
 **Implementation Notes**:
-- Should parse gram-hs test files and extract test cases
+- Should parse pattern-hs test files and extract test cases
 - Output should conform to test-sync-format.md schema
 - Should handle various test file formats
 - Could be enhanced to extract from specific test frameworks
@@ -382,4 +382,3 @@ gramref validate test_suite.json --runner "..." --format ci
 
 **Last Updated**: 2025-12-27  
 **Related Feature**: 003-test-infrastructure
-

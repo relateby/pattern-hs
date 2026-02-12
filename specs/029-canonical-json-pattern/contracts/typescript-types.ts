@@ -1,25 +1,26 @@
 /**
  * Canonical JSON representation of Pattern<Subject>
- * Generated from gram-hs JSON Schema v0.1.0
+ * Generated from pattern-hs JSON Schema v0.1.0
  * @see https://gram.data/schemas/pattern/v0.1.0/pattern.json
  */
 
 /**
- * A pattern with a subject value and nested elements
+ * A pattern with a value and nested elements
+ * Generic type parameter V represents the value type (e.g., Subject for gram serialization)
  */
-export interface Pattern {
-  /** The subject value of this pattern */
-  value: Subject;
+export interface Pattern<V = Subject> {
+  /** The value of this pattern */
+  value: V;
   /** Nested pattern elements */
-  elements: Pattern[];
+  elements: Pattern<V>[];
 }
 
 /**
  * A subject with identity, labels, and properties
  */
 export interface Subject {
-  /** Identifier for the subject (may be empty for anonymous subjects) */
-  symbol: string;
+  /** Identity of the subject - a symbol identifier (may be empty for anonymous subjects) */
+  identity: string;
   /** Type labels for the subject */
   labels: string[];
   /** Property map with string keys and value types */
@@ -153,7 +154,7 @@ export function isValueMap(value: Value): value is { [key: string]: Value } {
  * Type guard to check if a value is a primitive (number, boolean, or string)
  */
 export function isValuePrimitive(
-  value: Value
+  value: Value,
 ): value is number | boolean | string {
   return (
     typeof value === "number" ||

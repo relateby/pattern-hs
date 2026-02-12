@@ -13,7 +13,7 @@
 ```json
 {
   "value": {
-    "symbol": "string",
+    "identity": "string",
     "labels": ["string"],
     "properties": {
       "key": <Value>
@@ -52,7 +52,7 @@
 **JSON Structure**:
 ```json
 {
-  "symbol": "string",
+  "identity": "string",
   "labels": ["string"],
   "properties": {
     "key": <Value>
@@ -61,19 +61,19 @@
 ```
 
 **Key Attributes**:
-- **symbol**: String identifier (may be empty for anonymous subjects)
+- **identity**: String identifier (may be empty for anonymous subjects)
 - **labels**: Array of label strings (types/categories)
 - **properties**: Object mapping property names to values
 
 **Validation Rules**:
-- `symbol` is REQUIRED (string, may be empty)
+- `identity` is REQUIRED (string, may be empty)
 - `labels` is REQUIRED (array, may be empty)
 - `properties` is REQUIRED (object, may be empty)
 - Labels must be unique within array
 - Property keys must be unique within object
 
 **Haskell Mapping**:
-- `Subject { symbol :: Symbol, labels :: Set String, properties :: Map String Value }`
+- `Subject { identity :: Symbol, labels :: Set String, properties :: Map String Value }`
 - Set serializes to sorted array
 - Map serializes to object with sorted keys (canonical form)
 
@@ -214,7 +214,7 @@ export interface Pattern {
 }
 
 export interface Subject {
-  symbol: string;
+  identity: string;
   labels: string[];
   properties: { [key: string]: Value };
 }
@@ -279,7 +279,7 @@ pub struct Pattern {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Subject {
-    pub symbol: String,
+    pub identity: String,
     pub labels: Vec<String>,
     pub properties: HashMap<String, Value>,
 }
@@ -420,7 +420,7 @@ roundtripEquivalent p =
 ```json
 {
   "value": {
-    "symbol": "person",
+    "identity": "person",
     "labels": ["Person"],
     "properties": {
       "age": 30,
@@ -442,7 +442,7 @@ roundtripEquivalent p =
 ```json
 {
   "value": {
-    "symbol": "graph",
+    "identity": "graph",
     "labels": ["Graph"],
     "properties": {
       "created": "2024-01-10"
@@ -451,7 +451,7 @@ roundtripEquivalent p =
   "elements": [
     {
       "value": {
-        "symbol": "a",
+        "identity": "a",
         "labels": ["Node"],
         "properties": {}
       },
@@ -459,7 +459,7 @@ roundtripEquivalent p =
     },
     {
       "value": {
-        "symbol": "b",
+        "identity": "b",
         "labels": ["Node"],
         "properties": {}
       },
@@ -485,7 +485,7 @@ roundtripEquivalent p =
 ```json
 {
   "value": {
-    "symbol": "sensor",
+    "identity": "sensor",
     "labels": ["Sensor"],
     "properties": {
       "config": {
