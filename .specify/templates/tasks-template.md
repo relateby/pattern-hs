@@ -82,8 +82,6 @@ Examples of foundational tasks (adjust based on your project):
 ### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
-> 
-> **PERFORMANCE**: Always use timeouts when running tests (`timeout 60 cabal test` or equivalent). Tests should complete in <1 minute total. See Testing Performance Guidelines section below.
 
 - [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
@@ -96,8 +94,6 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
 - [ ] T016 [US1] Add validation and error handling
 - [ ] T017 [US1] Add logging for user story 1 operations
-- [ ] T018 [US1] Run tests with timeout: `timeout 60 [test-command]` to verify all User Story 1 tests pass
-- [ ] T019 [US1] Git commit: "feat: implement [feature description] - US1"
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -111,17 +107,15 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T020 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T021 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
 
 ### Implementation for User Story 2
 
-- [ ] T022 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T023 [US2] Implement [Service] in src/services/[service].py
-- [ ] T024 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T025 [US2] Integrate with User Story 1 components (if needed)
-- [ ] T026 [US2] Run tests with timeout: `timeout 60 [test-command]` to verify all User Story 2 tests pass
-- [ ] T027 [US2] Git commit: "feat: implement [feature description] - US2"
+- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
+- [ ] T021 [US2] Implement [Service] in src/services/[service].py
+- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -135,16 +129,14 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T028 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T029 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
 
 ### Implementation for User Story 3
 
-- [ ] T030 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T031 [US3] Implement [Service] in src/services/[service].py
-- [ ] T032 [US3] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T033 [US3] Run tests with timeout: `timeout 60 [test-command]` to verify all User Story 3 tests pass
-- [ ] T034 [US3] Git commit: "feat: implement [feature description] - US3"
+- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
+- [ ] T027 [US3] Implement [Service] in src/services/[service].py
+- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -164,8 +156,6 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
-- [ ] TXXX Run full test suite with timeout: `timeout 60 [test-command]` to verify all tests pass
-- [ ] TXXX Git commit: "docs: finalize [feature name] feature"
 
 ---
 
@@ -256,56 +246,6 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
-- **Git commit after each user story completion** (see tasks T019, T027, T034, etc.)
+- Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
-
-## Testing Performance Guidelines
-
-### Test Execution Timeouts
-
-**CRITICAL**: Always use timeouts when running tests to prevent hanging:
-
-- **First test run after implementation**: Use `timeout 60` (60 seconds) to catch any infinite loops or performance issues
-- **Subsequent test runs**: Use `timeout 30` (30 seconds) for normal verification
-- **Full test suite**: Should complete in under 1 minute total
-
-### Test Performance Requirements
-
-- **Unit tests**: Each test should complete in <100ms
-- **Property-based tests**: Each property test should complete in <10ms (use bounded generators)
-- **Full test suite**: Should complete in <1 minute total
-- **Individual test phases**: Should complete in <10 seconds
-
-### Troubleshooting Slow Tests
-
-If tests hang or take too long:
-
-1. **Check for infinite recursion**: Verify recursive functions have proper base cases
-2. **Check for ambiguous function calls**: Use explicit module qualifiers (e.g., `Prelude.foldl` vs `foldl`)
-3. **Check test data size**: Ensure property-based tests use bounded generators
-4. **Check for lazy evaluation issues**: Ensure strict evaluation where needed
-5. **Verify test isolation**: Ensure tests don't depend on shared mutable state
-
-### Test Execution Commands
-
-```bash
-# First run after implementation (with timeout):
-timeout 60 [test-command]
-
-# Normal verification (with timeout):
-timeout 30 [test-command]
-
-# Examples by language/framework:
-# Haskell/Cabal: timeout 60 cabal test
-# Python/pytest: timeout 60 pytest
-# Node/npm: timeout 60 npm test
-# etc.
-```
-
-### Performance Monitoring
-
-- Monitor test execution time in CI/CD
-- Alert if test suite exceeds 1 minute
-- Investigate any test that takes >1 second individually
-- Use profiling tools if tests consistently slow

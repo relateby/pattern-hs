@@ -12,6 +12,7 @@
 -- * @Pattern.Core@ - Core Pattern data type, construction functions, query functions,
 --   predicate functions, and typeclass instances (Functor, Applicative, Comonad, etc.)
 -- * @Pattern.Graph@ - Graph operations and transformations
+-- * @Pattern.Reconcile@ - Pattern reconciliation for normalizing duplicate identities
 --
 -- == Usage
 --
@@ -33,6 +34,7 @@
 -- * All public exports from @Pattern.Core@ (Pattern type, construction functions,
 --   query functions, predicate functions, helper functions, and all typeclass instances)
 -- * All public exports from @Pattern.Graph@ (graph operations)
+-- * All public exports from @Pattern.Reconcile@ (reconciliation operations)
 --
 -- Internal implementation details and helper functions are not exported through
 -- this module, ensuring a clean public API.
@@ -41,7 +43,10 @@ module Pattern
     module Pattern.Core
     -- * Graph Operations
   , module Pattern.Graph
+    -- * Reconciliation Operations
+  , module Pattern.Reconcile
   ) where
 
 import Pattern.Core
 import Pattern.Graph
+import Pattern.Reconcile

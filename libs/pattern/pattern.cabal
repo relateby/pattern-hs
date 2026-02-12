@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               pattern
-version:            0.3.0.0
+version:            0.4.0.0
 
 synopsis:           A recursive, decorated sequence data structure
 description:        
@@ -24,6 +24,7 @@ library
         Pattern
         Pattern.Core
         Pattern.Graph
+        Pattern.Reconcile
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -31,6 +32,7 @@ library
     build-depends:
         base >=4.17.0.0 && <5,
         comonad ^>=5,
+        subject,
         containers ^>=0.7,
         hashable ^>=1.4,
         unordered-containers ^>=0.2
@@ -45,11 +47,14 @@ test-suite pattern-test
         Spec.Pattern.CoreSpec
         Spec.Pattern.GraphSpec
         Spec.Pattern.Properties
+        Spec.Pattern.ReconcileSpec
+        Spec.Pattern.ReconcileProperties
 
     build-depends:
         base >=4.17.0.0 && <5,
         comonad ^>=5,
         pattern,
+        subject,
         containers ^>=0.7,
         hashable ^>=1.4,
         unordered-containers ^>=0.2,
