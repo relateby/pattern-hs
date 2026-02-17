@@ -271,13 +271,42 @@ rangeValueToJSONValue (SubjectValue.RangeValue lower upper) = object
   , "upper" .= toJSON upper
   ]
 
+-- | Gram notation examples using the extended annotation syntax (032-gram-annotation-syntax):
+-- property-style @key(value) and identified/labeled @@ (identifier, labels, or both).
+annotationGramExamples :: [String]
+annotationGramExamples =
+  [ "@x(1) ()"
+  , "@desc(a) (a)"
+  , "@desc(\"historic route\") (a)-->(b)"
+  , "@@p (a)"
+  , "@@r1 (a)-[r]->(b)"
+  , "@@:L (a)"
+  , "@@::Label (a)"
+  , "@@p:L (a)"
+  ]
+
+-- | Generate a pattern that uses the new annotation syntax by picking a random
+-- annotation example and parsing it. Ensures generated test data includes @ and @@ forms.
+generateAnnotatedPattern :: StdGen -> (Pattern.Pattern Subject.Subject, String)
+generateAnnotatedPattern gen =
+  let (idx, _) = randomR (0, length annotationGramExamples - 1) gen
+      gramStr = annotationGramExamples !! idx
+      fallback = case annotationGramExamples of
+                   e : _ -> e
+                   [] -> error "generateAnnotatedPattern: annotationGramExamples non-empty"
+  in case Gram.fromGram gramStr of
+        Right [pat] -> (pat, gramStr)
+        _ -> case Gram.fromGram fallback of
+               Right [pat] -> (pat, fallback)
+               _ -> error "generateAnnotatedPattern: annotation examples failed to parse"
+
 generatePatternForComplexity :: StdGen -> String -> (Pattern.Pattern Subject.Subject, String)
 generatePatternForComplexity gen complexity =
   case complexity of
     "minimal" -> generateMinimalPattern gen
     "basic" -> generateBasicPattern gen
-    "standard" -> generateStandardPattern gen
-    "complex" -> generateComplexPattern gen
+    "standard" -> generateStandardPatternWithAnnotations gen 0.25
+    "complex" -> generateComplexPatternWithAnnotations gen 0.3
     "adversarial" -> generateAdversarialPattern gen
     _ -> generateBasicPattern gen  -- Default to basic
 
@@ -338,6 +367,12 @@ generateStandardPattern gen =
       gramNotation = Gram.serializePattern pattern
   in (pattern, gramNotation)
 
+-- | Like generateStandardPattern but with given probability of emitting an annotated pattern (@ / @@).
+generateStandardPatternWithAnnotations :: StdGen -> Double -> (Pattern.Pattern Subject.Subject, String)
+generateStandardPatternWithAnnotations gen prob =
+  let (roll, gen') = random gen
+  in if roll < prob then generateAnnotatedPattern gen' else generateStandardPattern gen'
+
 generateStandardPatternWithGen :: StdGen -> (Pattern.Pattern Subject.Subject, String, StdGen)
 generateStandardPatternWithGen gen =
   let (n, gen1) = randomR (1 :: Int, 20 :: Int) gen
@@ -368,6 +403,12 @@ generateStandardPatternWithGen gen =
             Nothing -> ""
       gramNotation = "(node" ++ show n ++ labelStr ++ propStr ++ ")"
   in (pattern, gramNotation, gen5)
+
+-- | Like generateComplexPattern but with given probability of emitting an annotated pattern (@ / @@).
+generateComplexPatternWithAnnotations :: StdGen -> Double -> (Pattern.Pattern Subject.Subject, String)
+generateComplexPatternWithAnnotations gen prob =
+  let (roll, gen') = random gen
+  in if roll < prob then generateAnnotatedPattern gen' else generateComplexPattern gen'
 
 generateComplexPattern :: StdGen -> (Pattern.Pattern Subject.Subject, String)
 generateComplexPattern gen =

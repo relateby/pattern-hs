@@ -24,7 +24,7 @@
 
 **Purpose**: Ensure corpus and test runner are available
 
-- [ ] T001 Verify tree-sitter-gram corpus and gram test suite run: ensure libs/gram/test-data/tree-sitter-gram exists and `cabal test gram-test` runs from repo root
+- [x] T001 Verify tree-sitter-gram corpus and gram test suite run: ensure libs/gram/test-data/tree-sitter-gram exists and `cabal test gram-test` runs from repo root
 
 ---
 
@@ -32,10 +32,10 @@
 
 **Purpose**: CST and parser support for both annotation kinds and annotation stack; Transform updated. No user story work can begin until this phase is complete.
 
-- [ ] T002 [P] Extend Annotation to sum type (PropertyAnnotation | IdentifiedAnnotation) in libs/gram/src/Gram/CST.hs; keep AnnotatedPattern.apAnnotations as [Annotation]
-- [ ] T003 Add parseIdentifiedAnnotation (try string "@@", then identifier and/or labels; reject empty) and parsePropertyAnnotation (@ key ( value )) in libs/gram/src/Gram/Parse.hs
-- [ ] T004 Update parseAnnotations and parseAnnotatedPattern to use optional one identified then many property, and produce [Annotation], in libs/gram/src/Gram/Parse.hs
-- [ ] T005 Update annotationsToProperties and any Annotation consumers in libs/gram/src/Gram/Transform.hs to handle Annotation sum type (property vs identified)
+- [x] T002 [P] Extend Annotation to sum type (PropertyAnnotation | IdentifiedAnnotation) in libs/gram/src/Gram/CST.hs; keep AnnotatedPattern.apAnnotations as [Annotation]
+- [x] T003 Add parseIdentifiedAnnotation (try string "@@", then identifier and/or labels; reject empty) and parsePropertyAnnotation (@ key ( value )) in libs/gram/src/Gram/Parse.hs
+- [x] T004 Update parseAnnotations and parseAnnotatedPattern to use optional one identified then many property, and produce [Annotation], in libs/gram/src/Gram/Parse.hs
+- [x] T005 Update annotationsToProperties and any Annotation consumers in libs/gram/src/Gram/Transform.hs to handle Annotation sum type (property vs identified)
 
 **Checkpoint**: Foundation ready — parser produces both annotation kinds; empty `@@` rejected; user story verification can begin
 
@@ -49,8 +49,8 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Add unit tests for property-style annotations (@x(1) (), @desc(a) (a), @desc("historic route") (a)-->(b)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
-- [ ] T007 [US1] Verify property-style corpus cases from libs/gram/test-data/tree-sitter-gram/test/corpus/extended_annotations.txt pass in corpus runner
+- [x] T006 [P] [US1] Add unit tests for property-style annotations (@x(1) (), @desc(a) (a), @desc("historic route") (a)-->(b)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
+- [x] T007 [US1] Verify property-style corpus cases from libs/gram/test-data/tree-sitter-gram/test/corpus/extended_annotations.txt pass in corpus runner
 
 **Checkpoint**: User Story 1 is independently testable and passes
 
@@ -64,8 +64,8 @@
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] Add unit tests for identifier-only annotations (@@p (a), @@r1 (a)-[r]->(b)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
-- [ ] T009 [US2] Verify identifier-only corpus cases from extended_annotations.txt pass in libs/gram/tests
+- [x] T008 [P] [US2] Add unit tests for identifier-only annotations (@@p (a), @@r1 (a)-[r]->(b)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
+- [x] T009 [US2] Verify identifier-only corpus cases from extended_annotations.txt pass in libs/gram/tests
 
 **Checkpoint**: User Stories 1 and 2 are independently testable and pass
 
@@ -79,8 +79,8 @@
 
 ### Tests for User Story 3
 
-- [ ] T010 [P] [US3] Add unit tests for labels-only annotations (@@:L (a), @@::Label (a)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
-- [ ] T011 [US3] Verify labels-only corpus cases from extended_annotations.txt pass in libs/gram/tests
+- [x] T010 [P] [US3] Add unit tests for labels-only annotations (@@:L (a), @@::Label (a)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
+- [x] T011 [US3] Verify labels-only corpus cases from extended_annotations.txt pass in libs/gram/tests
 
 **Checkpoint**: User Stories 1–3 are independently testable and pass
 
@@ -94,8 +94,8 @@
 
 ### Tests for User Story 4
 
-- [ ] T012 [P] [US4] Add unit tests for combined identifier+labels annotation (@@p:L (a)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
-- [ ] T013 [US4] Verify combined-form corpus case from extended_annotations.txt passes in libs/gram/tests
+- [x] T012 [P] [US4] Add unit tests for combined identifier+labels annotation (@@p:L (a)) in libs/gram/tests/Spec/Gram/ParseSpec.hs
+- [x] T013 [US4] Verify combined-form corpus case from extended_annotations.txt passes in libs/gram/tests
 
 **Checkpoint**: All four user stories are independently testable and pass
 
@@ -105,8 +105,8 @@
 
 **Purpose**: Empty `@@` and corpus :error case; ensure parse failure and corpus alignment.
 
-- [ ] T014 [P] Add unit test for empty @@ (a) parse error in libs/gram/tests/Spec/Gram/ParseSpec.hs
-- [ ] T015 Verify extended_annotations.txt :error case (empty @@ (a)) produces parse failure in libs/gram/tests corpus run
+- [x] T014 [P] Add unit test for empty @@ (a) parse error in libs/gram/tests/Spec/Gram/ParseSpec.hs
+- [x] T015 Verify extended_annotations.txt :error case (empty @@ (a)) produces parse failure in libs/gram/tests corpus run
 
 ---
 
@@ -114,9 +114,9 @@
 
 **Purpose**: Corpus integration, documentation, and quickstart validation.
 
-- [ ] T016 [P] Ensure extended_annotations.txt is included in corpus test run in libs/gram/tests (e.g. CorpusSpec.hs or equivalent)
-- [ ] T017 [P] Update module documentation for new annotation forms (property vs identified) in libs/gram/src/Gram/Parse.hs and libs/gram/src/Gram/CST.hs
-- [ ] T018 Run quickstart validation: cabal test gram-test, manual checks per specs/032-gram-annotation-syntax/quickstart.md
+- [x] T016 [P] Ensure extended_annotations.txt is included in corpus test run in libs/gram/tests (e.g. CorpusSpec.hs or equivalent)
+- [x] T017 [P] Update module documentation for new annotation forms (property vs identified) in libs/gram/src/Gram/Parse.hs and libs/gram/src/Gram/CST.hs
+- [x] T018 Run quickstart validation: cabal test gram-test, manual checks per specs/032-gram-annotation-syntax/quickstart.md
 
 ---
 

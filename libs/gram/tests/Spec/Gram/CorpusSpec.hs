@@ -16,12 +16,14 @@ import Pattern.Core (Pattern(..))
 import System.Directory (listDirectory, doesDirectoryExist, getCurrentDirectory)
 import System.FilePath ((</>), takeExtension)
 import Data.List (isPrefixOf, dropWhile, isInfixOf, find)
-import Control.Monad (foldM)
+import Control.Monad (foldM, when)
 import Data.Char (isSpace)
 
 -- | Path to the tree-sitter-gram corpus directory
 -- This path is relative to the repository root
 -- The corpus files come from a git submodule at libs/gram/test-data/tree-sitter-gram
+-- All .txt files in this directory are included in the corpus test run, including
+-- extended_annotations.txt (032-gram-annotation-syntax: property and @@ annotations).
 corpusDir :: FilePath
 corpusDir = "libs/gram/test-data/tree-sitter-gram/test/corpus"
 
@@ -100,10 +102,9 @@ extractGramExamples content =
     -- Check if example contains unsupported features or is invalid gram notation
     hasUnsupportedFeatures :: String -> Bool
     hasUnsupportedFeatures example =
-      -- Annotations (not yet supported)
-      "@" `isInfixOf` example ||
-      -- Fenced strings with ``` (not yet supported)
-      "```" `isInfixOf` example ||
+      -- Property-style @ and identified @@ annotations are supported (032-gram-annotation-syntax)
+      -- Fenced strings with ``` are supported (codefence)
+      -- So we no longer filter on "@" or "```"
       -- Plain text without gram notation structure (no parentheses, brackets, or braces)
       -- UNLESS it's a valid failure test case (some failure cases are just text)
       (not (any (`elem` example) "([{") && not (null (filter (not . isSpace) example)) && not (any (== ':') example)) -- Check for colon too (maps)
@@ -313,6 +314,12 @@ spec = do
             length corpus `shouldSatisfy` (> 0)
             let totalExamples = sum $ map (length . snd) corpus
             totalExamples `shouldSatisfy` (> 0)
+
+      it "includes extended_annotations.txt in corpus test run when corpus is present" $ do
+        corpus <- loadCorpusFiles
+        when (length corpus > 0) $
+          let fileNames = map fst corpus
+          in ("extended_annotations.txt" `elem` fileNames) `shouldBe` True
     
     describe "parsing corpus files" $ do
       testParsingCorpus

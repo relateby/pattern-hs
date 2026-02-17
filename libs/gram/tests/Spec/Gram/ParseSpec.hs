@@ -7,9 +7,11 @@
 module Spec.Gram.ParseSpec where
 
 import Test.Hspec
-import Gram.Parse (fromGram, fromGramWithIds, fromGramWithHeader, ParseError(..))
+import Text.Megaparsec (parse)
+import Gram.Parse (fromGram, fromGramWithIds, fromGramWithHeader, parseGram, ParseError(..))
 import Gram.Serialize (toGram, serializePattern)
 import qualified Gram.Transform as Transform
+import qualified Gram.CST as CST
 import Pattern.Core (Pattern(..))
 import Subject.Core (Subject(..), Symbol(..))
 import Subject.Value (Value(..), RangeValue(..))
@@ -334,6 +336,119 @@ spec = do
               identity (value patA) `shouldBe` Symbol "a"
               elements patA `shouldBe` []
             _ -> expectationFailure "Should have parsed [headerPattern, (a)]"
+
+      describe "User Story 1: property-style annotations (@key(value))" $ do
+        it "parses @x(1) () as PropertyAnnotation with key x, value 1, body ()" $ do
+          case parse parseGram "gram" "@x(1) ()" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.PropertyAnnotation (CST.Symbol "x") (VInteger 1)] -> return ()
+                _ -> expectationFailure $ "Expected one PropertyAnnotation (x, 1), got " ++ show anns
+              length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath (CST.Path (CST.Node Nothing) [])] -> return ()
+                _ -> expectationFailure $ "Expected body () as single node, got " ++ show elements
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+        it "parses @desc(a) (a) as PropertyAnnotation key desc, value symbol a, body (a)" $ do
+          case parse parseGram "gram" "@desc(a) (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.PropertyAnnotation (CST.Symbol "desc") (VSymbol "a")] -> return ()
+                _ -> expectationFailure $ "Expected one PropertyAnnotation (desc, symbol a), got " ++ show anns
+              length elements `shouldBe` 1
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+        it "parses @desc(\"historic route\") (a)-->(b) as PropertyAnnotation and path body" $ do
+          case parse parseGram "gram" "@desc(\"historic route\") (a)-->(b)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.PropertyAnnotation (CST.Symbol "desc") (VString "historic route")] -> return ()
+                _ -> expectationFailure $ "Expected one PropertyAnnotation (desc, string), got " ++ show anns
+              length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath _] -> return ()
+                _ -> expectationFailure $ "Expected body as path (a)-->(b), got " ++ show elements
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+      describe "User Story 2: identifier-only annotations (@@identifier)" $ do
+        it "parses @@p (a) as IdentifiedAnnotation with identifier p, body (a)" $ do
+          case parse parseGram "gram" "@@p (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls] -> do
+                  Set.null lbls `shouldBe` True
+                _ -> expectationFailure $ "Expected one IdentifiedAnnotation (p, no labels), got " ++ show anns
+              length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath _] -> return ()
+                _ -> expectationFailure $ "Expected body as node (a), got " ++ show elements
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+        it "parses @@r1 (a)-[r]->(b) as IdentifiedAnnotation with identifier r1, path body" $ do
+          case parse parseGram "gram" "@@r1 (a)-[r]->(b)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "r1"))) lbls] -> do
+                  Set.null lbls `shouldBe` True
+                _ -> expectationFailure $ "Expected one IdentifiedAnnotation (r1, no labels), got " ++ show anns
+              length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath _] -> return ()
+                _ -> expectationFailure $ "Expected body as path (a)-[r]->(b), got " ++ show elements
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+      describe "User Story 3: labels-only annotations (@@:Label)" $ do
+        it "parses @@:L (a) as IdentifiedAnnotation with labels L, body (a)" $ do
+          case parse parseGram "gram" "@@:L (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.IdentifiedAnnotation Nothing lbls] -> do
+                  lbls `shouldBe` Set.fromList ["L"]
+                _ -> expectationFailure $ "Expected one IdentifiedAnnotation (no identifier, labels L), got " ++ show anns
+              length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath _] -> return ()
+                _ -> expectationFailure $ "Expected body as node (a), got " ++ show elements
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+        it "parses @@::Label (a) as IdentifiedAnnotation with labels Label, body (a)" $ do
+          case parse parseGram "gram" "@@::Label (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.IdentifiedAnnotation Nothing lbls] -> do
+                  lbls `shouldBe` Set.fromList ["Label"]
+                _ -> expectationFailure $ "Expected one IdentifiedAnnotation (no identifier, labels Label), got " ++ show anns
+              length elements `shouldBe` 1
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+      describe "User Story 4: identifier and labels combined (@@id:Label)" $ do
+        it "parses @@p:L (a) as IdentifiedAnnotation with identifier p, labels L, body (a)" $ do
+          case parse parseGram "gram" "@@p:L (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 1
+              case anns of
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls] -> do
+                  lbls `shouldBe` Set.fromList ["L"]
+                _ -> expectationFailure $ "Expected one IdentifiedAnnotation (p, labels L), got " ++ show anns
+              length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath _] -> return ()
+                _ -> expectationFailure $ "Expected body as node (a), got " ++ show elements
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+      describe "Edge case: empty @@ (rejected)" $ do
+        it "fails to parse @@ (a) with empty @@ header (identifier or labels required)" $ do
+          case fromGram "@@ (a)" of
+            Left _ -> return ()
+            Right _ -> expectationFailure "Expected parse failure for empty @@ (a)"
 
       describe "parse error handling" $ do
         it "fails to parse a bare record in the middle of a document" $ do

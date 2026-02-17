@@ -131,22 +131,21 @@ transformPattern (CST.AnnotatedPattern annotations elements) = do
       [] -> return $ P.Pattern (S.Subject (S.Symbol "") Set.empty Map.empty) []
       
     anns -> do
-      -- Convert annotations to properties
+      -- Convert property annotations to map; use first identified annotation for wrapper identity/labels
       let annProps = annotationsToProperties anns
-      
-      -- Annotations become properties of a wrapper subject pattern.
-      -- The single element from annotated_pattern becomes the content.
-      
-      -- Preserve anonymity for annotation wrapper subjects
-      -- Note: In the semantic mapping, the annotations become properties of the "subject"
-      -- that wraps the content.
-      
-      let wrapperSubject = S.Subject (S.Symbol "") Set.empty annProps
-      
+      (wrapperIdent, wrapperLabels) <- case anns of
+        (CST.IdentifiedAnnotation mIdent lbls : _) -> do
+          sym <- transformIdentifier mIdent
+          return (sym, lbls)
+        _ -> return (S.Symbol "", Set.empty)
+      let wrapperSubject = S.Subject wrapperIdent wrapperLabels annProps
       return $ P.Pattern wrapperSubject transformedElements
 
 annotationsToProperties :: [CST.Annotation] -> Map String V.Value
-annotationsToProperties = Map.fromList . map (\(CST.Annotation (CST.Symbol k) v) -> (k, v))
+annotationsToProperties = Map.fromList . concatMap toProps
+  where
+    toProps (CST.PropertyAnnotation (CST.Symbol k) v) = [(k, v)]
+    toProps (CST.IdentifiedAnnotation _ _) = []
 
 
 transformElement :: CST.PatternElement -> Transform (P.Pattern S.Subject)
