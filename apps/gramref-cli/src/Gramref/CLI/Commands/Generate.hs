@@ -289,16 +289,17 @@ annotationGramExamples =
 -- annotation example and parsing it. Ensures generated test data includes @ and @@ forms.
 generateAnnotatedPattern :: StdGen -> (Pattern.Pattern Subject.Subject, String)
 generateAnnotatedPattern gen =
-  let (idx, _) = randomR (0, length annotationGramExamples - 1) gen
-      gramStr = annotationGramExamples !! idx
-      fallback = case annotationGramExamples of
-                   e : _ -> e
-                   [] -> error "generateAnnotatedPattern: annotationGramExamples non-empty"
-  in case Gram.fromGram gramStr of
-        Right [pat] -> (pat, gramStr)
-        _ -> case Gram.fromGram fallback of
-               Right [pat] -> (pat, fallback)
-               _ -> error "generateAnnotatedPattern: annotation examples failed to parse"
+  case annotationGramExamples of
+    [] ->
+      error "generateAnnotatedPattern: annotationGramExamples must be non-empty"
+    examples@(fallback : _) ->
+      let (idx, _) = randomR (0, length examples - 1) gen
+          gramStr = examples !! idx
+      in case Gram.fromGram gramStr of
+            Right [pat] -> (pat, gramStr)
+            _ -> case Gram.fromGram fallback of
+                   Right [pat] -> (pat, fallback)
+                   _ -> error "generateAnnotatedPattern: annotation examples failed to parse"
 
 generatePatternForComplexity :: StdGen -> String -> (Pattern.Pattern Subject.Subject, String)
 generatePatternForComplexity gen complexity =

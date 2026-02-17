@@ -446,11 +446,11 @@ spec = do
 
       describe "Edge case: empty @@ (rejected)" $ do
         it "fails to parse @@ (a) with empty @@ header (identifier or labels required)" $ do
-          case fromGram "@@ (a)" of
+          case parse parseGram "gram" "@@ (a)" of
             Left _ -> return ()
             Right _ -> expectationFailure "Expected parse failure for empty @@ (a)"
 
-      describe "User Story 5: combined annotations (@@...@key(value)...)" $ do
+      describe "Combined annotation stacks (@@...@key(value)...)" $ do
         it "parses @@p @x(1) (a) as both IdentifiedAnnotation and PropertyAnnotation" $ do
           case parse parseGram "gram" "@@p @x(1) (a)" of
             Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
