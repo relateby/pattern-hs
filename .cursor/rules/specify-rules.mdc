@@ -32,6 +32,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - N/A (serialization library feature) (029-canonical-json-pattern)
 - Haskell 2010 (GHC 9.4+) + `megaparsec`, `containers`, `pattern-core`, `subject` (030-separate-container-content-parsing)
 - N/A (Codec library) (030-separate-container-content-parsing)
+- Haskell (GHC 9.10.3) + megaparsec (parsing), hspec (testing) (032-gram-annotation-syntax)
+- N/A (in-memory CST) (032-gram-annotation-syntax)
 
 - (001-pattern-data-structure)
 
@@ -51,9 +53,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 032-gram-annotation-syntax: Added Haskell (GHC 9.10.3) + megaparsec (parsing), hspec (testing)
 - 030-separate-container-content-parsing: Added Haskell 2010 (GHC 9.4+) + `megaparsec`, `containers`, `pattern-core`, `subject`
 - 029-canonical-json-pattern: Added Haskell with GHC 9.10.3 + aeson (JSON), aeson-pretty (formatting), optparse-applicative (CLI), pattern (core), subject (values), gram (serialization)
-- 027-docs-reorganization: Added Markdown documentation files + Git (for `git mv` to preserve history)
 
 
 <!-- MANUAL ADDITIONS START -->
