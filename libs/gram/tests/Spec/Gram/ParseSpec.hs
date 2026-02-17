@@ -450,6 +450,40 @@ spec = do
             Left _ -> return ()
             Right _ -> expectationFailure "Expected parse failure for empty @@ (a)"
 
+      describe "User Story 5: combined annotations (@@...@key(value)...)" $ do
+        it "parses @@p @x(1) (a) as both IdentifiedAnnotation and PropertyAnnotation" $ do
+          case parse parseGram "gram" "@@p @x(1) (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 2
+              case anns of
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls, CST.PropertyAnnotation (CST.Symbol "x") (VInt 1)] -> do
+                  lbls `shouldBe` Set.empty
+                _ -> expectationFailure $ "Expected IdentifiedAnnotation(p) and PropertyAnnotation(x,1), got " ++ show anns
+              length elements `shouldBe` 1
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+        it "parses @@p\\n@x(1) (a) with newline between annotations" $ do
+          case parse parseGram "gram" "@@p\n@x(1) (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 2
+              case anns of
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls, CST.PropertyAnnotation (CST.Symbol "x") (VInt 1)] -> do
+                  lbls `shouldBe` Set.empty
+                _ -> expectationFailure $ "Expected IdentifiedAnnotation(p) and PropertyAnnotation(x,1), got " ++ show anns
+              length elements `shouldBe` 1
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
+        it "parses @@:L @meta(true) (a) as IdentifiedAnnotation with labels and PropertyAnnotation" $ do
+          case parse parseGram "gram" "@@:L @meta(true) (a)" of
+            Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
+              length anns `shouldBe` 2
+              case anns of
+                [CST.IdentifiedAnnotation Nothing lbls, CST.PropertyAnnotation (CST.Symbol "meta") (VBool True)] -> do
+                  lbls `shouldBe` Set.fromList ["L"]
+                _ -> expectationFailure $ "Expected IdentifiedAnnotation(labels L) and PropertyAnnotation(meta,true), got " ++ show anns
+              length elements `shouldBe` 1
+            Left e -> expectationFailure $ "Parse failed: " ++ show e
+
       describe "parse error handling" $ do
         it "fails to parse a bare record in the middle of a document" $ do
           case fromGram "(a) {v:1} (b)" of
