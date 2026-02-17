@@ -638,7 +638,10 @@ parseIdentifiedAnnotation = do
 
 parseAnnotations :: Parser [Annotation]
 parseAnnotations = do
-  mIdentified <- optional (try parseIdentifiedAnnotation)
+  mIdentified <- optional (lookAhead (string "@@") >> parseIdentifiedAnnotation)
+  case mIdentified of
+    Just _  -> optionalSpaceWithNewlines
+    Nothing -> pure ()
   rest <- many (try parsePropertyAnnotation)
   return $ maybe id (:) mIdentified rest
 
