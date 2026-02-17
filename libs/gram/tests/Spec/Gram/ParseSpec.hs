@@ -359,6 +359,9 @@ spec = do
                 [CST.PropertyAnnotation (CST.Symbol "desc") (VSymbol "a")] -> return ()
                 _ -> expectationFailure $ "Expected one PropertyAnnotation (desc, symbol a), got " ++ show anns
               length elements `shouldBe` 1
+              case elements of
+                [CST.PEPath (CST.Path (CST.Node (Just (CST.Symbol "a"))) [])] -> return ()
+                _ -> expectationFailure $ "Expected body (a) as single node, got " ++ show elements
             Left e -> expectationFailure $ "Parse failed: " ++ show e
 
         it "parses @desc(\"historic route\") (a)-->(b) as PropertyAnnotation and path body" $ do
