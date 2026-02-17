@@ -40,7 +40,7 @@ isSubmoduleInitialized = do
       -- Check if directory contains files (not just .git)
       contents <- listDirectory submodulePath
       -- Filter out hidden files and check if there are actual files
-      let visibleFiles = filter (not . (== '.') . head) contents
+      let visibleFiles = filter (\name -> case name of (c:_) -> c /= '.'; _ -> True) contents
       return (not (null visibleFiles))
 
 -- | Get a helpful message about initializing the submodule

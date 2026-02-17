@@ -456,7 +456,7 @@ spec = do
             Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
               length anns `shouldBe` 2
               case anns of
-                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls, CST.PropertyAnnotation (CST.Symbol "x") (VInt 1)] -> do
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls, CST.PropertyAnnotation (CST.Symbol "x") (VInteger 1)] -> do
                   lbls `shouldBe` Set.empty
                 _ -> expectationFailure $ "Expected IdentifiedAnnotation(p) and PropertyAnnotation(x,1), got " ++ show anns
               length elements `shouldBe` 1
@@ -467,7 +467,7 @@ spec = do
             Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
               length anns `shouldBe` 2
               case anns of
-                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls, CST.PropertyAnnotation (CST.Symbol "x") (VInt 1)] -> do
+                [CST.IdentifiedAnnotation (Just (CST.IdentSymbol (CST.Symbol "p"))) lbls, CST.PropertyAnnotation (CST.Symbol "x") (VInteger 1)] -> do
                   lbls `shouldBe` Set.empty
                 _ -> expectationFailure $ "Expected IdentifiedAnnotation(p) and PropertyAnnotation(x,1), got " ++ show anns
               length elements `shouldBe` 1
@@ -478,7 +478,7 @@ spec = do
             Right (CST.GramDoc _ [CST.AnnotatedPattern anns elements]) -> do
               length anns `shouldBe` 2
               case anns of
-                [CST.IdentifiedAnnotation Nothing lbls, CST.PropertyAnnotation (CST.Symbol "meta") (VBool True)] -> do
+                [CST.IdentifiedAnnotation Nothing lbls, CST.PropertyAnnotation (CST.Symbol "meta") (VBoolean True)] -> do
                   lbls `shouldBe` Set.fromList ["L"]
                 _ -> expectationFailure $ "Expected IdentifiedAnnotation(labels L) and PropertyAnnotation(meta,true), got " ++ show anns
               length elements `shouldBe` 1
