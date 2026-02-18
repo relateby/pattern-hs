@@ -55,18 +55,22 @@ Merge and fromPatterns **never drop** input. If a pattern does not classify as N
 3. Modify: e.g. `merge` more patterns into `graph`
 4. Serialize: flatten `pgNodes`, `pgRelationships`, `pgWalks`, `pgAnnotations` and call `toGram`. See `specs/033-pattern-graph/quickstart.md` and the integration test in `libs/gram/tests/Spec/Gram/RoundtripSpec.hs`.
 
-## Conversion to GraphLens: `toGraphLens`
+## Conversion to GraphLens: `toGraphLens` and `toGraphLensWithScope`
 
-Convert a PatternGraph to the existing GraphLens view so you can use graph algorithms (nodes, relationships, walks, neighbors, bfs, findPath, etc.):
+Convert a PatternGraph to the existing GraphLens view so you can use graph algorithms (nodes, relationships, walks, neighbors, bfs, findPath, etc.). `toGraphLens` returns `Nothing` for an empty graph (no scope value); use `toGraphLensWithScope scopeVal` for a total conversion including empty graphs:
 
 ```haskell
-import Pattern.PatternGraph (fromPatterns, toGraphLens)
+import Pattern.PatternGraph (fromPatterns, toGraphLens, toGraphLensWithScope)
 import Pattern.Graph (nodes, relationships)
 
 MergeResult graph _ = fromPatterns [ point "a", point "b", pattern "r" [point "a", point "b"] ]
-lens = toGraphLens graph
+-- Non-empty graph: use toGraphLens (Maybe)
+let Just lens = toGraphLens graph
 nodeList = nodes lens
 relList = relationships lens
+
+-- Empty graph: use toGraphLensWithScope to supply the scope value
+lensEmpty = toGraphLensWithScope someScopeValue empty
 ```
 
 ## See also

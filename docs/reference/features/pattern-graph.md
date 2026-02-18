@@ -58,7 +58,8 @@ Result of `merge` or `fromPatterns`. Unrecognized patterns are never stored; the
 | `mergeWithPolicy` | Merge with explicit `ReconciliationPolicy`. |
 | `fromPatterns` | Build graph from a list (fold of merge). Returns `MergeResult`. |
 | `fromPatternsWithPolicy` | Same with explicit policy. |
-| `toGraphLens` | Convert PatternGraph to `GraphLens` for graph algorithms. |
+| `toGraphLens` | Convert PatternGraph to `Maybe (GraphLens v)`; `Nothing` when empty. |
+| `toGraphLensWithScope` | Total conversion using given scope value (works for empty graphs). |
 
 ## Round-trip and .graph.gram
 

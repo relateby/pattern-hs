@@ -3,6 +3,7 @@
 
 module Spec.Pattern.PatternGraphSpec where
 
+import Data.Maybe (isNothing)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Pattern.Core (Pattern(..), pattern, point)
@@ -17,6 +18,7 @@ import Pattern.PatternGraph
     merge,
     mergeWithPolicy,
     toGraphLens,
+    toGraphLensWithScope,
   )
 import Pattern.Graph (nodes, relationships)
 import Pattern.Reconcile (ReconciliationPolicy(..))
@@ -90,11 +92,19 @@ spec = do
         classify three `shouldBe` Unrecognized
 
     describe "toGraphLens" $ do
+      it "empty graph yields Nothing" $ do
+        (isNothing . toGraphLens) (empty :: PatternGraph Subject) `shouldBe` True
       it "nodes and relationships from lens match container" $ do
         let MergeResult graph _ = fromPatterns [node "a", node "b", rel "r" "a" "b"]
-        let lens = toGraphLens graph
+        let Just lens = toGraphLens graph
         length (nodes lens) `shouldBe` 2
         length (relationships lens) `shouldBe` 1
+      it "toGraphLensWithScope is total for empty graph" $ do
+        let g = empty :: PatternGraph Subject
+        let scopeVal = Subject (Symbol "scope") Set.empty Map.empty
+        let lens = toGraphLensWithScope scopeVal g
+        length (nodes lens) `shouldBe` 0
+        length (relationships lens) `shouldBe` 0
 
     describe "mergeWithPolicy / fromPatternsWithPolicy (T011)" $ do
       it "mergeWithPolicy accepts reconciliation policy" $ do

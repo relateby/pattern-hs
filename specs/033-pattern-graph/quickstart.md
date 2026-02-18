@@ -20,7 +20,7 @@ PatternGraph is a container for graph data backed by `Pattern v`. It stores node
 
 ```haskell
 import Pattern.Core (Pattern(..), pattern, point)
-import Pattern.PatternGraph (PatternGraph, empty, merge, mergeWithPolicy, fromPatterns, fromPatternsWithPolicy, toGraphLens, MergeResult(..))
+import Pattern.PatternGraph (PatternGraph, empty, merge, mergeWithPolicy, fromPatterns, fromPatternsWithPolicy, toGraphLens, toGraphLensWithScope, MergeResult(..))
 import Pattern.Reconcile (ReconciliationPolicy(..))  -- LastWriteWins, FirstWriteWins, etc.
 import Pattern.Graph (GraphLens, nodes, relationships)
 ```
@@ -66,9 +66,12 @@ let (MergeResult g, _) = mergeWithPolicy LastWriteWins (point "n:User") empty
 ### Convert to GraphLens
 
 ```haskell
-let lens = toGraphLens graph
-let nodeList = nodes lens
-let relList = relationships lens
+-- toGraphLens returns Nothing for empty graph; Just lens for non-empty
+let lens = toGraphLens graph  -- Maybe (GraphLens v)
+let nodeList = maybe [] nodes lens
+let relList = maybe [] relationships lens
+-- Or with a known non-empty graph: let Just lens = toGraphLens graph
+-- For empty graphs use toGraphLensWithScope scopeVal graph (total).
 -- Use existing GraphLens operations: neighbors, bfs, findPath, etc.
 ```
 

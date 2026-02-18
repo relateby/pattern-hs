@@ -35,6 +35,7 @@ module Pattern.PatternGraph
 
     -- * Conversion to GraphLens
   , toGraphLens
+  , toGraphLensWithScope
   ) where
 
 import Data.Map.Strict (Map)
@@ -110,9 +111,11 @@ fromPatternsWithPolicy
 -- Conversion
 -- ============================================================================
 
--- | Convert a PatternGraph to a GraphLens (scope pattern + atomic predicate)
--- so existing graph algorithms can be used on the same data.
-toGraphLens :: GraphValue v => PatternGraph v -> GraphLens v
+-- | Convert a PatternGraph to Maybe (GraphLens v); Nothing when empty.
+toGraphLens :: GraphValue v => PatternGraph v -> Maybe (GraphLens v)
+
+-- | Total conversion using given scope value (works for empty graphs).
+toGraphLensWithScope :: GraphValue v => v -> PatternGraph v -> GraphLens v
 
 -- Policy: ReconciliationPolicy (MergeStrategy v) is from Pattern.Reconcile;
 -- MergeStrategy v is the associated type of Mergeable v.

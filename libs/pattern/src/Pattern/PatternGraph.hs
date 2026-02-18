@@ -33,8 +33,10 @@ module Pattern.PatternGraph
 
     -- * Conversion to GraphLens
   , toGraphLens
+  , toGraphLensWithScope
   ) where
 
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Pattern.Core (Pattern(..))
@@ -163,19 +165,20 @@ insertRelationship
   -> PatternGraph v
   -> MergeResult v
 insertRelationship policy p g =
-  let -- Merge endpoint nodes first (relationship has 2 node elements)
-      g1 = case elements p of
-        [n1, n2] -> merged (mergeWithPolicy policy n1 g) |> mergeWithPolicy policy n2
-        _        -> g
-      merged (MergeResult g' _) = g'
-      (|>) acc f = merged (f acc)
+  let -- Merge endpoint nodes first (relationship has 2 node elements); accumulate unrecognized (FR-006).
+      (g1, unkInner) = case elements p of
+        [n1, n2] ->
+          let MergeResult g1' unk1 = mergeWithPolicy policy n1 g
+              MergeResult g2' unk2 = mergeWithPolicy policy n2 g1'
+          in (g2', unk1 ++ unk2)
+        _        -> (g, [])
       i = identify (value p)
   in case Map.lookup i (pgRelationships g1) of
-    Nothing -> MergeResult (g1 { pgRelationships = Map.insert i p (pgRelationships g1) }) []
+    Nothing -> MergeResult (g1 { pgRelationships = Map.insert i p (pgRelationships g1) }) unkInner
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> MergeResult g1 [p]
-        Right mergedRel -> MergeResult (g1 { pgRelationships = Map.insert i mergedRel (pgRelationships g1) }) []
+        Left _ -> MergeResult g1 (unkInner ++ [p])
+        Right mergedRel -> MergeResult (g1 { pgRelationships = Map.insert i mergedRel (pgRelationships g1) }) unkInner
 
 insertWalk
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
@@ -184,16 +187,17 @@ insertWalk
   -> PatternGraph v
   -> MergeResult v
 insertWalk policy p g =
-  let g1 = foldl (\acc rel -> graphOf (mergeWithPolicy policy rel acc)) g (elements p)
+  let (g1, unkInner) = foldl step (g, []) (elements p)
+      step (gAcc, unkAcc) rel =
+        let MergeResult g' unk' = mergeWithPolicy policy rel gAcc
+        in (g', unkAcc ++ unk')
       i = identify (value p)
   in case Map.lookup i (pgWalks g1) of
-    Nothing -> MergeResult (g1 { pgWalks = Map.insert i p (pgWalks g1) }) []
+    Nothing -> MergeResult (g1 { pgWalks = Map.insert i p (pgWalks g1) }) unkInner
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> MergeResult g1 [p]
-        Right walkPat -> MergeResult (g1 { pgWalks = Map.insert i walkPat (pgWalks g1) }) []
-  where
-    graphOf (MergeResult g' _) = g'
+        Left _ -> MergeResult g1 (unkInner ++ [p])
+        Right walkPat -> MergeResult (g1 { pgWalks = Map.insert i walkPat (pgWalks g1) }) unkInner
 
 insertAnnotation
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
@@ -203,16 +207,14 @@ insertAnnotation
   -> MergeResult v
 insertAnnotation policy p g =
   let [inner] = elements p
-      g1 = merged (mergeWithPolicy policy inner g)
+      MergeResult g1 unkInner = mergeWithPolicy policy inner g
       i = identify (value p)
   in case Map.lookup i (pgAnnotations g1) of
-    Nothing -> MergeResult (g1 { pgAnnotations = Map.insert i p (pgAnnotations g1) }) []
+    Nothing -> MergeResult (g1 { pgAnnotations = Map.insert i p (pgAnnotations g1) }) unkInner
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> MergeResult g1 [p]
-        Right mergedP -> MergeResult (g1 { pgAnnotations = Map.insert i mergedP (pgAnnotations g1) }) []
-  where
-    merged (MergeResult g' _) = g'
+        Left _ -> MergeResult g1 (unkInner ++ [p])
+        Right mergedP -> MergeResult (g1 { pgAnnotations = Map.insert i mergedP (pgAnnotations g1) }) unkInner
 
 -- ============================================================================
 -- fromPatterns
@@ -226,32 +228,41 @@ fromPatterns
 fromPatterns ps = fromPatternsWithPolicy Reconcile.LastWriteWins ps
 
 -- | Build a graph from a list of patterns using the given reconciliation policy.
+-- Uses strict fold and reverse accumulation for unrecognized to avoid quadratic (++) and large thunks.
 fromPatternsWithPolicy
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
   -> [Pattern v]
   -> MergeResult v
 fromPatternsWithPolicy policy ps =
-  foldl
-    ( \(MergeResult g unk) p ->
-        let MergeResult g' unk' = mergeWithPolicy policy p g
-        in MergeResult g' (unk ++ unk')
-    )
-    (MergeResult empty [])
-    ps
+  let (g, revUnk) = foldl' step (empty, []) ps
+      step (gAcc, revUnkAcc) p =
+        let MergeResult g' unk' = mergeWithPolicy policy p gAcc
+        in (g', foldr (:) revUnkAcc unk')
+  in MergeResult g (reverse revUnk)
 
 -- ============================================================================
 -- toGraphLens
 -- ============================================================================
 
--- | Convert a PatternGraph to a GraphLens (scope pattern + atomic predicate)
+-- | Convert a 'PatternGraph' to a 'GraphLens' (scope pattern + atomic predicate)
 -- so existing graph algorithms can be used on the same data.
-toGraphLens :: GraphValue v => PatternGraph v -> GraphLens v
+--
+-- Returns 'Nothing' when the graph is empty, since there is no pattern value
+-- available to use as the scope decoration. Use 'toGraphLensWithScope' if you
+-- need a 'GraphLens' for an empty graph by providing the scope value explicitly.
+toGraphLens :: GraphValue v => PatternGraph v -> Maybe (GraphLens v)
 toGraphLens g =
   let allPats = Map.elems (pgNodes g) ++ Map.elems (pgRelationships g) ++ Map.elems (pgWalks g)
-      scopeVal = case allPats of
-        (p : _) -> value p
-        [] -> error "toGraphLens: empty graph has no scope value"
+  in case allPats of
+    (p : _) -> Just (toGraphLensWithScope (value p) g)
+    [] -> Nothing
+
+-- | Convert a 'PatternGraph' to a 'GraphLens' using the given scope value.
+-- Total: can be used for empty graphs, in which case the scope pattern has no elements.
+toGraphLensWithScope :: GraphValue v => v -> PatternGraph v -> GraphLens v
+toGraphLensWithScope scopeVal g =
+  let allPats = Map.elems (pgNodes g) ++ Map.elems (pgRelationships g) ++ Map.elems (pgWalks g)
       scope = Pattern scopeVal allPats
       isNode (Pattern _ els) = null els
   in GraphLens scope isNode
