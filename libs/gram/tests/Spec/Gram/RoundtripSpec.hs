@@ -6,7 +6,10 @@ import Test.Hspec
 import Test.QuickCheck
 import Data.Aeson (encode, decode)
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Map.Strict as MapStrict
+import qualified Data.Set as Set
 import qualified Pattern.Core as Pattern
+import Pattern.PatternGraph (MergeResult(..), fromPatterns, pgAnnotations, pgNodes, pgRelationships, pgWalks)
 import qualified Subject.Core as Subject
 import qualified Subject.Value as SubjectValue
 import qualified Gram.Parse as Gram
@@ -15,7 +18,6 @@ import qualified Gram.JSON ()  -- Import ToJSON/FromJSON instances
 import System.Directory (listDirectory, doesFileExist, doesDirectoryExist)
 import System.FilePath ((</>), takeExtension)
 import Control.Monad (forM)
-import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 -- | Helper function to test roundtrip: Gram -> JSON -> Gram
@@ -93,6 +95,60 @@ spec = do
           Gram.toGram [p] `shouldBe` "{}"
           Gram.fromGram "{}" `shouldBe` Right [p]
         _ -> expectationFailure "fromGram {} should return [p]"
+
+  describe "PatternGraph round-trip (T009)" $ do
+    it "parse gram → fromPatterns → serialize → re-parse yields same logical graph" $ do
+      let gramText = "(a) (b) (a)-[r:KNOWS]->(b)"
+      case Gram.fromGram gramText of
+        Left _ -> expectationFailure "Should parse gram"
+        Right parsed -> do
+          let MergeResult graph _ = fromPatterns parsed
+          let flat = MapStrict.elems (pgNodes graph) ++ MapStrict.elems (pgRelationships graph)
+                ++ MapStrict.elems (pgWalks graph) ++ MapStrict.elems (pgAnnotations graph)
+          let serialized = Gram.toGram flat
+          case Gram.fromGram serialized of
+            Left _ -> expectationFailure "Should re-parse serialized gram"
+            Right reparsed -> do
+              let MergeResult graph2 _ = fromPatterns reparsed
+              MapStrict.size (pgNodes graph2) `shouldBe` MapStrict.size (pgNodes graph)
+              MapStrict.size (pgRelationships graph2) `shouldBe` MapStrict.size (pgRelationships graph)
+              Set.fromList (MapStrict.keys (pgNodes graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgNodes graph))
+              Set.fromList (MapStrict.keys (pgRelationships graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgRelationships graph))
+
+    it "multi-segment path round-trip preserves relationships and walk structure" $ do
+      -- (a)-[r1]->(b)-[r2]->(c) is produced by Gram.Transform as a single Walk pattern
+      -- [Gram.Walk | [r1|a,b], [r2|b,c]]. Round-trip must preserve both edges and path shape.
+      let gramText = "(a) (b) (c) (a)-[r1:KNOWS]->(b)-[r2:LIKES]->(c)"
+      case Gram.fromGram gramText of
+        Left e -> expectationFailure $ "Should parse gram: " ++ show e
+        Right parsed -> do
+          let MergeResult graph _ = fromPatterns parsed
+          let flat = MapStrict.elems (pgNodes graph) ++ MapStrict.elems (pgRelationships graph)
+                ++ MapStrict.elems (pgWalks graph) ++ MapStrict.elems (pgAnnotations graph)
+          let serialized = Gram.toGram flat
+          case Gram.fromGram serialized of
+            Left e2 -> expectationFailure $ "Should re-parse serialized gram: " ++ show e2
+            Right reparsed -> do
+              let MergeResult graph2 _ = fromPatterns reparsed
+              -- Same node/relationship/walk counts
+              MapStrict.size (pgNodes graph2) `shouldBe` MapStrict.size (pgNodes graph)
+              MapStrict.size (pgRelationships graph2) `shouldBe` MapStrict.size (pgRelationships graph)
+              MapStrict.size (pgWalks graph2) `shouldBe` MapStrict.size (pgWalks graph)
+              Set.fromList (MapStrict.keys (pgNodes graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgNodes graph))
+              Set.fromList (MapStrict.keys (pgRelationships graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgRelationships graph))
+              Set.fromList (MapStrict.keys (pgWalks graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgWalks graph))
+              -- Walk structure: exactly one walk with two edge elements (r1, r2)
+              case (MapStrict.elems (pgWalks graph), MapStrict.elems (pgWalks graph2)) of
+                ([walk], [walk2]) -> do
+                  length (Pattern.elements walk) `shouldBe` 2
+                  length (Pattern.elements walk2) `shouldBe` 2
+                  let [e1, e2] = Pattern.elements walk
+                  let [e1', e2'] = Pattern.elements walk2
+                  Subject.identity (Pattern.value e1) `shouldBe` Subject.identity (Pattern.value e1')
+                  Subject.identity (Pattern.value e2) `shouldBe` Subject.identity (Pattern.value e2')
+                  Subject.identity (Pattern.value e1) `shouldBe` Subject.Symbol "r1"
+                  Subject.identity (Pattern.value e2) `shouldBe` Subject.Symbol "r2"
+                _ -> expectationFailure "Expected exactly one walk in graph and after round-trip"
 
   describe "JSON Roundtrip Tests" $ do
     

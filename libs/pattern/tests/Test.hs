@@ -4,6 +4,8 @@
 import Test.Hspec
 import qualified Spec.Pattern.CoreSpec as CoreSpec
 import qualified Spec.Pattern.GraphSpec as GraphSpec
+import qualified Spec.Pattern.PatternGraphProperties as PatternGraphProperties
+import qualified Spec.Pattern.PatternGraphSpec as PatternGraphSpec
 import qualified Spec.Pattern.Properties as Properties
 import qualified Spec.Pattern.ReconcileSpec as ReconcileSpec
 import qualified Spec.Pattern.ReconcileProperties as ReconcileProperties
@@ -16,6 +18,8 @@ testSpec = do
   describe "Pattern library" $ do
     CoreSpec.spec
     GraphSpec.spec
+    PatternGraphSpec.spec
+    PatternGraphProperties.spec
     Properties.spec
     ReconcileSpec.spec
     ReconcileProperties.spec

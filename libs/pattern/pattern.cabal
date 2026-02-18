@@ -24,6 +24,7 @@ library
         Pattern
         Pattern.Core
         Pattern.Graph
+        Pattern.PatternGraph
         Pattern.Reconcile
 
     -- LANGUAGE extensions used by modules in this package.
@@ -46,6 +47,8 @@ test-suite pattern-test
     other-modules:
         Spec.Pattern.CoreSpec
         Spec.Pattern.GraphSpec
+        Spec.Pattern.PatternGraphProperties
+        Spec.Pattern.PatternGraphSpec
         Spec.Pattern.Properties
         Spec.Pattern.ReconcileSpec
         Spec.Pattern.ReconcileProperties
