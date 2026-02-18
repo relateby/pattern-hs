@@ -12,8 +12,11 @@ import Test.Hspec
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck (Arbitrary(..), property)
 
-instance Arbitrary Symbol where
-  arbitrary = Symbol <$> QC.elements ["a", "b", "c", "n1", "n2", "r1", "x", "y", "z"]
+-- Local newtype to avoid duplicate orphan Arbitrary Symbol (ReconcileProperties already defines one).
+newtype TestSymbol = TestSymbol Symbol deriving (Eq, Show)
+
+instance Arbitrary TestSymbol where
+  arbitrary = TestSymbol . Symbol <$> QC.elements ["a", "b", "c", "n1", "n2", "r1", "x", "y", "z"]
 
 -- Helper: atomic node
 node :: Symbol -> Pattern Subject
@@ -24,15 +27,15 @@ rel :: Symbol -> Symbol -> Symbol -> Pattern Subject
 rel r a b = Pattern (Subject r Set.empty Map.empty) [node a, node b]
 
 -- | Merge idempotence: merging the same pattern twice is equivalent to merging once.
-prop_merge_idempotence_node :: Symbol -> Bool
-prop_merge_idempotence_node s =
+prop_merge_idempotence_node :: TestSymbol -> Bool
+prop_merge_idempotence_node (TestSymbol s) =
   let g0 = empty
       MergeResult g1 _ = merge (node s) g0
       MergeResult g2 _ = merge (node s) g1
   in pgNodes g1 == pgNodes g2
 
-prop_merge_idempotence_relationship :: Symbol -> Symbol -> Symbol -> Symbol -> Bool
-prop_merge_idempotence_relationship r a b _
+prop_merge_idempotence_relationship :: TestSymbol -> TestSymbol -> TestSymbol -> TestSymbol -> Bool
+prop_merge_idempotence_relationship (TestSymbol r) (TestSymbol a) (TestSymbol b) _
   | a == b = True  -- skip invalid rel
   | otherwise =
       let g0 = empty
@@ -44,11 +47,11 @@ prop_merge_idempotence_relationship r a b _
       && Set.fromList (Map.keys (pgRelationships g3)) == Set.fromList (Map.keys (pgRelationships g4))
 
 -- | fromPatterns order: for a list of distinct nodes, order of list does not change node set.
-prop_fromPatterns_order_nodes :: [Symbol] -> Bool
+prop_fromPatterns_order_nodes :: [TestSymbol] -> Bool
 prop_fromPatterns_order_nodes syms =
   let uniq = nub syms
       limited = take 20 uniq
-      pats = map node limited
+      pats = map (\(TestSymbol s) -> node s) limited
       MergeResult g _ = fromPatterns pats
       MergeResult gRev _ = fromPatterns (reverse pats)
   in Set.fromList (Map.keys (pgNodes g)) == Set.fromList (Map.keys (pgNodes gRev))

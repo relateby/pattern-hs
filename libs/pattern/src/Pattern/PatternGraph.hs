@@ -39,7 +39,6 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Pattern.Core (Pattern(..))
 import Pattern.Graph (GraphLens(..))
-import Data.Either (fromRight)
 import qualified Pattern.Reconcile as Reconcile
 import Subject.Core (Subject(..), Symbol)
 import qualified Subject.Core as Subj
@@ -132,30 +131,37 @@ mergeWithPolicy
 mergeWithPolicy policy p g =
   case classify p of
     Unrecognized -> MergeResult g [p]
-    Node -> MergeResult (insertNode policy p g) []
-    Relationship -> MergeResult (insertRelationship policy p g) []
-    Walk -> MergeResult (insertWalk policy p g) []
-    Annotation -> MergeResult (insertAnnotation policy p g) []
+    Node -> insertNode policy p g
+    Relationship -> insertRelationship policy p g
+    Walk -> insertWalk policy p g
+    Annotation -> insertAnnotation policy p g
+
+-- | Two occurrences of the same identity: root = existing, single child = p.
+-- Used so Reconcile.reconcile sees exactly two occurrences (no extra duplicate root).
+twoOccurrences :: Pattern v -> Pattern v -> Pattern v
+twoOccurrences existing p = Pattern (value existing) [p]
 
 insertNode
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph v
-  -> PatternGraph v
+  -> MergeResult v
 insertNode policy p g =
   let i = identify (value p)
-      merged = case Map.lookup i (pgNodes g) of
-        Nothing -> p
-        Just existing -> fromRight (error "reconcile") (Reconcile.reconcile policy (Pattern (value p) [existing, p]))
-  in g { pgNodes = Map.insert i merged (pgNodes g) }
+  in case Map.lookup i (pgNodes g) of
+    Nothing -> MergeResult (g { pgNodes = Map.insert i p (pgNodes g) }) []
+    Just existing ->
+      case Reconcile.reconcile policy (twoOccurrences existing p) of
+        Left _ -> MergeResult g [p]
+        Right merged -> MergeResult (g { pgNodes = Map.insert i merged (pgNodes g) }) []
 
 insertRelationship
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph v
-  -> PatternGraph v
+  -> MergeResult v
 insertRelationship policy p g =
   let -- Merge endpoint nodes first (relationship has 2 node elements)
       g1 = case elements p of
@@ -164,24 +170,28 @@ insertRelationship policy p g =
       merged (MergeResult g' _) = g'
       (|>) acc f = merged (f acc)
       i = identify (value p)
-      mergedRel = case Map.lookup i (pgRelationships g1) of
-        Nothing -> p
-        Just existing -> fromRight (error "reconcile") (Reconcile.reconcile policy (Pattern (value p) [existing, p]))
-  in g1 { pgRelationships = Map.insert i mergedRel (pgRelationships g1) }
+  in case Map.lookup i (pgRelationships g1) of
+    Nothing -> MergeResult (g1 { pgRelationships = Map.insert i p (pgRelationships g1) }) []
+    Just existing ->
+      case Reconcile.reconcile policy (twoOccurrences existing p) of
+        Left _ -> MergeResult g1 [p]
+        Right mergedRel -> MergeResult (g1 { pgRelationships = Map.insert i mergedRel (pgRelationships g1) }) []
 
 insertWalk
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph v
-  -> PatternGraph v
+  -> MergeResult v
 insertWalk policy p g =
   let g1 = foldl (\acc rel -> graphOf (mergeWithPolicy policy rel acc)) g (elements p)
       i = identify (value p)
-      walkPat = case Map.lookup i (pgWalks g1) of
-        Nothing -> p
-        Just existing -> fromRight (error "reconcile") (Reconcile.reconcile policy (Pattern (value p) [existing, p]))
-  in g1 { pgWalks = Map.insert i walkPat (pgWalks g1) }
+  in case Map.lookup i (pgWalks g1) of
+    Nothing -> MergeResult (g1 { pgWalks = Map.insert i p (pgWalks g1) }) []
+    Just existing ->
+      case Reconcile.reconcile policy (twoOccurrences existing p) of
+        Left _ -> MergeResult g1 [p]
+        Right walkPat -> MergeResult (g1 { pgWalks = Map.insert i walkPat (pgWalks g1) }) []
   where
     graphOf (MergeResult g' _) = g'
 
@@ -190,15 +200,17 @@ insertAnnotation
   => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph v
-  -> PatternGraph v
+  -> MergeResult v
 insertAnnotation policy p g =
   let [inner] = elements p
       g1 = merged (mergeWithPolicy policy inner g)
       i = identify (value p)
-      mergedP = case Map.lookup i (pgAnnotations g1) of
-        Nothing -> p
-        Just existing -> fromRight (error "reconcile") (Reconcile.reconcile policy (Pattern (value p) [existing, p]))
-  in g1 { pgAnnotations = Map.insert i mergedP (pgAnnotations g1) }
+  in case Map.lookup i (pgAnnotations g1) of
+    Nothing -> MergeResult (g1 { pgAnnotations = Map.insert i p (pgAnnotations g1) }) []
+    Just existing ->
+      case Reconcile.reconcile policy (twoOccurrences existing p) of
+        Left _ -> MergeResult g1 [p]
+        Right mergedP -> MergeResult (g1 { pgAnnotations = Map.insert i mergedP (pgAnnotations g1) }) []
   where
     merged (MergeResult g' _) = g'
 
