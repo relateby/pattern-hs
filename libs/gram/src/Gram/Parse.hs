@@ -632,13 +632,13 @@ parseIdentifiedAnnotation = do
   labels <- optional (try parseLabels)
   let lblSet = maybe Set.empty id labels
   when (ident == Nothing && Set.null lblSet) $
-    fail "empty @@ header: identifier or labels required"
+    fail "empty @@ header: identifier or labels required (e.g. @@p, @@:L, @@p:L)"
   optionalSpace
   return $ IdentifiedAnnotation ident lblSet
 
 parseAnnotations :: Parser [Annotation]
 parseAnnotations = do
-  mIdentified <- optional (lookAhead (string "@@") >> parseIdentifiedAnnotation)
+  mIdentified <- optional parseIdentifiedAnnotation
   case mIdentified of
     Just _  -> optionalSpaceWithNewlines
     Nothing -> pure ()
