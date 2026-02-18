@@ -65,6 +65,23 @@
 --
 -- Tagged codefences are parsed as 'VTaggedString' values with the tag
 -- and content stored separately.
+--
+-- == Annotations (property vs identified)
+--
+-- The parser supports two annotation forms, aligned with tree-sitter-gram:
+--
+-- * **Property-style** @key(value): Parsed as 'PropertyAnnotation' with key (symbol)
+--   and value (any gram value). Multiple property annotations may follow an optional
+--   identified annotation.
+--
+-- * **Identified / labeled** @@: Parsed as 'IdentifiedAnnotation' with optional
+--   identifier and/or labels (':L', '::Label'). At most one per annotated pattern,
+--   and it must appear first if present. Empty @@ (no identifier and no labels)
+--   is rejected with a parse error.
+--
+-- Annotation order: optional one identified, then zero or more property, then the
+-- pattern body. See 'Gram.CST.Annotation' and the contract in
+-- specs/032-gram-annotation-syntax/contracts/annotations.md.
 module Gram.Parse
   ( fromGram
   , fromGramWithIds
@@ -88,7 +105,7 @@ import Text.Megaparsec (Parsec, parse, eof, optional, try, lookAhead, many, many
 import Text.Megaparsec.Char (char, string, digitChar)
 import qualified Text.Megaparsec.Error as Error
 import Data.Void (Void)
-import Control.Monad (void)
+import Control.Monad (void, when)
 import Data.Char (isAlphaNum, isAlpha)
 
 -- | Parser type for gram notation.
@@ -594,18 +611,39 @@ parsePropertyRecord = do
 
 -- ... [CST Specific Parsers] ...
 
-parseAnnotation :: Parser Annotation
-parseAnnotation = do
+-- | Parse property-style annotation: @key(value)
+parsePropertyAnnotation :: Parser Annotation
+parsePropertyAnnotation = do
   void $ char '@'
   key <- parseSymbol
   void $ char '('
   value <- parseValue
   void $ char ')'
+  optionalSpaceWithNewlines  -- allow newline before next annotation or body (corpus)
+  return $ PropertyAnnotation key value
+
+-- | Parse identified/labeled annotation: @@ with optional identifier and/or labels.
+-- Rejects empty @@ (no identifier and no labels).
+parseIdentifiedAnnotation :: Parser Annotation
+parseIdentifiedAnnotation = do
+  void $ string "@@"
   optionalSpace
-  return $ Annotation key value
+  ident <- optional (try parseIdentifier)
+  labels <- optional (try parseLabels)
+  let lblSet = maybe Set.empty id labels
+  when (ident == Nothing && Set.null lblSet) $
+    fail "empty @@ header: identifier or labels required (e.g. @@p, @@:L, @@p:L)"
+  optionalSpace
+  return $ IdentifiedAnnotation ident lblSet
 
 parseAnnotations :: Parser [Annotation]
-parseAnnotations = many (try parseAnnotation)
+parseAnnotations = do
+  mIdentified <- optional parseIdentifiedAnnotation
+  case mIdentified of
+    Just _  -> optionalSpaceWithNewlines
+    Nothing -> pure ()
+  rest <- many (try parsePropertyAnnotation)
+  return $ maybe id (:) mIdentified rest
 
 parseSubjectData :: Parser SubjectData
 parseSubjectData = do
@@ -748,7 +786,7 @@ parseAnnotatedPattern :: Parser AnnotatedPattern
 parseAnnotatedPattern = do
   optionalSpace
   anns <- parseAnnotations
-  optionalSpace
+  optionalSpaceWithNewlines  -- allow newline between annotation stack and body (corpus)
   -- Strict Mode: AnnotatedPattern contains exactly ONE PatternElement.
   -- Comma-separated sequences are only allowed inside SubjectPattern [...].
   element <- parsePatternElement
