@@ -91,12 +91,25 @@ data SubjectData = SubjectData
   , dataProperties :: Map String Value
   } deriving (Show, Eq, Generic)
 
--- | Metadata annotation
--- annotation: @key(value)
-data Annotation = Annotation
-  { annKey :: Symbol
-  , annValue :: Value
-  } deriving (Show, Eq, Generic)
+-- | Metadata annotation: either property-style or identified/labeled.
+--
+-- * 'PropertyAnnotation': From @key(value). Key is a symbol, value is any gram value.
+--
+-- * 'IdentifiedAnnotation': From @@ with optional identifier and/or labels (e.g. @@p (a),
+--   @@:L (a), @@p:L (a)). At most one per annotated pattern; must appear first if present.
+--   Empty @@ is invalid (parser rejects it).
+--
+-- See specs/032-gram-annotation-syntax/contracts/annotations.md and data-model.md.
+data Annotation
+  = PropertyAnnotation
+      { paKey :: Symbol
+      , paValue :: Value
+      }
+  | IdentifiedAnnotation
+      { iaIdentifier :: Maybe Identifier
+      , iaLabels :: Set String
+      }
+  deriving (Show, Eq, Generic)
 
 -- | Identifiers
 newtype Symbol = Symbol String

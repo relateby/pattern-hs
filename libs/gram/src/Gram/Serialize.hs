@@ -245,9 +245,9 @@ serializeValue (VTaggedString tag content)
   | canUseCodefence content = serializeTaggedCodefenceString tag content
   | otherwise = tag ++ "`" ++ escapeBacktickedContent content ++ "`"
 serializeValue (VArray vs) = "[" ++ intercalate "," (map serializeValue vs) ++ "]"
-serializeValue (VMap m) = "{" ++ intercalate "," (map serializeProperty (Map.toList m)) ++ "}"
+serializeValue (VMap m) = "{" ++ intercalate "," (map serializeMapProperty (Map.toList m)) ++ "}"
   where
-    serializeProperty (k, v) = k ++ ":" ++ serializeValue v
+    serializeMapProperty (k, v) = serializePropertyKey k ++ ":" ++ serializeValue v
 serializeValue (VRange (RangeValue (Just lowerVal) (Just upperVal))) = formatRangeDouble lowerVal ++ ".." ++ formatRangeDouble upperVal
 serializeValue (VRange (RangeValue (Just lowerVal) Nothing)) = formatRangeDouble lowerVal ++ "..."
 serializeValue (VRange (RangeValue Nothing (Just upperVal))) = "..." ++ formatRangeDouble upperVal
@@ -280,12 +280,19 @@ intercalate sep (x:xs) = x ++ sep ++ intercalate sep xs
 --
 -- >>> serializePropertyRecord (fromList [("name", VString "Alice")])
 -- "{name:\"Alice\"}"
+-- | Quote a property key for serialization when it would be ambiguous on reparse
+-- (e.g. keys starting with @ must be quoted per corpus value_pair.txt).
+serializePropertyKey :: String -> String
+serializePropertyKey k = case k of
+  ('@' : _) -> "\"" ++ escapeString k ++ "\""
+  _ -> k
+
 serializePropertyRecord :: Map String Value -> String
 serializePropertyRecord props
   | Map.null props = ""
   | otherwise = " {" ++ intercalate "," (map serializeProperty (Map.toList props)) ++ "}"
   where
-    serializeProperty (k, v) = k ++ ":" ++ serializeValue v
+    serializeProperty (k, v) = serializePropertyKey k ++ ":" ++ serializeValue v
 
 -- | Serialize identity, labels, and properties (attributes part).
 -- Used internally by toGram for both node and subject syntax.
