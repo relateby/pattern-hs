@@ -360,7 +360,7 @@ spec = do
                 _ -> expectationFailure $ "Expected one PropertyAnnotation (desc, symbol a), got " ++ show anns
               length elements `shouldBe` 1
               case elements of
-                [CST.PEPath (CST.Path (CST.Node (Just (CST.Symbol "a"))) [])] -> return ()
+                [CST.PEPath (CST.Path (CST.Node (Just (CST.SubjectData (Just (CST.IdentSymbol (CST.Symbol "a"))) _ _))) [])] -> return ()
                 _ -> expectationFailure $ "Expected body (a) as single node, got " ++ show elements
             Left e -> expectationFailure $ "Parse failed: " ++ show e
 
