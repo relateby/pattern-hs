@@ -6,7 +6,10 @@ import Test.Hspec
 import Test.QuickCheck
 import Data.Aeson (encode, decode)
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Map.Strict as MapStrict
+import qualified Data.Set as Set
 import qualified Pattern.Core as Pattern
+import Pattern.PatternGraph (MergeResult(..), fromPatterns, pgAnnotations, pgNodes, pgRelationships, pgWalks)
 import qualified Subject.Core as Subject
 import qualified Subject.Value as SubjectValue
 import qualified Gram.Parse as Gram
@@ -15,7 +18,6 @@ import qualified Gram.JSON ()  -- Import ToJSON/FromJSON instances
 import System.Directory (listDirectory, doesFileExist, doesDirectoryExist)
 import System.FilePath ((</>), takeExtension)
 import Control.Monad (forM)
-import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 -- | Helper function to test roundtrip: Gram -> JSON -> Gram
@@ -93,6 +95,25 @@ spec = do
           Gram.toGram [p] `shouldBe` "{}"
           Gram.fromGram "{}" `shouldBe` Right [p]
         _ -> expectationFailure "fromGram {} should return [p]"
+
+  describe "PatternGraph round-trip (T009)" $ do
+    it "parse gram → fromPatterns → serialize → re-parse yields same logical graph" $ do
+      let gramText = "(a) (b) (a)-[r:KNOWS]->(b)"
+      case Gram.fromGram gramText of
+        Left _ -> expectationFailure "Should parse gram"
+        Right parsed -> do
+          let MergeResult graph _ = fromPatterns parsed
+          let flat = MapStrict.elems (pgNodes graph) ++ MapStrict.elems (pgRelationships graph)
+                ++ MapStrict.elems (pgWalks graph) ++ MapStrict.elems (pgAnnotations graph)
+          let serialized = Gram.toGram flat
+          case Gram.fromGram serialized of
+            Left _ -> expectationFailure "Should re-parse serialized gram"
+            Right reparsed -> do
+              let MergeResult graph2 _ = fromPatterns reparsed
+              MapStrict.size (pgNodes graph2) `shouldBe` MapStrict.size (pgNodes graph)
+              MapStrict.size (pgRelationships graph2) `shouldBe` MapStrict.size (pgRelationships graph)
+              Set.fromList (MapStrict.keys (pgNodes graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgNodes graph))
+              Set.fromList (MapStrict.keys (pgRelationships graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgRelationships graph))
 
   describe "JSON Roundtrip Tests" $ do
     

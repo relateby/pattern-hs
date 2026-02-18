@@ -21,7 +21,7 @@ PatternGraph is a container for graph data backed by `Pattern v`. It stores node
 ```haskell
 import Pattern.Core (Pattern(..), pattern, point)
 import Pattern.PatternGraph (PatternGraph, empty, merge, mergeWithPolicy, fromPatterns, fromPatternsWithPolicy, toGraphLens, MergeResult(..))
-import Pattern.Reconcile (LastWriteWins)
+import Pattern.Reconcile (ReconciliationPolicy(..))  -- LastWriteWins, FirstWriteWins, etc.
 import Pattern.Graph (GraphLens, nodes, relationships)
 ```
 
@@ -49,7 +49,7 @@ let patterns =
       , point "b"
       , pattern "r1" [point "a", point "b"]
       ]
-let (MergeResult graph, unrecognized) = fromPatterns patterns
+let MergeResult graph unrecognized = fromPatterns patterns
 -- All three are recognized; graph has 2 nodes and 1 relationship
 -- If any pattern is not Node/Annotation/Relationship/Walk, it appears in unrecognized
 ```
@@ -74,32 +74,36 @@ let relList = relationships lens
 
 ### Round-trip with gram
 
+Flow: **parse → fromPatterns → modify → serialize**. Parse a gram string with `Gram.Parse.fromGram`, load into a PatternGraph with `fromPatterns`, optionally modify (e.g. merge more patterns), then serialize by collecting graph contents and calling `Gram.Serialize.toGram`:
+
 ```haskell
 -- Parse gram (libs/gram) → list of Pattern v
--- Load into graph
-(MergeResult pg, unk) = fromPatterns parsedPatterns
--- Modify pg (e.g. merge more patterns)
--- Serialize: build a pattern from pg contents and use gram serialize
--- (Exact serialize API depends on gram library; see docs when implemented.)
+case fromGram gramText of
+  Right parsedPatterns -> do
+    let MergeResult pg unk = fromPatterns parsedPatterns
+    -- Modify pg (e.g. merge more patterns)
+    -- Serialize: flatten graph and use gram
+    let flat = Map.elems (pgNodes pg) ++ Map.elems (pgRelationships pg)
+          ++ Map.elems (pgWalks pg) ++ Map.elems (pgAnnotations pg)
+    let serialized = toGram flat
+    -- Re-parse with fromGram to verify round-trip
+  Left _ -> -- handle parse error
 ```
+
+An integration test that asserts the same logical graph after round-trip lives in `libs/gram/tests/Spec/Gram/RoundtripSpec.hs` (PatternGraph round-trip).
 
 ## Unrecognized patterns
 
 Merge and fromPatterns never drop input. If a pattern does not classify as Node, Annotation, Relationship, or Walk, it is returned in the `unrecognized` list:
 
 ```haskell
-let (MergeResult g, unk) = fromPatterns [point "a", someWeirdPattern]
+let MergeResult g unk = fromPatterns [point "a", someWeirdPattern]
 -- g contains the node "a"; someWeirdPattern is in unk
 -- Caller can log, error, or handle unk as needed
 ```
 
-## Documentation (planned)
+## Documentation
 
-- **Usage**: Guide and reference in `docs/` for PatternGraph (construction, merge, fromPatterns, round-trip, conversion to GraphLens).
-- **`.graph.gram` reference**: A reference for writing `.graph.gram` files that use only annotations, nodes, relationships, and paths (no square-bracket pattern notation). It will describe the resulting data structures in PatternGraph and may use pattern notation to explain them: *gram → parse → PatternGraph → explained with pattern notation*.
-
-## Next steps
-
-- Implement `Pattern.PatternGraph` and `GraphValue` (see [data-model.md](./data-model.md) and [contracts/](./contracts/)).
-- Add tests (unit and property) for merge, fromPatterns, classification, and toGraphLens.
-- Add or update `docs/` for PatternGraph usage and the `.graph.gram` notation reference.
+- **Usage**: [docs/guide/pattern-graph-usage.md](../../docs/guide/pattern-graph-usage.md) — construction, merge, fromPatterns, round-trip, toGraphLens.
+- **Reference**: [docs/reference/features/pattern-graph.md](../../docs/reference/features/pattern-graph.md).
+- **`.graph.gram` notation**: [docs/reference/graph-gram-notation.md](../../docs/reference/graph-gram-notation.md) — annotations, nodes, relationships, paths only; resulting PatternGraph structures explained with pattern notation.

@@ -24,9 +24,9 @@
 
 **Purpose**: Add PatternGraph module and test structure to the pattern library
 
-- [ ] T001 Add `Pattern.PatternGraph` to `exposed-modules` in libs/pattern/pattern.cabal
-- [ ] T002 Create libs/pattern/src/Pattern/PatternGraph.hs with module declaration and imports (Pattern.Core, Pattern.Graph, Pattern.Reconcile, Data.Map.Strict)
-- [ ] T003 [P] Add Spec.Pattern.PatternGraphSpec and Spec.Pattern.PatternGraphProperties to libs/pattern/tests/Test.hs and create stub files libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs and libs/pattern/tests/Spec/Pattern/PatternGraphProperties.hs
+- [X] T001 Add `Pattern.PatternGraph` to `exposed-modules` in libs/pattern/pattern.cabal
+- [X] T002 Create libs/pattern/src/Pattern/PatternGraph.hs with module declaration and imports (Pattern.Core, Pattern.Graph, Pattern.Reconcile, Data.Map.Strict)
+- [X] T003 [P] Add Spec.Pattern.PatternGraphSpec and Spec.Pattern.PatternGraphProperties to libs/pattern/tests/Test.hs and create stub files libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs and libs/pattern/tests/Spec/Pattern/PatternGraphProperties.hs
 
 ---
 
@@ -36,11 +36,11 @@
 
 **Independent Test**: Empty graph exists; merge adds a node/relationship and returns MergeResult; fromPatterns builds a graph from a list; unrecognized patterns appear in result list, not in graph.
 
-- [ ] T004 [P] Implement `PatternGraph` data type (pgNodes, pgRelationships, pgWalks, pgAnnotations as Map (Id v) (Pattern v)) and `PatternClass` (Node, Annotation, Relationship, Walk, Unrecognized) in libs/pattern/src/Pattern/PatternGraph.hs
-- [ ] T005 [P] Implement `GraphValue` typeclass (type Id v, identify, classify) and `GraphValue Subject` instance with `Id Subject = Symbol` and classification by arity (0=Node, 1=Annotation, 2=Relationship, n=Walk, else Unrecognized) in libs/pattern/src/Pattern/PatternGraph.hs
-- [ ] T006 Implement `MergeResult` type and `empty` in libs/pattern/src/Pattern/PatternGraph.hs
-- [ ] T007 Implement `merge` (default policy, e.g. LastWriteWins) and `fromPatterns` in libs/pattern/src/Pattern/PatternGraph.hs: classify pattern, dispatch to correct map, reconcile existing identity via Pattern.Reconcile, return (graph, unrecognized); do not store Unrecognized
-- [ ] T008 [P] Unit tests for empty, merge (node and relationship), fromPatterns, and classification in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs (ensure tests pass)
+- [X] T004 [P] Implement `PatternGraph` data type (pgNodes, pgRelationships, pgWalks, pgAnnotations as Map (Id v) (Pattern v)) and `PatternClass` (Node, Annotation, Relationship, Walk, Unrecognized) in libs/pattern/src/Pattern/PatternGraph.hs
+- [X] T005 [P] Implement `GraphValue` typeclass (type Id v, identify, classify) and `GraphValue Subject` instance with `Id Subject = Symbol` and classification by arity (0=Node, 1=Annotation, 2=Relationship, n=Walk, else Unrecognized) in libs/pattern/src/Pattern/PatternGraph.hs
+- [X] T006 Implement `MergeResult` type and `empty` in libs/pattern/src/Pattern/PatternGraph.hs
+- [X] T007 Implement `merge` (default policy, e.g. LastWriteWins) and `fromPatterns` in libs/pattern/src/Pattern/PatternGraph.hs: classify pattern, dispatch to correct map, reconcile existing identity via Pattern.Reconcile, return (graph, unrecognized); do not store Unrecognized
+- [X] T008 [P] Unit tests for empty, merge (node and relationship), fromPatterns, and classification in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs (ensure tests pass)
 
 **Checkpoint**: Foundation ready — merge and fromPatterns work; user story implementation can begin
 
@@ -54,8 +54,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add integration test: parse gram (via Gram.Parse), fromPatterns into PatternGraph, serialize (via Gram.Serialize or equivalent), re-parse and assert same logical graph in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs or libs/gram/tests
-- [ ] T010 [US1] Document round-trip flow (parse → fromPatterns → modify → serialize) and any helper usage in specs/033-pattern-graph/quickstart.md or add minimal example in libs/pattern/src/Pattern/PatternGraph.hs module doc
+- [X] T009 [US1] Add integration test: parse gram (via Gram.Parse), fromPatterns into PatternGraph, serialize (via Gram.Serialize or equivalent), re-parse and assert same logical graph in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs or libs/gram/tests
+- [X] T010 [US1] Document round-trip flow (parse → fromPatterns → modify → serialize) and any helper usage in specs/033-pattern-graph/quickstart.md or add minimal example in libs/pattern/src/Pattern/PatternGraph.hs module doc
 
 **Checkpoint**: User Story 1 deliverable — round-trip with gram is testable and documented
 
@@ -69,10 +69,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Implement `mergeWithPolicy` and `fromPatternsWithPolicy` taking `ReconciliationPolicy (MergeStrategy v)` in libs/pattern/src/Pattern/PatternGraph.hs
-- [ ] T012 [US2] In merge path: when merging a Walk, store walk in pgWalks and recursively merge each component relationship and their endpoint nodes in libs/pattern/src/Pattern/PatternGraph.hs
-- [ ] T013 [US2] In merge path: when merging an Annotation, store annotation in pgAnnotations and recursively merge its single inner element into the appropriate category in libs/pattern/src/Pattern/PatternGraph.hs
-- [ ] T014 [US2] Unit tests for duplicate identity (reconciled per policy), walk decomposition (components in pgRelationships/pgNodes), and annotation inner merge in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs
+- [X] T011 [US2] Implement `mergeWithPolicy` and `fromPatternsWithPolicy` taking `ReconciliationPolicy (MergeStrategy v)` in libs/pattern/src/Pattern/PatternGraph.hs
+- [X] T012 [US2] In merge path: when merging a Walk, store walk in pgWalks and recursively merge each component relationship and their endpoint nodes in libs/pattern/src/Pattern/PatternGraph.hs
+- [X] T013 [US2] In merge path: when merging an Annotation, store annotation in pgAnnotations and recursively merge its single inner element into the appropriate category in libs/pattern/src/Pattern/PatternGraph.hs
+- [X] T014 [US2] Unit tests for duplicate identity (reconciled per policy), walk decomposition (components in pgRelationships/pgNodes), and annotation inner merge in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs
 
 **Checkpoint**: User Story 2 deliverable — merge-on-insert with policy and recursive decomposition is implemented and tested
 
@@ -86,8 +86,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Add unit tests: fromPatterns with list containing Unrecognized-shaped patterns; assert unrecognized list non-empty and no Unrecognized stored in pgNodes/pgRelationships/pgWalks/pgAnnotations in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs
-- [ ] T016 [US3] Document that Unrecognized is never stored and always returned in MergeResult.unrecognized in libs/pattern/src/Pattern/PatternGraph.hs (module or merge/fromPatterns doc)
+- [X] T015 [US3] Add unit tests: fromPatterns with list containing Unrecognized-shaped patterns; assert unrecognized list non-empty and no Unrecognized stored in pgNodes/pgRelationships/pgWalks/pgAnnotations in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs
+- [X] T016 [US3] Document that Unrecognized is never stored and always returned in MergeResult.unrecognized in libs/pattern/src/Pattern/PatternGraph.hs (module or merge/fromPatterns doc)
 
 **Checkpoint**: User Story 3 deliverable — unrecognized handling is tested and documented
 
@@ -101,8 +101,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Implement `toGraphLens` in libs/pattern/src/Pattern/PatternGraph.hs: build scope pattern from pgNodes, pgRelationships, pgWalks (and optionally pgAnnotations), and atomic-node predicate consistent with GraphValue classification
-- [ ] T018 [US4] Unit tests: build PatternGraph with nodes and relationships, toGraphLens, assert nodes lens and relationships lens match container in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs
+- [X] T017 [US4] Implement `toGraphLens` in libs/pattern/src/Pattern/PatternGraph.hs: build scope pattern from pgNodes, pgRelationships, pgWalks (and optionally pgAnnotations), and atomic-node predicate consistent with GraphValue classification
+- [X] T018 [US4] Unit tests: build PatternGraph with nodes and relationships, toGraphLens, assert nodes lens and relationships lens match container in libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs
 
 **Checkpoint**: User Story 4 deliverable — conversion to GraphLens is implemented and tested
 
@@ -112,10 +112,10 @@
 
 **Purpose**: Property tests, documentation, and quickstart validation
 
-- [ ] T019 [P] Property tests for merge idempotence and consistency (e.g. merge same pattern twice ≈ merge once; fromPatterns order independence where applicable) in libs/pattern/tests/Spec/Pattern/PatternGraphProperties.hs
-- [ ] T020 [P] Add or update PatternGraph usage docs: construction, merge, fromPatterns, round-trip, toGraphLens in docs/guide/pattern-graph-usage.md and docs/reference/features/pattern-graph.md (create if missing)
-- [ ] T021 [P] Add .graph.gram notation reference: restrict to annotation, nodes, relationships, and paths only (no square-bracket pattern notation in file); describe resulting PatternGraph structures using pattern notation (flow: gram → parse → PatternGraph → explained with pattern notation) in docs/reference/graph-gram-notation.md or docs/guide/graph-gram-reference.md
-- [ ] T022 Run through specs/033-pattern-graph/quickstart.md examples and fix any broken snippets or paths
+- [X] T019 [P] Property tests for merge idempotence and consistency (e.g. merge same pattern twice ≈ merge once; fromPatterns order independence where applicable) in libs/pattern/tests/Spec/Pattern/PatternGraphProperties.hs
+- [X] T020 [P] Add or update PatternGraph usage docs: construction, merge, fromPatterns, round-trip, toGraphLens in docs/guide/pattern-graph-usage.md and docs/reference/features/pattern-graph.md (create if missing)
+- [X] T021 [P] Add .graph.gram notation reference: restrict to annotation, nodes, relationships, and paths only (no square-bracket pattern notation in file); describe resulting PatternGraph structures using pattern notation (flow: gram → parse → PatternGraph → explained with pattern notation) in docs/reference/graph-gram-notation.md or docs/guide/graph-gram-reference.md
+- [X] T022 Run through specs/033-pattern-graph/quickstart.md examples and fix any broken snippets or paths
 
 ---
 
