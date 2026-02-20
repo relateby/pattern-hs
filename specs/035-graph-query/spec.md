@@ -113,7 +113,7 @@ A developer using the existing `bfs`, `findPath`, or `connectedComponents` funct
 - **FR-009**: The library MUST provide `memoizeIncidentRels` as a `GraphQuery v -> GraphQuery v` transformation that caches incident relationship lookups.
 - **FR-010**: The library MUST provide context query helpers `queryAnnotationsOf`, `queryWalksContaining`, and `queryCoMembers` as derived functions built on `GraphQuery` primitives.
 - **FR-011**: The existing `bfs`, `findPath`, and `connectedComponents` functions on `GraphLens` MUST be retained as backward-compatible wrappers that delegate to the new `Algorithms` module with `undirected` as the default `TraversalWeight`.
-- **FR-012**: `PatternGraph.toGraphLens` MUST be retired; `fromPatternGraph` supersedes it for algorithm access.
+- **FR-012**: `PatternGraph.toGraphLens` MUST be retired; `fromPatternGraph` supersedes it for algorithm access. *Implemented as removal of `toGraphLens` and `toGraphLensWithScope` in this feature (breaking change); migration path is `fromPatternGraph`. See research.md Decision 7.*
 - **FR-013**: All traversal algorithms MUST accept a `TraversalWeight v` parameter so that direction and weight are determined at the call site, not embedded in the graph structure.
 
 ### Key Entities

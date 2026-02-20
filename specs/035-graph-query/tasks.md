@@ -42,7 +42,7 @@
 - [X] T011 Implement `fromGraphLens :: (GraphValue v, Eq v) => GraphLens v -> GraphQuery v` in `libs/pattern/src/Pattern/Graph/GraphQuery.hs` — derive all fields from existing `Pattern.Graph` functions; `queryNodeById`/`queryRelationshipById` use O(n) scans; `queryContainers` scans relationships and walks
 - [X] T012 Implement `fromPatternGraph :: (GraphValue v, Eq v) => PatternGraph extra v -> GraphQuery v` in `libs/pattern/src/Pattern/Graph/GraphQuery.hs` — read directly from `pgNodes`, `pgRelationships`, `pgWalks`, `pgAnnotations` maps; O(log n) lookups for `queryNodeById`/`queryRelationshipById`
 - [X] T013 Export `fromPatternGraph` from `libs/pattern/src/Pattern/PatternGraph.hs` — NOTE: circular import prevents re-export; `fromPatternGraph` is available directly from `Pattern.Graph.GraphQuery`
-- [X] T014 Add deprecation pragmas to `toGraphLens` and `toGraphLensWithScope` in `libs/pattern/src/Pattern/PatternGraph.hs`: `{-# DEPRECATED toGraphLens "Use fromPatternGraph from Pattern.Graph.GraphQuery instead" #-}`
+- [X] T014 Remove `toGraphLens` and `toGraphLensWithScope` from `libs/pattern/src/Pattern/PatternGraph.hs`; migration path is `fromPatternGraph` (from `Pattern.PatternGraph` or `Pattern.Graph.GraphQuery`). *Implementation chose removal over deprecation; see research.md Decision 7 "Implementation deviation".*
 - [X] T015 Write unit tests for `GraphQuery` construction in `libs/pattern/tests/Spec/Pattern/Graph/GraphQuerySpec.hs`: verify all nine fields return correct values for a known `PatternGraph` and a known `GraphLens`
 - [X] T016 Write property test in `libs/pattern/tests/Spec/Pattern/Graph/GraphQuerySpec.hs`: `fromGraphLens` and `fromPatternGraph` on equivalent graphs produce the same `queryNodes`, `queryRelationships`, `querySource`, `queryTarget` results
 - [X] T017 Write unit tests for canonical `TraversalWeight` values in `libs/pattern/tests/Spec/Pattern/Graph/GraphQuerySpec.hs`: verify `undirected` returns 1.0 for both directions; `directed` returns 1.0 forward and infinity backward; `directedReverse` is the inverse
@@ -267,7 +267,7 @@ With multiple developers after Phase 2 is complete:
 
 - `[P]` tasks operate on different files or different functions within a file — coordinate on imports
 - Each user story phase is independently completable and testable via `cabal test pattern-test`
-- `toGraphLens` deprecation (T014) is non-breaking — existing callers get a compiler warning, not an error
+- T014 implemented as removal of `toGraphLens` and `toGraphLensWithScope` (breaking change); callers must migrate to `fromPatternGraph`. See research.md Decision 7.
 - The `memoizeIncidentRels` implementation (T046) should use a pure approach (pre-build a `Map (Id v) [Pattern v]` from `queryNodes`) rather than `IORef` to stay in pure Haskell
 - Constitution requires property-based tests (QuickCheck) for mathematical properties — T016, T036, T042, T051 are the key property tests
 - Commit after each phase checkpoint (constitution: frequent checkpoint commits)

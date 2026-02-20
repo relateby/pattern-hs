@@ -415,17 +415,19 @@ spec = do
 
     describe "queryCoMembers (T058)" $ do
 
-      it "queryCoMembers returns container when it matches" $ do
+      it "returns other elements that share the container (spec.md:73)" $ do
         let pg = fromPatterns canonicalClassifier
               [ node "A", node "B", rel "r" "A" "B" ]
         let gq = fromPatternGraph pg
         case ( [ n | n <- queryNodes gq, nodeId n == "A" ]
+             , [ n | n <- queryNodes gq, nodeId n == "B" ]
              , [ r | r <- queryRelationships gq, identify (value r) == "r" ]
              ) of
-          (nodeA:_, relR:_) -> do
+          (nodeA:_, nodeB:_, relR:_) -> do
             let coMembers = queryCoMembers gq nodeA relR
-            length coMembers `shouldBe` 1
-          _ -> expectationFailure "expected node A and rel r"
+            -- Co-members of nodeA within relationship r are the other elements in r (nodeB)
+            coMembers `shouldBe` [nodeB]
+          _ -> expectationFailure "expected node A, B and rel r"
 
     -- =========================================================================
     -- Representation independence (T073b / SC-007)

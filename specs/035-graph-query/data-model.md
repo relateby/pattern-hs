@@ -7,7 +7,7 @@
 
 ## Overview
 
-This feature introduces three new types (`GraphQuery v`, `TraversalDirection`, `TraversalWeight v`) and two new modules (`Pattern.Graph.GraphQuery`, `Pattern.Graph.Algorithms`). It extends `Pattern.Graph` with `fromGraphLens` and backward-compatible wrappers, and extends `Pattern.PatternGraph` with `fromPatternGraph` while deprecating `toGraphLens`.
+This feature introduces three new types (`GraphQuery v`, `TraversalDirection`, `TraversalWeight v`) and two new modules (`Pattern.Graph.GraphQuery`, `Pattern.Graph.Algorithms`). It extends `Pattern.Graph` with `fromGraphLens` and backward-compatible wrappers, and extends `Pattern.PatternGraph` with `fromPatternGraph`. The functions `toGraphLens` and `toGraphLensWithScope` were removed from `Pattern.PatternGraph`; use `fromPatternGraph` instead (see research.md Decision 7 implementation deviation).
 
 ---
 
@@ -125,7 +125,7 @@ fromPatternGraph :: (GraphValue v, Eq v) => PatternGraph extra v -> GraphQuery v
 
 Constructs a `GraphQuery v` directly from a `PatternGraph extra v` by reading from the typed maps (`pgNodes`, `pgRelationships`, `pgWalks`, `pgAnnotations`). `queryNodeById` and `queryRelationshipById` are O(log n) / O(log r) map lookups. `queryContainers` filters across all four maps.
 
-**Relationship to existing code**: Supersedes `toGraphLens` for algorithm access. `toGraphLens` is deprecated but not removed.
+**Relationship to existing code**: Supersedes `toGraphLens` for algorithm access. `toGraphLens` and `toGraphLensWithScope` were removed in this feature; use `fromPatternGraph` (see research.md Decision 7).
 
 ---
 
@@ -240,7 +240,7 @@ Pattern.Core
             │                            memoizeIncidentRels)
             │       └── Pattern.Graph.Algorithms  (all algorithms + context helpers)
             └── Pattern.PatternGraph    (PatternGraph — existing; fromPatternGraph added;
-                                         toGraphLens deprecated)
+                                         toGraphLens / toGraphLensWithScope removed)
 ```
 
 ---
@@ -261,8 +261,7 @@ Pattern.Core
 ### `Pattern.PatternGraph` (existing)
 
 - Add `fromPatternGraph` to exports.
-- Add `{-# DEPRECATED toGraphLens "Use fromPatternGraph from Pattern.Graph.GraphQuery instead" #-}`.
-- Add `{-# DEPRECATED toGraphLensWithScope "Use fromPatternGraph from Pattern.Graph.GraphQuery instead" #-}`.
+- Remove `toGraphLens` and `toGraphLensWithScope` (replaced by `fromPatternGraph`; see research.md Decision 7 implementation deviation).
 
 ### `pattern.cabal`
 

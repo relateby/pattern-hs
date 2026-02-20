@@ -455,9 +455,15 @@ queryWalksContaining classifier gq p =
 
 -- | Return all co-members of @element@ within @container@.
 --
--- Co-members are the other elements in @container@ that also contain @element@.
+-- Co-members are the other elements that are contained by @container@ (i.e. all
+-- elements that share this container with @element@), excluding @element@ itself.
+-- E.g. for two nodes that share a common walk, calling 'queryCoMembers' with
+-- one node and the walk as container returns the other node(s) in that walk.
 queryCoMembers :: (GraphValue v, Eq (Id v)) => GraphQuery v -> Pattern v -> Pattern v -> [Pattern v]
 queryCoMembers gq element container =
   let containerId = identify (value container)
-      containers  = queryContainers gq element
-  in filter (\c -> identify (value c) == containerId) containers
+      elementId   = identify (value element)
+      inContainer e = any (\c -> identify (value c) == containerId) (queryContainers gq e)
+      candidates     = queryNodes gq ++ queryRelationships gq
+      allInContainer = filter inContainer candidates
+  in filter (\e -> identify (value e) /= elementId) allInContainer

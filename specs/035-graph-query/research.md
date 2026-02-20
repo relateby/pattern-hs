@@ -84,15 +84,17 @@ connectedComponents lens = Algorithms.connectedComponents (fromGraphLens lens) u
 
 ---
 
-## Decision 7: `toGraphLens` Deprecation Strategy
+## Decision 7: `toGraphLens` Retirement Strategy
 
 **Decision**: Mark `toGraphLens` and `toGraphLensWithScope` as deprecated with a Haddock `{-# DEPRECATED #-}` pragma pointing to `fromPatternGraph`. Remove in a future version after callers have migrated.
 
 **Rationale**: Hard removal in this feature would break any callers outside the library. Deprecation gives a migration path. The spec says "retire" — deprecation is the correct Haskell mechanism for a controlled retirement.
 
 **Alternatives considered**:
-- Hard removal now — rejected because it may break downstream callers not visible in this repo.
+- Hard removal now — originally rejected because it may break downstream callers not visible in this repo; in practice there are no downstream users, so the implementation did remove the functions (see implementation note below).
 - No deprecation — rejected because it leaves the API ambiguous about the preferred path.
+
+**Implementation (035-graph-query)**: The implementation **removed** `toGraphLens` and `toGraphLensWithScope` from `Pattern.PatternGraph` entirely. There are no downstream users of this library; the original decision assumed possible external callers, which was a flawed assumption. With no downstream users, deprecation would add noise without benefit. Migration path for any future callers: use `fromPatternGraph` from `Pattern.PatternGraph` (or `Pattern.Graph.GraphQuery`). The breaking change is justified. If downstream users appear in the future, similar retirements should use the deprecation path described in the main decision above.
 
 ---
 
