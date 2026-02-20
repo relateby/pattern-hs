@@ -6,7 +6,8 @@ module Spec.Pattern.PatternGraphProperties where
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Pattern.Core (Pattern(..))
-import Pattern.PatternGraph (MergeResult(..), PatternGraph(..), empty, fromPatterns, merge)
+import Pattern.PatternGraph (PatternGraph(..), empty, fromPatterns, merge)
+import Pattern.Graph.GraphClassifier (canonicalClassifier)
 import Subject.Core (Subject(..), Symbol(..))
 import Test.Hspec
 import qualified Test.QuickCheck as QC
@@ -30,8 +31,8 @@ rel r a b = Pattern (Subject r Set.empty Map.empty) [node a, node b]
 prop_merge_idempotence_node :: TestSymbol -> Bool
 prop_merge_idempotence_node (TestSymbol s) =
   let g0 = empty
-      MergeResult g1 _ = merge (node s) g0
-      MergeResult g2 _ = merge (node s) g1
+      g1 = merge canonicalClassifier (node s) g0
+      g2 = merge canonicalClassifier (node s) g1
   in pgNodes g1 == pgNodes g2
 
 prop_merge_idempotence_relationship :: TestSymbol -> TestSymbol -> TestSymbol -> TestSymbol -> Bool
@@ -39,10 +40,10 @@ prop_merge_idempotence_relationship (TestSymbol r) (TestSymbol a) (TestSymbol b)
   | a == b = True  -- skip invalid rel
   | otherwise =
       let g0 = empty
-          MergeResult g1 _ = merge (node a) g0
-          MergeResult g2 _ = merge (node b) g1
-          MergeResult g3 _ = merge (rel r a b) g2
-          MergeResult g4 _ = merge (rel r a b) g3
+          g1 = merge canonicalClassifier (node a) g0
+          g2 = merge canonicalClassifier (node b) g1
+          g3 = merge canonicalClassifier (rel r a b) g2
+          g4 = merge canonicalClassifier (rel r a b) g3
       in Map.size (pgRelationships g3) == Map.size (pgRelationships g4)
       && Set.fromList (Map.keys (pgRelationships g3)) == Set.fromList (Map.keys (pgRelationships g4))
 
@@ -52,8 +53,8 @@ prop_fromPatterns_order_nodes syms =
   let uniq = nub syms
       limited = take 20 uniq
       pats = map (\(TestSymbol s) -> node s) limited
-      MergeResult g _ = fromPatterns pats
-      MergeResult gRev _ = fromPatterns (reverse pats)
+      g = fromPatterns canonicalClassifier pats
+      gRev = fromPatterns canonicalClassifier (reverse pats)
   in Set.fromList (Map.keys (pgNodes g)) == Set.fromList (Map.keys (pgNodes gRev))
   where
     nub = foldr (\x acc -> if x `elem` acc then acc else x : acc) []

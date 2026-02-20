@@ -54,6 +54,7 @@
 module Pattern.Graph
   ( -- * Graph Lens Type
     GraphLens(..)
+  , mkGraphLens
     -- * Node Operations
   , nodes
   , isNode
@@ -78,9 +79,10 @@ module Pattern.Graph
   ) where
 
 import Pattern.Core (Pattern(..))
+import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..))
 import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
-import Data.Map ()
+import Data.Void (Void, absurd)
 
 -- | A Graph Lens provides an interpretive view of a Pattern as a graph structure.
 -- 
@@ -112,9 +114,42 @@ import Data.Map ()
 data GraphLens v = GraphLens
   { scopePattern :: Pattern v
     -- ^ The Pattern that defines the graph scope
-  , testNode     :: Pattern v -> Bool
-    -- ^ Predicate determining which elements are nodes
+  , classifier   :: GraphClassifier Void v
+    -- ^ Internal classifier built from the user's predicate
   }
+
+-- | Construct a 'GraphLens' using a predicate to identify nodes.
+--
+-- This maintains backward compatibility by automatically constructing
+-- a 'GraphClassifier' where patterns matching the predicate are 'GNode'
+-- and everything else falls back to 'GOther Void' or 'GRelationship' / 'GWalk'
+-- based on structural rules if appropriate.
+mkGraphLens :: Eq v => Pattern v -> (Pattern v -> Bool) -> GraphLens v
+mkGraphLens scope testNodePred =
+  let c = GraphClassifier
+        { classify = \p@(Pattern _ els) ->
+            if testNodePred p then GNode
+            else if length els == 2 && all testNodePred els then GRelationship
+            else if not (null els) && all (\e -> length (elements e) == 2 && all testNodePred (elements e)) els
+                    && isValidWalk testNodePred els
+                 then GWalk
+            else GOther (error "Internal: GOther should not be evaluated in simple Lens")
+        }
+  in GraphLens scope c
+
+-- Helper to check walk validity under a specific node predicate
+isValidWalk :: Eq v => (Pattern v -> Bool) -> [Pattern v] -> Bool
+isValidWalk _ [] = False
+isValidWalk p rels = not (null (foldl step [] rels))
+  where
+    step [] (Pattern _ [a, b]) = if p a && p b then [a, b] else []
+    step active (Pattern _ [a, b]) =
+      if p a && p b then
+        let fromA = if a `elem` active then [b] else []
+            fromB = if b `elem` active then [a] else []
+        in fromA ++ fromB
+      else []
+    step _ _ = []
 
 -- | Extract all nodes from the graph lens.
 --
@@ -129,7 +164,7 @@ data GraphLens v = GraphLens
 -- >>> nodes lens
 -- [[a], [b], [c]]
 nodes :: GraphLens v -> [Pattern v]
-nodes lens@(GraphLens (Pattern _ elems) _) = 
+nodes lens@(GraphLens (Pattern _ elems) _) =
   filter (isNode lens) elems
 
 -- | Determine if a Pattern is a node according to the lens.
@@ -145,7 +180,10 @@ nodes lens@(GraphLens (Pattern _ elems) _) =
 -- >>> isNode lens (pattern "rel" [point "a", point "b"])
 -- False
 isNode :: GraphLens v -> Pattern v -> Bool
-isNode (GraphLens _ testNodePred) p = testNodePred p
+isNode (GraphLens _ c) p =
+  case classify c p of
+    GNode -> True
+    _ -> False
 
 -- * Relationship Operations
 
@@ -165,10 +203,10 @@ isNode (GraphLens _ testNodePred) p = testNodePred p
 -- >>> isRelationship lens rel
 -- True
 isRelationship :: GraphLens v -> Pattern v -> Bool
-isRelationship lens@(GraphLens _ _) p@(Pattern _ els) =
-  not (isNode lens p) &&
-  length els == 2 &&
-  all (isNode lens) els
+isRelationship (GraphLens _ c) p =
+  case classify c p of
+    GRelationship -> True
+    _ -> False
 
 -- | Extract all relationships from the graph lens.
 --
@@ -271,10 +309,10 @@ consecutivelyConnected lens rels =
 -- >>> isWalk lens walk
 -- True
 isWalk :: Eq v => GraphLens v -> Pattern v -> Bool
-isWalk lens@(GraphLens _ _) p@(Pattern _ elems) =
-  not (isNode lens p) &&
-  all (isRelationship lens) elems &&
-  consecutivelyConnected lens elems
+isWalk (GraphLens _ c) p =
+  case classify c p of
+    GWalk -> True
+    _ -> False
 
 -- | Extract all walks from the graph lens.
 --

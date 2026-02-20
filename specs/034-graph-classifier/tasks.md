@@ -13,8 +13,8 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Project initialization and basic structure for the new core classification vocabulary.
 
-- [ ] T001 Create `Pattern.Graph.GraphClassifier` module structure in `libs/pattern/src/Pattern/Graph/GraphClassifier.hs`
-- [ ] T002 [P] Create `GraphClassifierSpec` test module in `libs/pattern/tests/Spec/Pattern/Graph/GraphClassifierSpec.hs`
+- [X] T001 Create `Pattern.Graph.GraphClassifier` module structure in `libs/pattern/src/Pattern/Graph/GraphClassifier.hs`
+- [X] T002 [P] Create `GraphClassifierSpec` test module in `libs/pattern/tests/Spec/Pattern/Graph/GraphClassifierSpec.hs`
 
 ---
 
@@ -23,9 +23,9 @@ description: "Task list template for feature implementation"
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented.
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Define `GraphClass extra` and `GraphClassifier extra v` types in `libs/pattern/src/Pattern/Graph/GraphClassifier.hs`
-- [ ] T004 Implement `classifyByShape` and `canonicalClassifier` in `libs/pattern/src/Pattern/Graph/GraphClassifier.hs`
-- [ ] T005 Add tests for `classifyByShape` in `libs/pattern/tests/Spec/Pattern/Graph/GraphClassifierSpec.hs` (Must verify valid walks chain correctly and invalid shapes like "star patterns" fall back to `GOther`)
+- [X] T003 Define `GraphClass extra` and `GraphClassifier extra v` types in `libs/pattern/src/Pattern/Graph/GraphClassifier.hs`
+- [X] T004 Implement `classifyByShape` and `canonicalClassifier` in `libs/pattern/src/Pattern/Graph/GraphClassifier.hs`
+- [X] T005 Add tests for `classifyByShape` in `libs/pattern/tests/Spec/Pattern/Graph/GraphClassifierSpec.hs` (Must verify valid walks chain correctly and invalid shapes like "star patterns" fall back to `GOther`)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -39,10 +39,10 @@ description: "Task list template for feature implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Update `PatternGraph` data type in `libs/pattern/src/Pattern/PatternGraph.hs` to include `pgOther` map and the `extra` parameter
-- [ ] T007 [US1] Simplify `GraphValue` typeclass in `libs/pattern/src/Pattern/PatternGraph.hs` to only include `identify` (removing `classify`)
-- [ ] T008 [US1] Remove `MergeResult` and update `merge` / `fromPatterns` in `libs/pattern/src/Pattern/PatternGraph.hs` to accept a `GraphClassifier` and return `PatternGraph` directly
-- [ ] T009 [US1] Update tests in `libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs` to use `canonicalClassifier` and verify standard graph construction without data loss
+- [X] T006 [US1] Update `PatternGraph` data type in `libs/pattern/src/Pattern/PatternGraph.hs` to include `pgOther` map and the `extra` parameter
+- [X] T007 [US1] Simplify `GraphValue` typeclass in `libs/pattern/src/Pattern/PatternGraph.hs` to only include `identify` (removing `classify`)
+- [X] T008 [US1] Remove `MergeResult` and update `merge` / `fromPatterns` in `libs/pattern/src/Pattern/PatternGraph.hs` to accept a `GraphClassifier` and return `PatternGraph` directly
+- [X] T009 [US1] Update tests in `libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs` to use `canonicalClassifier` and verify standard graph construction without data loss
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -56,7 +56,7 @@ description: "Task list template for feature implementation"
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Add tests in `libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs` demonstrating a custom classifier mapping patterns to domain-specific structures in `pgOther` preserving the `extra` tag
+- [X] T010 [US2] Add tests in `libs/pattern/tests/Spec/Pattern/PatternGraphSpec.hs` demonstrating a custom classifier mapping patterns to domain-specific structures in `pgOther` preserving the `extra` tag
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently.
 
@@ -70,9 +70,9 @@ description: "Task list template for feature implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Re-derive `GraphLens` in `libs/pattern/src/Pattern/Graph.hs` to be backed by a two-category `GraphClassifier` built from the `testNode` predicate
-- [ ] T012 [US3] Re-implement all `GraphLens` operations (nodes, relationships, walks, neighbors, etc.) in `libs/pattern/src/Pattern/Graph.hs` to delegate to the underlying classifier
-- [ ] T013 [US3] Verify `GraphSpec` in `libs/pattern/tests/Spec/Pattern/GraphSpec.hs` passes unchanged, ensuring full backward compatibility
+- [X] T011 [US3] Re-derive `GraphLens` in `libs/pattern/src/Pattern/Graph.hs` to be backed by a two-category `GraphClassifier` built from the `testNode` predicate
+- [X] T012 [US3] Re-implement all `GraphLens` operations (nodes, relationships, walks, neighbors, etc.) in `libs/pattern/src/Pattern/Graph.hs` to delegate to the underlying classifier
+- [X] T013 [US3] Verify `GraphSpec` in `libs/pattern/tests/Spec/Pattern/GraphSpec.hs` passes unchanged, ensuring full backward compatibility
 
 **Checkpoint**: All user stories should now be independently functional.
 
@@ -82,8 +82,8 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T014 [P] Fix any compiler warnings or hlint issues across modified modules in `libs/pattern/src/`
-- [ ] T015 Verify `quickstart.md` examples compile and run successfully
+- [X] T014 [P] Fix any compiler warnings or hlint issues across modified modules in `libs/pattern/src/`
+- [X] T015 Verify `quickstart.md` examples compile and run successfully
 
 ---
 

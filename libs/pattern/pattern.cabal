@@ -24,6 +24,7 @@ library
         Pattern
         Pattern.Core
         Pattern.Graph
+        Pattern.Graph.GraphClassifier
         Pattern.PatternGraph
         Pattern.Reconcile
 
@@ -47,6 +48,7 @@ test-suite pattern-test
     other-modules:
         Spec.Pattern.CoreSpec
         Spec.Pattern.GraphSpec
+        Spec.Pattern.Graph.GraphClassifierSpec
         Spec.Pattern.PatternGraphProperties
         Spec.Pattern.PatternGraphSpec
         Spec.Pattern.Properties

@@ -55,10 +55,10 @@ let hyperedges = Map.filter (\(domain, _) -> domain == Hyperedge) (pgOther custo
 If you just need an on-demand view from a single node predicate:
 
 ```haskell
-import Pattern.Graph (GraphLens(..))
+import Pattern.Graph (GraphLens(..), mkGraphLens, neighbors)
 
--- Same as before! Internally it creates a two-category GraphClassifier.
-let lens = GraphLens scopePattern isAtomic
+-- Same as before, using mkGraphLens! Internally it creates a two-category GraphClassifier.
+let lens = mkGraphLens scopePattern isAtomic
 
 -- use algorithms
 let nbrs = neighbors lens nodeA
