@@ -3,6 +3,7 @@
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Depends on**: GraphClassifier proposal  
+**Followed by**: GraphTransform proposal → GraphMutation proposal  
 **Relates to**: Feature 23 (GraphLens), Feature 33 (PatternGraph)
 
 ---
@@ -260,6 +261,31 @@ are moved here and re-expressed against `GraphQuery`. The existing `GraphLens` f
 are retained as convenience wrappers that call `fromGraphLens` and supply `undirected`
 as the default `TraversalWeight`, preserving backward compatibility.
 
+### Context query helpers
+
+A small family of derived functions answers common "what is the context of this element?"
+questions. These are built on `GraphQuery` primitives — no new interface fields required.
+They exist to support context-aware graph transformations (see the GraphTransform
+proposal), where a mapping function needs to ask "what annotations apply to this element?"
+or "what walks am I part of?" without precomputing a context record.
+
+```haskell
+-- All annotations attached to a given element
+queryAnnotationsOf :: GraphClassifier extra v -> GraphQuery v
+                   -> Pattern v -> [Pattern v]
+
+-- All walks that contain a given element (directly or via its relationships)
+queryWalksContaining :: GraphClassifier extra v -> GraphQuery v
+                     -> Pattern v -> [Pattern v]
+
+-- All elements sharing a specific container with a given element
+queryCoMembers :: GraphQuery v -> Pattern v -> Pattern v -> [Pattern v]
+```
+
+Each takes a `GraphClassifier` for category filtering and a `GraphQuery` for traversal.
+They are pure derived functions — calling `queryContainers` and filtering by
+`GraphClass`. The caller pays only for what they ask.
+
 ---
 
 ## Composability patterns
@@ -329,19 +355,41 @@ to graph algorithms, and `GraphLens`-specific use cases are covered by construct
 | `Pattern.Graph.GraphQuery` | **New** | Core new type; record of traversal functions including `queryContainers` |
 | `Pattern.Graph.TraversalWeight` | **New** | Traversal policy type; canonical values provided |
 | `Pattern.Graph.Algorithms` | **New** | All graph algorithms; operates on `GraphQuery v` + `TraversalWeight v` |
+| `Pattern.Graph.Algorithms` context helpers | **New** | `queryAnnotationsOf`, `queryWalksContaining`, `queryCoMembers` — derived context queries for graph transformations |
 | `Pattern.Graph` (existing algorithms) | **Retain as wrappers** | `bfs`, `findPath`, `connectedComponents` delegate to `Algorithms` with `undirected` default |
 | `Pattern.Graph.fromGraphLens` | **New** | Constructs `GraphQuery v` from `GraphLens v` |
 | `Pattern.PatternGraph.fromPatternGraph` | **New** | Constructs `GraphQuery v` from `PatternGraph v` directly |
 | `Pattern.PatternGraph.toGraphLens` | **Retire** | Superseded by `fromPatternGraph`; no remaining use cases |
 
+## Implementation notes
+
+### Record-of-functions and GHC inlining
+
+`GraphQuery` is a record of functions. In Haskell, GHC resolves typeclass methods at
+compile time and can aggressively inline and specialize them. Records of functions
+introduce runtime pointer indirection that defeats inlining in tight traversal loops.
+
+For performance-sensitive implementations (particularly `queryIncidentRels`,
+`querySource`, `queryTarget`, and `queryDegree`, which are called in the inner loop of
+most graph algorithms), implementations should apply `{-# INLINE #-}` pragmas to the
+functions stored in the record, and consider `{-# UNPACK #-}` on the record fields
+themselves. The canonical in-memory implementation should be benchmarked against a
+typeclass-based equivalent to verify that the overhead is acceptable before the design
+is considered final for high-throughput use cases.
+
 ---
 
 ## Open questions
 
-1. **`queryAdjacency` for bulk algorithms** — community detection and large-scale
-   centrality would benefit from a bulk adjacency structure. Deferred until performance
-   requirements are established. Could be added as an optional field with a `Maybe`
-   wrapper, or as a separate `GraphQueryBulk` extension record.
+1. **`queryAdjacency` for bulk algorithms** — algorithms like PageRank, Louvain
+   community detection, and DeepWalk are heavily bottlenecked by memory locality and
+   neighbor lookups. Repeated `queryIncidentRels` calls via function pointers will be
+   prohibitively slow for large graphs. This should not be deferred past the first
+   performance-sensitive algorithm implementation. A dedicated `Pattern.Graph.Algorithms.Bulk`
+   module that internally materializes a contiguous, unboxed vector-based adjacency list
+   (e.g. `Data.Vector.Unboxed`) derived from a `GraphQuery` is the recommended approach
+   — the interface remains pure but performance-sensitive algorithms operate at
+   acceptable speeds.
 
 2. **`Pattern.Graph.Algorithms` module granularity** — one module for all algorithms, or
    sub-modules by category (`Algorithms.Path`, `Algorithms.Centrality`, etc.)? Depends
@@ -372,8 +420,20 @@ to graph algorithms, and `GraphLens`-specific use cases are covered by construct
 - **`queryContainers` is a first-class primitive**: upward traversal — "what contains
   this element?" — is the dual of downward decomposition. Required by `GraphMutation`
   for coherent deletion; independently useful for impact analysis and pattern matching.
-- **Bulk adjacency deferred**: noted as a future extension point for performance-sensitive
-  algorithms.
+- **Context query helpers are derived, not primitive**: `queryAnnotationsOf`,
+  `queryWalksContaining`, and `queryCoMembers` answer common "what is the context of
+  this element?" questions by filtering `queryContainers` results. No new interface
+  fields; callers pay only for what they ask. Required by the GraphTransform feature.
+- **Bulk adjacency is a near-term priority**: repeated `queryIncidentRels` calls are
+  insufficient for large-graph iterative algorithms. A `Bulk` module materializing
+  unboxed adjacency structures should be introduced alongside the first
+  performance-sensitive algorithm, not deferred indefinitely.
+- **Record-of-functions performance requires attention**: `{-# INLINE #-}` and
+  `{-# UNPACK #-}` pragmas are needed on hot paths; benchmark against typeclass
+  equivalents before committing to the design for high-throughput use cases.
 - **`toGraphLens` retired**: superseded by `fromPatternGraph`; no remaining use cases.
 - **Backward compatibility preserved**: existing `GraphLens` algorithm functions are
   retained as wrappers over the new `Algorithms` module, defaulting to `undirected`.
+- **Implementation order**: GraphClassifier → GraphQuery → GraphTransform → GraphMutation.
+  `GraphQuery` is a prerequisite for `GraphTransform` (`mapWithContext`, `filterGraph`,
+  context helpers) and for `GraphMutation` (`queryContainers` in deletion).

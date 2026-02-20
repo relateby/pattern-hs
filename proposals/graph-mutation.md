@@ -2,7 +2,7 @@
 
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
-**Depends on**: GraphClassifier proposal, GraphQuery proposal  
+**Depends on**: GraphClassifier proposal, GraphQuery proposal, GraphTransform proposal  
 **Relates to**: Feature 23 (GraphLens), Feature 33 (PatternGraph)
 
 ---
@@ -83,19 +83,28 @@ achieved by the caller consulting `queryContainers` from `GraphQuery` before cal
 
 ```haskell
 data GraphMutation v = GraphMutation
-  { mergeElement  :: ReconciliationPolicy (MergeStrategy v) -> Pattern v
-                  -> PatternGraph v -> PatternGraph v
+  { mergeElement   :: ReconciliationPolicy (MergeStrategy v) -> Pattern v
+                   -> PatternGraph v -> PatternGraph v
 
-  , updateValue   :: Id v -> v -> PatternGraph v
-                  -> Either (GraphMutationError v) (PatternGraph v)
+  , updateValue    :: Id v -> v -> PatternGraph v
+                   -> Either (GraphMutationError v) (PatternGraph v)
 
-  , deleteElement :: Id v -> Substitution v -> PatternGraph v
-                  -> Either (GraphMutationError v) (PatternGraph v)
+  , deleteElement  :: Id v -> Substitution v -> PatternGraph v
+                   -> Either (GraphMutationError v) (PatternGraph v)
+
+  , updateValues   :: [(Id v, v)] -> PatternGraph v
+                   -> ([GraphMutationError v], PatternGraph v)
+
+  , deleteElements :: [Id v] -> Substitution v -> PatternGraph v
+                   -> ([GraphMutationError v], PatternGraph v)
   }
 ```
 
 `mergeElement` is total. `updateValue` and `deleteElement` return `Either`, failing only
-with `ElementNotFound`.
+with `ElementNotFound`. `updateValues` and `deleteElements` are bulk variants that
+accumulate errors rather than short-circuiting — they return all errors encountered
+alongside the best-effort updated graph. This is the correct behavior for ETL pipelines
+where missing elements should be logged and skipped rather than aborting the operation.
 
 ### `Substitution` — deletion policy for containers
 
@@ -240,19 +249,20 @@ The canonical in-memory implementation is provided by the library:
 ```haskell
 canonicalMutation :: (GraphValue v, Eq v)
                   => GraphClassifier extra v
-                  -> GraphQuery v         -- needed for queryContainers in deleteElement
+                  -> GraphView extra v    -- provides queryContainers for deleteElement
                   -> GraphMutation v
 ```
 
-The `GraphClassifier` is required to validate classification on insert and update. The
-`GraphQuery` is required for `deleteElement`'s container traversal. Both are passed
-explicitly — `GraphMutation` has no implicit access to either.
+`GraphView` replaces the earlier `GraphQuery v` parameter — `GraphView` contains the
+`GraphQuery` and provides classified element enumeration, which is needed by the
+mutation layer to know which map an element lives in. `GraphView` must be settled
+(in the GraphTransform proposal) before this constructor is finalized.
 
 For the common case, a convenience constructor takes a `PatternGraph` and derives both:
 
 ```haskell
 defaultMutation :: (GraphValue v, Eq v) => PatternGraph v -> GraphMutation v
-defaultMutation pg = canonicalMutation canonicalClassifier (fromPatternGraph pg)
+defaultMutation pg = canonicalMutation canonicalClassifier (fromPatternGraph canonicalClassifier pg)
 ```
 
 ---
@@ -396,7 +406,7 @@ Similarly retained as a convenience wrapper over `mergeElement` with `LastWriteW
 
 | Component | Action | Notes |
 |---|---|---|
-| `Pattern.Graph.GraphMutation` | **New** | Three-function record: `mergeElement`, `updateValue`, `deleteElement` |
+| `Pattern.Graph.GraphMutation` | **New** | Five-function record including bulk variants |
 | `Pattern.Graph.GraphMutationError` | **New** | Single-case error type: `ElementNotFound` |
 | `Pattern.Graph.Substitution` | **New** | `NoSubstitution`, `SubstituteWith`, `SubstituteBy :: Pattern v -> [Pattern v]`, `CascadeDelete` |
 | `Pattern.Graph.dissolve` | **New** | Combinator: `SubstituteBy (const [])` |
@@ -411,20 +421,28 @@ Similarly retained as a convenience wrapper over `mergeElement` with `LastWriteW
 
 ## Open questions
 
-1. **`GraphMutation` module location** — `Pattern.Graph` alongside `GraphQuery`, or
-   `Pattern.PatternGraph` since it operates on `PatternGraph v`? The former is more
-   consistent with the rest of the design; the latter more directly expresses the
-   dependency.
+1. **`DetachDelete` semantics for walks** — removing a relationship from a walk's element
+   list may leave the walk structurally invalid (broken chain). Should `DetachDelete` on
+   a relationship that is part of a walk dissolve the walk entirely, split it into two
+   shorter walks, or leave the gap and route it to `pgOther`? Requires a decision about
+   walk identity after structural modification.
 
 ---
 
 ## Summary of decisions
 
+- **`GraphMutation` lives in `Pattern.Graph`**: alongside `GraphQuery`, `GraphView`, and
+  `GraphClassifier`. These are the core graph capability types; keeping them co-located
+  maintains cohesive capability namespaces and is consistent with the rest of the design.
 - **`GraphMutation` is a record-of-functions**: portable, composable, future-compatible
   with database backends. Consistent with `GraphClassifier` and `GraphQuery` design.
-- **Three functions, one error case**: `mergeElement` is total; `updateValue` and
-  `deleteElement` return `Either (GraphMutationError v)` with a single case —
-  `ElementNotFound`. There is nothing else to fail on.
+- **Five functions, one error case**: `mergeElement` is total; `updateValue` and
+  `deleteElement` return `Either` failing only with `ElementNotFound`; `updateValues`
+  and `deleteElements` accumulate errors for bulk operations.
+- **Bulk variants accumulate errors**: `updateValues` and `deleteElements` return
+  `([GraphMutationError v], PatternGraph v)` — all errors collected, best-effort graph
+  returned. Short-circuiting on first missing element is the wrong behavior for ETL
+  pipelines.
 - **`mergeElement` is the single insertion entry point**: classification, recursive
   decomposition, and reconciliation policy together handle all cases. Nothing to reject.
 - **Deletion takes a `Substitution v`**: containers are never left in an undefined state.
@@ -436,15 +454,12 @@ Similarly retained as a convenience wrapper over `mergeElement` with `LastWriteW
   unifies all container outcomes in one constructor.
 - **Tools not solutions**: the library provides `partitionChains` as a structural
   building block and `dissolve`/`reconnect` as named idioms. Fragment identity generation
-  is always the caller's responsibility — when splitting produces meaningful fragments,
-  the caller names them deliberately. No `setId` on `GraphValue`; no auto-generated
-  fragment identities.
+  is always the caller's responsibility.
 - **Arity drop and re-classification via re-merge**: removing an element from a container
-  and re-merging it produces a valid, re-classified result. A broken walk goes to
-  `pgOther`; a relationship losing an endpoint becomes an annotation. The graph is never
-  incoherent after deletion.
+  and re-merging it produces a valid, re-classified result. The graph is never incoherent
+  after deletion.
 - **Value updates do not affect classification**: `updateValue` is a pure value swap.
-  Classification depends on `elements`, not `value`. `ClassShift` is not needed.
+  Classification depends on `elements`, not `value`.
 - **`queryContainers` is the foundation of deletion**: all container-handling logic is
   expressed in terms of the `GraphQuery` primitive.
 - **Structural updates are delete-then-merge**: keeps `GraphMutation` small and intent
@@ -454,3 +469,7 @@ Similarly retained as a convenience wrapper over `mergeElement` with `LastWriteW
 - **Database integration is deferred**: the record-of-functions design accommodates it
   without change. Out of scope for this proposal.
 - **Normalization is out of scope**: as established in the GraphClassifier proposal.
+- **Implementation order**: GraphClassifier → GraphQuery → GraphTransform → GraphMutation.
+  `GraphMutation` depends on `GraphView` (from GraphTransform) for its construction
+  path, and on `Substitution` (defined in shared types during GraphTransform) for
+  deletion. `GraphMutation` is the final foundational feature.

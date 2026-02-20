@@ -51,9 +51,11 @@
 --
 -- See @design/graph-lens.md@ and @specs/023-graph-lens/quickstart.md@ for
 -- comprehensive examples and usage patterns.
+{-# LANGUAGE TypeFamilies #-}
 module Pattern.Graph
   ( -- * Graph Lens Type
     GraphLens(..)
+  , mkGraphLens
     -- * Node Operations
   , nodes
   , isNode
@@ -80,7 +82,8 @@ module Pattern.Graph
 import Pattern.Core (Pattern(..))
 import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
-import Data.Map ()
+
+import Pattern.Graph.GraphClassifier (GraphValue(..))
 
 -- | A Graph Lens provides an interpretive view of a Pattern as a graph structure.
 -- 
@@ -116,6 +119,26 @@ data GraphLens v = GraphLens
     -- ^ Predicate determining which elements are nodes
   }
 
+-- | Construct a 'GraphLens' using a predicate to identify nodes.
+--
+-- This encapsulates the context for interpreting graph structure.
+mkGraphLens :: Pattern v -> (Pattern v -> Bool) -> GraphLens v
+mkGraphLens = GraphLens
+
+-- Helper to check walk validity under a specific node predicate
+isValidWalk :: GraphValue v => (Pattern v -> Bool) -> [Pattern v] -> Bool
+isValidWalk _ [] = False
+isValidWalk p rels = not (null (foldl step [] rels))
+  where
+    step [] (Pattern _ [a, b]) = if p a && p b then [a, b] else []
+    step active (Pattern _ [a, b]) =
+      if p a && p b then
+        let fromA = if any (\x -> identify (value a) == identify (value x)) active then [b] else []
+            fromB = if any (\x -> identify (value b) == identify (value x)) active then [a] else []
+        in fromA ++ fromB
+      else []
+    step _ _ = []
+
 -- | Extract all nodes from the graph lens.
 --
 -- Nodes are direct elements of scopePattern that satisfy the testNode predicate.
@@ -129,7 +152,7 @@ data GraphLens v = GraphLens
 -- >>> nodes lens
 -- [[a], [b], [c]]
 nodes :: GraphLens v -> [Pattern v]
-nodes lens@(GraphLens (Pattern _ elems) _) = 
+nodes lens@(GraphLens (Pattern _ elems) _) =
   filter (isNode lens) elems
 
 -- | Determine if a Pattern is a node according to the lens.
@@ -145,7 +168,7 @@ nodes lens@(GraphLens (Pattern _ elems) _) =
 -- >>> isNode lens (pattern "rel" [point "a", point "b"])
 -- False
 isNode :: GraphLens v -> Pattern v -> Bool
-isNode (GraphLens _ testNodePred) p = testNodePred p
+isNode (GraphLens _ test) p = test p
 
 -- * Relationship Operations
 
@@ -165,10 +188,8 @@ isNode (GraphLens _ testNodePred) p = testNodePred p
 -- >>> isRelationship lens rel
 -- True
 isRelationship :: GraphLens v -> Pattern v -> Bool
-isRelationship lens@(GraphLens _ _) p@(Pattern _ els) =
-  not (isNode lens p) &&
-  length els == 2 &&
-  all (isNode lens) els
+isRelationship lens@(GraphLens _ test) p@(Pattern _ els) =
+  not (test p) && length els == 2 && all test els
 
 -- | Extract all relationships from the graph lens.
 --
@@ -243,14 +264,14 @@ reverseRel p = p  -- Return unchanged if not a 2-element pattern
 --
 -- == Internal Function
 -- This is an internal helper function used by isWalk.
-consecutivelyConnected :: Eq v => GraphLens v -> [Pattern v] -> Bool
+consecutivelyConnected :: GraphValue v => GraphLens v -> [Pattern v] -> Bool
 consecutivelyConnected lens rels =
   case rels of
     [] -> True
     [_] -> True
     (r1:r2:rest) ->
       case (target lens r1, source lens r2) of
-        (Just t, Just s) -> t == s && consecutivelyConnected lens (r2:rest)
+        (Just t, Just s) -> identify (value t) == identify (value s) && consecutivelyConnected lens (r2:rest)
         _ -> False
 
 -- | Determine if a Pattern is a walk according to the lens.
@@ -270,11 +291,11 @@ consecutivelyConnected lens rels =
 -- >>> let walk = pattern "path" [rel1, rel2, rel3]
 -- >>> isWalk lens walk
 -- True
-isWalk :: Eq v => GraphLens v -> Pattern v -> Bool
-isWalk lens@(GraphLens _ _) p@(Pattern _ elems) =
-  not (isNode lens p) &&
-  all (isRelationship lens) elems &&
-  consecutivelyConnected lens elems
+isWalk :: GraphValue v => GraphLens v -> Pattern v -> Bool
+isWalk lens@(GraphLens _ test) p@(Pattern _ els) =
+  not (test p) && not (null els)
+  && all (\e -> length (elements e) == 2 && all test (elements e)) els
+  && isValidWalk test els
 
 -- | Extract all walks from the graph lens.
 --
@@ -289,7 +310,7 @@ isWalk lens@(GraphLens _ _) p@(Pattern _ elems) =
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> walks lens
 -- [[path | [rel1], [rel2], [rel3]]]
-walks :: Eq v => GraphLens v -> [Pattern v]
+walks :: GraphValue v => GraphLens v -> [Pattern v]
 walks lens@(GraphLens (Pattern _ elems) _) =
   filter (isWalk lens) elems
 
@@ -305,7 +326,7 @@ walks lens@(GraphLens (Pattern _ elems) _) =
 -- >>> let walk = pattern "path" [rel1, rel2]
 -- >>> walkNodes lens walk
 -- [pattern "A", pattern "B", pattern "C"]
-walkNodes :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
+walkNodes :: GraphValue v => GraphLens v -> Pattern v -> [Pattern v]
 walkNodes lens p@(Pattern _ rels)
   | isWalk lens p = case rels of
       [] -> []
@@ -329,13 +350,14 @@ walkNodes lens p@(Pattern _ rels)
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> neighbors lens (point "Alice")
 -- [point "Bob", pattern "Charlie"]
-neighbors :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
+neighbors :: GraphValue v => GraphLens v -> Pattern v -> [Pattern v]
 neighbors lens node =
   let rels = relationships lens
-      connectedNodes = concatMap (\r -> 
+      nodeId = identify (value node)
+      connectedNodes = concatMap (\r ->
         case (source lens r, target lens r) of
-          (Just s, Just t) | s == node -> [t]
-                           | t == node -> [s]
+          (Just s, Just t) | identify (value s) == nodeId -> [t]
+                           | identify (value t) == nodeId -> [s]
           _ -> []
         ) rels
   in connectedNodes
@@ -352,12 +374,13 @@ neighbors lens node =
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> incidentRels lens (point "Alice")
 -- [[knows | [Alice], [Bob]], [likes | [Charlie], [Alice]]]
-incidentRels :: Eq v => GraphLens v -> Pattern v -> [Pattern v]
+incidentRels :: GraphValue v => GraphLens v -> Pattern v -> [Pattern v]
 incidentRels lens node =
-  filter (\r ->
+  let nodeId = identify (value node)
+  in filter (\r ->
     case (source lens r, target lens r) of
-      (Just s, _) | s == node -> True
-      (_, Just t) | t == node -> True
+      (Just s, _) | identify (value s) == nodeId -> True
+      (_, Just t) | identify (value t) == nodeId -> True
       _ -> False
     ) (relationships lens)
 
@@ -374,7 +397,7 @@ incidentRels lens node =
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> degree lens (point "Alice")
 -- 3
-degree :: Eq v => GraphLens v -> Pattern v -> Int
+degree :: GraphValue v => GraphLens v -> Pattern v -> Int
 degree lens node = length (incidentRels lens node)
 
 -- * Graph Analysis Operations
@@ -393,17 +416,17 @@ degree lens node = length (incidentRels lens node)
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> connectedComponents lens
 -- [[pattern "A", pattern "B", pattern "C"], [pattern "D", pattern "E"]]
-connectedComponents :: Ord v => GraphLens v -> [[Pattern v]]
+connectedComponents :: GraphValue v => GraphLens v -> [[Pattern v]]
 connectedComponents lens = findComponents lens (nodes lens) Set.empty []
 
-findComponents :: Ord v => GraphLens v -> [Pattern v] -> Set.Set (Pattern v) -> [[Pattern v]] -> [[Pattern v]]
+findComponents :: GraphValue v => GraphLens v -> [Pattern v] -> Set.Set (Id v) -> [[Pattern v]] -> [[Pattern v]]
 findComponents _ [] _ acc = reverse acc
 findComponents lens (n:ns) visited acc =
-  if Set.member n visited
+  if Set.member (identify (value n)) visited
   then findComponents lens ns visited acc
   else
     let component = bfs lens n
-        newVisited = Set.union visited (Set.fromList component)
+        newVisited = Set.union visited (Set.fromList (map (identify . value) component))
         newAcc = component : acc
     in findComponents lens ns newVisited newAcc
 
@@ -419,18 +442,18 @@ findComponents lens (n:ns) visited acc =
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> bfs lens (point "Alice")
 -- [point "Alice", point "Bob", pattern "Charlie"]
-bfs :: Ord v => GraphLens v -> Pattern v -> [Pattern v]
+bfs :: GraphValue v => GraphLens v -> Pattern v -> [Pattern v]
 bfs lens start = bfsHelper lens Set.empty [start] []
 
-bfsHelper :: Ord v => GraphLens v -> Set.Set (Pattern v) -> [Pattern v] -> [Pattern v] -> [Pattern v]
+bfsHelper :: GraphValue v => GraphLens v -> Set.Set (Id v) -> [Pattern v] -> [Pattern v] -> [Pattern v]
 bfsHelper _ _ [] acc = reverse acc
 bfsHelper lens visited (n:queue) acc
-  | Set.member n visited = bfsHelper lens visited queue acc
+  | Set.member (identify (value n)) visited = bfsHelper lens visited queue acc
   | otherwise =
-      let newVisited = Set.insert n visited
+      let newVisited = Set.insert (identify (value n)) visited
           newAcc = n : acc
           nodeNeighbors = Pattern.Graph.neighbors lens n
-          newQueue = queue ++ filter (not . (`Set.member` newVisited)) nodeNeighbors
+          newQueue = queue ++ filter (\nb -> not (Set.member (identify (value nb)) newVisited)) nodeNeighbors
       in bfsHelper lens newVisited newQueue newAcc
 
 -- | Find a path between two nodes if one exists.
@@ -446,21 +469,21 @@ bfsHelper lens visited (n:queue) acc
 -- >>> let lens = GraphLens pattern isAtomic
 -- >>> findPath lens (point "Alice") (pattern "Charlie")
 -- Just [point "Alice", point "Bob", pattern "Charlie"]
-findPath :: Ord v => GraphLens v -> Pattern v -> Pattern v -> Maybe [Pattern v]
+findPath :: GraphValue v => GraphLens v -> Pattern v -> Pattern v -> Maybe [Pattern v]
 findPath lens start end
-  | start == end = Just [start]
+  | identify (value start) == identify (value end) = Just [start]
   | otherwise = findPathHelper lens Set.empty [(start, [start])] end
 
-findPathHelper :: Ord v => GraphLens v -> Set.Set (Pattern v) -> [(Pattern v, [Pattern v])] -> Pattern v -> Maybe [Pattern v]
+findPathHelper :: GraphValue v => GraphLens v -> Set.Set (Id v) -> [(Pattern v, [Pattern v])] -> Pattern v -> Maybe [Pattern v]
 findPathHelper _ _ [] _ = Nothing
 findPathHelper lens visited ((n, path):queue) targetNode
-  | n == targetNode = Just (reverse path)
-  | Set.member n visited = findPathHelper lens visited queue targetNode
+  | identify (value n) == identify (value targetNode) = Just (reverse path)
+  | Set.member (identify (value n)) visited = findPathHelper lens visited queue targetNode
   | otherwise =
-      let newVisited = Set.insert n visited
+      let newVisited = Set.insert (identify (value n)) visited
           nodeNeighbors = Pattern.Graph.neighbors lens n
           newPaths = map (\neighbor -> (neighbor, neighbor:path)) nodeNeighbors
-          unvisitedPaths = filter (\(neighbor, _) -> not (Set.member neighbor newVisited)) newPaths
+          unvisitedPaths = filter (\(neighbor, _) -> not (Set.member (identify (value neighbor)) newVisited)) newPaths
           newQueue = queue ++ unvisitedPaths
       in findPathHelper lens newVisited newQueue targetNode
 

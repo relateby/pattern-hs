@@ -36,6 +36,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - N/A (in-memory CST) (032-gram-annotation-syntax)
 - Haskell (GHC 9.10.3 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern) (033-pattern-graph)
 - In-memory only (Map keyed by Id v); gram files for round-trip via libs/gram parse/serialize (033-pattern-graph)
+- Haskell (GHC 9.10.3) + `pattern-hs` ecosystem (`Pattern.Core`, `Subject.Core`) (034-graph-classifier)
+- In-memory `Map` via `PatternGraph` (034-graph-classifier)
 
 - (001-pattern-data-structure)
 
@@ -55,9 +57,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 034-graph-classifier: Added Haskell (GHC 9.10.3) + `pattern-hs` ecosystem (`Pattern.Core`, `Subject.Core`)
 - 033-pattern-graph: Added Haskell (GHC 9.10.3 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern)
 - 032-gram-annotation-syntax: Added Haskell (GHC 9.10.3) + megaparsec (parsing), hspec (testing)
-- 030-separate-container-content-parsing: Added Haskell 2010 (GHC 9.4+) + `megaparsec`, `containers`, `pattern-core`, `subject`
 
 
 <!-- MANUAL ADDITIONS START -->
