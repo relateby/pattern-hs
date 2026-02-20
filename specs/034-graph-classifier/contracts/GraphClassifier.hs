@@ -7,7 +7,6 @@ module Pattern.Graph.GraphClassifier
 
 import Pattern.Core (Pattern)
 import Subject.Core (Subject)
-import Data.Void (Void)
 
 -- | Shared classification vocabulary
 data GraphClass extra
@@ -24,7 +23,7 @@ data GraphClassifier extra v = GraphClassifier
   }
 
 -- | The canonical arity-based classifier
-canonicalClassifier :: GraphClassifier Void Subject
+canonicalClassifier :: GraphClassifier () Subject
 canonicalClassifier = undefined
 
 -- | Exposed pure function for arity classification
@@ -32,5 +31,5 @@ canonicalClassifier = undefined
 -- a contiguous chain where consecutive relationships share at least one node
 -- (ignoring relationship direction). Structurally invalid chains (e.g. "star patterns")
 -- must be rejected (falling back to `GOther`).
-classifyByShape :: Pattern Subject -> GraphClass Void
+classifyByShape :: Pattern Subject -> GraphClass ()
 classifyByShape = undefined

@@ -361,14 +361,35 @@ to graph algorithms, and `GraphLens`-specific use cases are covered by construct
 | `Pattern.PatternGraph.fromPatternGraph` | **New** | Constructs `GraphQuery v` from `PatternGraph v` directly |
 | `Pattern.PatternGraph.toGraphLens` | **Retire** | Superseded by `fromPatternGraph`; no remaining use cases |
 
+## Implementation notes
+
+### Record-of-functions and GHC inlining
+
+`GraphQuery` is a record of functions. In Haskell, GHC resolves typeclass methods at
+compile time and can aggressively inline and specialize them. Records of functions
+introduce runtime pointer indirection that defeats inlining in tight traversal loops.
+
+For performance-sensitive implementations (particularly `queryIncidentRels`,
+`querySource`, `queryTarget`, and `queryDegree`, which are called in the inner loop of
+most graph algorithms), implementations should apply `{-# INLINE #-}` pragmas to the
+functions stored in the record, and consider `{-# UNPACK #-}` on the record fields
+themselves. The canonical in-memory implementation should be benchmarked against a
+typeclass-based equivalent to verify that the overhead is acceptable before the design
+is considered final for high-throughput use cases.
+
 ---
 
 ## Open questions
 
-1. **`queryAdjacency` for bulk algorithms** — community detection and large-scale
-   centrality would benefit from a bulk adjacency structure. Deferred until performance
-   requirements are established. Could be added as an optional field with a `Maybe`
-   wrapper, or as a separate `GraphQueryBulk` extension record.
+1. **`queryAdjacency` for bulk algorithms** — algorithms like PageRank, Louvain
+   community detection, and DeepWalk are heavily bottlenecked by memory locality and
+   neighbor lookups. Repeated `queryIncidentRels` calls via function pointers will be
+   prohibitively slow for large graphs. This should not be deferred past the first
+   performance-sensitive algorithm implementation. A dedicated `Pattern.Graph.Algorithms.Bulk`
+   module that internally materializes a contiguous, unboxed vector-based adjacency list
+   (e.g. `Data.Vector.Unboxed`) derived from a `GraphQuery` is the recommended approach
+   — the interface remains pure but performance-sensitive algorithms operate at
+   acceptable speeds.
 
 2. **`Pattern.Graph.Algorithms` module granularity** — one module for all algorithms, or
    sub-modules by category (`Algorithms.Path`, `Algorithms.Centrality`, etc.)? Depends
@@ -403,8 +424,13 @@ to graph algorithms, and `GraphLens`-specific use cases are covered by construct
   `queryWalksContaining`, and `queryCoMembers` answer common "what is the context of
   this element?" questions by filtering `queryContainers` results. No new interface
   fields; callers pay only for what they ask. Required by the GraphTransform feature.
-- **Bulk adjacency deferred**: noted as a future extension point for performance-sensitive
-  algorithms.
+- **Bulk adjacency is a near-term priority**: repeated `queryIncidentRels` calls are
+  insufficient for large-graph iterative algorithms. A `Bulk` module materializing
+  unboxed adjacency structures should be introduced alongside the first
+  performance-sensitive algorithm, not deferred indefinitely.
+- **Record-of-functions performance requires attention**: `{-# INLINE #-}` and
+  `{-# UNPACK #-}` pragmas are needed on hot paths; benchmark against typeclass
+  equivalents before committing to the design for high-throughput use cases.
 - **`toGraphLens` retired**: superseded by `fromPatternGraph`; no remaining use cases.
 - **Backward compatibility preserved**: existing `GraphLens` algorithm functions are
   retained as wrappers over the new `Algorithms` module, defaulting to `undirected`.

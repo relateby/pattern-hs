@@ -1,7 +1,8 @@
 -- | PatternGraph: container for nodes, relationships, walks, and annotations
 -- backed by Pattern v, with merge-on-insert semantics and conversion to GraphLens.
 --
--- Unrecognized patterns are never stored; they are returned in 'MergeResult.unrecognized'.
+-- Unrecognized patterns are routed to 'pgOther' by the 'GraphClassifier'.
+-- Patterns that fail reconciliation are preserved in 'pgConflicts'.
 -- See specs/033-pattern-graph/ for design and data model.
 --
 -- Round-trip with gram: parse (e.g. 'Gram.Parse.fromGram') → 'fromPatterns' → modify
@@ -18,7 +19,6 @@ module Pattern.PatternGraph
     PatternGraph(..)
 
     -- * Classification
-  , PatternClass(..)
   , GraphValue(..)
 
     -- * Merge and construction
@@ -27,9 +27,6 @@ module Pattern.PatternGraph
   , fromPatterns
   , fromPatternsWithPolicy
   , empty
-
-    -- * Result type for unrecognized patterns
-  , MergeResult(..)
 
     -- * Conversion to GraphLens
   , toGraphLens
@@ -58,34 +55,17 @@ data PatternGraph extra v = PatternGraph
   , pgWalks         :: Map (Id v) (Pattern v)
   , pgAnnotations   :: Map (Id v) (Pattern v)
   , pgOther         :: Map (Id v) (extra, Pattern v)
+  , pgConflicts     :: Map (Id v) [Pattern v]
   }
 
 deriving instance (Eq (Id v), Eq v, Eq extra) => Eq (PatternGraph extra v)
 deriving instance (Show (Id v), Show v, Show extra) => Show (PatternGraph extra v)
-
--- | Classification of a pattern for dispatch into PatternGraph categories.
-data PatternClass
-  = Node
-  | Annotation
-  | Relationship
-  | Walk
-  | Unrecognized
-  deriving (Eq, Show)
 
 -- | Typeclass providing identity and classification for the value type @v@.
 -- Used to key maps and to classify patterns as Node/Annotation/Relationship/Walk/Unrecognized.
 class Ord (Id v) => GraphValue v where
   type Id v
   identify :: v -> Id v
-
--- | Result of a merge or batch load: updated graph.
--- (Any unrecognized patterns are stored in pgOther based on the GraphClassifier).
-data MergeResult extra v = MergeResult
-  { mergedGraph :: PatternGraph extra v
-  }
-
-deriving instance (Eq (Id v), Eq v, Eq extra) => Eq (MergeResult extra v)
-deriving instance (Show (Id v), Show v, Show extra) => Show (MergeResult extra v)
 
 -- ============================================================================
 -- GraphValue Subject
@@ -101,7 +81,7 @@ instance GraphValue Subject where
 
 -- | Empty graph (all five maps empty).
 empty :: GraphValue v => PatternGraph extra v
-empty = PatternGraph Map.empty Map.empty Map.empty Map.empty Map.empty
+empty = PatternGraph Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
 
 -- | Merge a single pattern into the graph. Uses LastWriteWins for duplicate identities.
 merge
@@ -145,7 +125,7 @@ insertNode policy p g =
     Nothing -> g { pgNodes = Map.insert i p (pgNodes g) }
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> g -- ignore on conflict? actually let's just keep g
+        Left _ -> g { pgConflicts = Map.insertWith (++) i [p] (pgConflicts g) }
         Right merged -> g { pgNodes = Map.insert i merged (pgNodes g) }
 
 insertRelationship
@@ -167,7 +147,7 @@ insertRelationship classifier policy p g =
     Nothing -> g1 { pgRelationships = Map.insert i p (pgRelationships g1) }
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> g1
+        Left _ -> g1 { pgConflicts = Map.insertWith (++) i [p] (pgConflicts g1) }
         Right mergedRel -> g1 { pgRelationships = Map.insert i mergedRel (pgRelationships g1) }
 
 insertWalk
@@ -184,7 +164,7 @@ insertWalk classifier policy p g =
     Nothing -> g1 { pgWalks = Map.insert i p (pgWalks g1) }
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> g1
+        Left _ -> g1 { pgConflicts = Map.insertWith (++) i [p] (pgConflicts g1) }
         Right walkPat -> g1 { pgWalks = Map.insert i walkPat (pgWalks g1) }
 
 insertAnnotation
@@ -203,7 +183,7 @@ insertAnnotation classifier policy p g =
     Nothing -> g1 { pgAnnotations = Map.insert i p (pgAnnotations g1) }
     Just existing ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> g1
+        Left _ -> g1 { pgConflicts = Map.insertWith (++) i [p] (pgConflicts g1) }
         Right mergedP -> g1 { pgAnnotations = Map.insert i mergedP (pgAnnotations g1) }
 
 insertOther
@@ -219,7 +199,7 @@ insertOther policy extra p g =
     Nothing -> g { pgOther = Map.insert i (extra, p) (pgOther g) }
     Just (_, existing) ->
       case Reconcile.reconcile policy (twoOccurrences existing p) of
-        Left _ -> g
+        Left _ -> g { pgConflicts = Map.insertWith (++) i [p] (pgConflicts g) }
         Right mergedP -> g { pgOther = Map.insert i (extra, mergedP) (pgOther g) }
 
 -- ============================================================================

@@ -301,14 +301,18 @@ belief propagation, and community detection all follow this pattern.
 or caller-supplied ordering. The fixpoint variant:
 
 ```haskell
-paraGraphFixed :: Eq r
-               => (GraphQuery v -> Pattern v -> [r] -> r)
-               -> r                   -- initial value for all elements
+paraGraphFixed :: (r -> r -> Bool)         -- convergence predicate: True when stable
+               -> (GraphQuery v -> Pattern v -> [r] -> r)
+               -> r                         -- initial value for all elements
                -> GraphView extra v
                -> Map (Id v) r
 ```
 
-Iterates until the result map is stable. The `Eq r` constraint detects convergence.
+Iterates until the convergence predicate returns `True` for all elements between
+successive iterations. A user-supplied predicate rather than `Eq r` is required because
+floating-point values — the common case for centrality and propagation algorithms —
+rarely converge to strict equality. Callers supply `(==)` for integral types and
+`\old new -> abs (old - new) < epsilon` for floating-point types.
 
 `paraGraph` belongs here rather than in `Pattern.Graph.Algorithms` because it operates
 on `GraphView` (the full classified graph) rather than just `GraphQuery` (traversal
@@ -432,12 +436,28 @@ Suggested internal ordering within this feature:
 
 ---
 
+## Implementation notes
+
+### Record-of-functions and GHC inlining
+
+The transformation functions in `GraphTransform` close over `GraphClassifier` and
+`GraphQuery` values. As noted in the `GraphQuery` proposal, GHC cannot inline through
+record field function pointers by default. For `mapGraph`, `filterGraph`, and
+`mapWithContext` — which traverse every element in the graph — the function arguments
+should be annotated with `{-# INLINE #-}` in the implementation to allow the compiler
+to specialize and eliminate closure overhead. Performance should be benchmarked against
+a typeclass-based equivalent for large graphs.
+
+---
+
 ## Open questions
 
-1. **`mapWithContext` snapshot semantics** — the proposal specifies snapshot semantics
-   (mapping function sees pre-transformation graph). An incremental model where each
-   transformation sees previous results enables propagation patterns (e.g. label
-   spreading) but is harder to reason about. Worth deciding before implementation.
+1. **`paraGraph` processing order** — for general graphs (with cycles), fixpoint
+   iteration is the principled approach and is implemented via `paraGraphFixed` with a
+   user-supplied convergence predicate. The caller-supplied ordering variant of
+   `paraGraph` (for DAGs) is simpler but puts the burden on the user to supply a valid
+   topological order. Both variants are included; the recommended default for cyclic
+   graphs is `paraGraphFixed`.
 
 2. **`filterGraph` and walk coherence** — filtering out a relationship that is part of
    a walk leaves the walk with a gap. The `Substitution` parameter handles this, but
@@ -445,36 +465,31 @@ Suggested internal ordering within this feature:
    have a smarter default, or is explicit `Substitution` sufficient? Recommend explicit
    for now.
 
-3. **`paraGraph` processing order** — for general graphs (with cycles), fixpoint
-   iteration is the principled approach but requires `Eq r` and a convergence guarantee.
-   A caller-supplied ordering is simpler but puts the burden on the user. Worth deciding
-   the default strategy before implementation; both variants (`paraGraph` and
-   `paraGraphFixed`) are included to cover the two cases.
-
 ---
 
 ## Summary of decisions
 
 - **`GraphView` is the universal graph-like interface**: any graph representation
-  produces a `GraphView`; any pipeline starts with one. `GraphLens`, `PatternGraph`,
-  and external sources (CSV, JSON, databases) all enter the pipeline via `GraphView`.
+  produces a `GraphView`; any pipeline starts with one.
 - **`materialize` is the explicit boundary**: transformations compose lazily over
-  `GraphView`; concrete `PatternGraph` storage is produced on demand. The pipeline
-  is a sequence of `GraphView → GraphView` functions terminated by `materialize`.
-- **`GraphView` belongs in `Pattern.Graph`**: it is the abstraction that unifies
-  `GraphLens` and `GraphQuery`, not a transform-specific type.
+  `GraphView`; concrete `PatternGraph` storage is produced on demand.
+- **`GraphView` belongs in `Pattern.Graph`**: alongside `GraphLens`, `GraphQuery`, and
+  `GraphMutation` — the core graph capability types.
 - **Plain functions, not a record-of-functions**: graph transformations are operations
-  over `GraphView`, not a capability interface. They don't vary by backing representation.
+  over `GraphView`, not a capability interface.
 - **`unfold` belongs in `Pattern.Core`**: it is the categorical dual to `para`.
   `unfoldGraph` wraps it for graph construction.
 - **All transformation operations work over `GraphView`**: `mapGraph`, `filterGraph`,
-  `foldGraph`, `mapWithContext`, `paraGraph` all take and return `GraphView`. Write
-  operations (`materialize`, `unfoldGraph`) return `PatternGraph`.
+  `foldGraph`, `mapWithContext`, `paraGraph` all take and return `GraphView`.
 - **`paraGraph` is the Pregel foundation**: structure-and-topology-aware folding enables
-  iterative message-passing algorithms. `paraGraphFixed` handles cyclic graphs via
-  fixpoint iteration.
-- **Snapshot semantics for `mapWithContext`**: the mapping function sees the
-  pre-transformation graph. Predictable, parallelizable, avoids order-dependency.
+  iterative message-passing algorithms.
+- **`paraGraphFixed` uses a convergence predicate, not `Eq r`**: floating-point values
+  (the common case for centrality and propagation) never converge to strict equality.
+  Callers supply `\old new -> abs (old - new) < epsilon` for floats, `(==)` for integral.
+- **Snapshot semantics for `mapWithContext`** (resolved): the mapping function sees the
+  pre-transformation graph. Incremental semantics produce non-deterministic outputs
+  depending on map iteration order, which is insertion-history-dependent — a correctness
+  problem, not just a predictability concern. Users needing propagation use `paraGraph`.
 - **`filterGraph` delegates container handling to `Substitution`**: reuses `GraphMutation`
   machinery; `Substitution` extracted to a shared types module for early availability.
 - **Implementation order**: GraphClassifier → GraphQuery → GraphTransform → GraphMutation.
@@ -482,5 +497,4 @@ Suggested internal ordering within this feature:
 - **`mergeByPredicate` deferred**: cross-cutting, mutation-adjacent, unresolved design
   questions. Future proposal alongside higher-order graph editing operations.
 - **Normalization is out of scope**: as established in the GraphClassifier proposal.
-- **`paraMap` and `paraWith` remain deferred**: `paraGraph` covers the graph-level use
-  cases; no concrete cases have emerged for the Pattern-level variants.
+- **`paraMap` and `paraWith` remain deferred**: `paraGraph` covers graph-level use cases.

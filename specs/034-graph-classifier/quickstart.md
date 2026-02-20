@@ -39,7 +39,7 @@ myClassifier = GraphClassifier
              GRelationship -> GRelationship
              GAnnotation -> GAnnotation
              GWalk -> GWalk
-             GOther void -> absurd void
+             GOther () -> GOther Metadata
   }
 
 -- Construct the custom graph
