@@ -34,7 +34,7 @@ data PatternGraph extra v = PatternGraph
   , pgOther         :: Map (Id v) (extra, Pattern v)
   }
 ```
-- **Description**: Holds categorized graph elements eagerly. Now parameterized by `extra` (usually `Void` for the canonical graph).
+- **Description**: Holds categorized graph elements eagerly. Now parameterized by `extra` (usually `()` for the canonical graph).
 - **Transitions**: Built from `fromPatterns classifier patterns`.
 
 ### `GraphValue v` (Updated)

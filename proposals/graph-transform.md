@@ -254,7 +254,7 @@ are transformed against the same source, not against incrementally modified resu
 **Example** — enrich each node with a count of its annotations:
 
 ```haskell
-enrichWithAnnotationCount :: GraphView Void Subject -> GraphView Void Subject
+enrichWithAnnotationCount :: GraphView () Subject -> GraphView () Subject
 enrichWithAnnotationCount =
   mapWithContext canonicalClassifier enrich
   where
@@ -266,7 +266,7 @@ enrichWithAnnotationCount =
 **Example** — label each node with the walks it participates in:
 
 ```haskell
-labelWithWalks :: GraphView Void Subject -> GraphView Void Subject
+labelWithWalks :: GraphView () Subject -> GraphView () Subject
 labelWithWalks =
   mapWithContext canonicalClassifier label
   where

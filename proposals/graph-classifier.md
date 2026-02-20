@@ -68,7 +68,7 @@ data GraphClass extra
 ```
 
 The `extra` type parameter is the user's extension point. The canonical classifier uses
-`Void` (or the equivalent uninhabited type), making `GOther` unreachable by construction.
+`()` (the unit type), making `GOther ()` a reachable bucket for invalid or unrecognized structures.
 A user interested in simplicial complexes would define:
 
 ```haskell
@@ -77,7 +77,7 @@ data SimplexClass = Simplex2 | Simplex3 | SimplexN Int
 -- Their classifier produces: GraphClass SimplexClass
 ```
 
-The `GOther Void` specialization is the canonical, closed form. `GOther extra` is the
+The `GOther ()` specialization is the canonical form. `GOther extra` is the
 open extension path. Both use the same type and the same downstream consumers.
 
 #### Why walks are a named bucket
@@ -102,7 +102,7 @@ a typeclass, and more composable.
 The canonical classifier for `Pattern Subject`:
 
 ```haskell
-canonicalClassifier :: GraphClassifier Void Subject
+canonicalClassifier :: GraphClassifier () Subject
 canonicalClassifier = GraphClassifier
   { classify = classifyByArity
   }
@@ -142,11 +142,11 @@ derived by structure). `GraphClassifier` generalizes this to five named categori
 
 ```haskell
 -- A two-category classifier built from a testNode predicate.
--- GNode when testNode holds; GOther Void otherwise (relationships and walks
+-- GNode when testNode holds; GOther () otherwise (relationships and walks
 -- are distinguished structurally within the GOther branch, as today).
-fromTestNode :: (Pattern v -> Bool) -> GraphClassifier Void v
+fromTestNode :: (Pattern v -> Bool) -> GraphClassifier () v
 fromTestNode testNode = GraphClassifier
-  { classify = \p -> if testNode p then GNode else GOther absurd
+  { classify = \p -> if testNode p then GNode else GOther ()
   }
 ```
 
@@ -160,7 +160,7 @@ constructor for the two-category case or aliased — that is an implementation d
 ### `PatternGraph` — updated, not replaced
 
 `PatternGraph` stays as the canonical eager materialized store. Its classification logic
-is extracted from the `GraphValue` typeclass and moved into a `GraphClassifier Void Subject`
+is extracted from the `GraphValue` typeclass and moved into a `GraphClassifier () Subject`
 value (the canonical classifier). The `GraphValue` typeclass is simplified: it retains
 `identify` (identity extraction) but loses `classify` (which moves to `GraphClassifier`).
 
@@ -224,14 +224,14 @@ This design was evaluated for portability to Rust, TypeScript, and Java.
 **`GraphClass extra` type parameter** ports to all targets as a generic/parameterized type.
 `GraphClass<Extra>` is idiomatic in all three.
 
-**`Void` / uninhabited type for canonical form:**
+**`()` / unit type for canonical form:**
 
 | Language | Mechanism | Enforcement |
 |---|---|---|
-| Haskell | `Void` (from `Data.Void`) | Compiler: `GOther` is unreachable |
-| Rust | `!` (never type) | Compiler: `GOther(_)` arm is unreachable |
-| TypeScript | `never` | Compiler (with `strictNullChecks`): exhaustiveness checks work |
-| Java | Convention (`Void` class, private constructor) | No compile-time enforcement; runtime only |
+| Haskell | `()` (unit type) | Compiler: `GOther` takes unit |
+| Rust | `()` (unit type) | Compiler: `GOther(())` arm is required |
+| TypeScript | `null` or `undefined` | Compiler: `GOther` carries null data |
+| Java | `Void` (or `Object` as null) | Runtime only |
 
 **`GraphClassifier` as a record of functions** is more natural in TypeScript and Rust
 than a typeclass, since those languages handle first-class function objects idiomatically.
@@ -239,7 +239,7 @@ Java would use an interface. Haskell could use either; the record-of-functions
 representation is preferred here for portability.
 
 **Exhaustiveness on `GraphClass` matching** is guaranteed at compile time in Haskell and
-Rust (with `GOther Void` / `GOther!`), achievable with care in TypeScript, and
+Rust (with `GOther ()`), achievable with care in TypeScript, and
 conventional-only in Java. Implementations should document this difference explicitly in
 the porting guide.
 
@@ -256,7 +256,7 @@ the porting guide.
 | `Pattern.PatternGraph.PatternGraph` | **Update** — accept `GraphClassifier` at construction | Storage maps gain `pgOther` |
 | `Pattern.Graph.GraphClassifier` | **New** — introduced by this proposal | Core new type |
 | `Pattern.Graph.GraphClass` | **New** — introduced by this proposal | Replaces `PatternClass` |
-| Canonical classifier | **New** — `canonicalClassifier :: GraphClassifier Void Subject` | Extracted from `classifyByArity` |
+| Canonical classifier | **New** — `canonicalClassifier :: GraphClassifier () Subject` | Extracted from `classifyByArity` |
 
 ---
 
