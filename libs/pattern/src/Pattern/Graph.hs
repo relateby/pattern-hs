@@ -73,15 +73,10 @@ module Pattern.Graph
   , neighbors
   , incidentRels
   , degree
-    -- * Graph Analysis Operations
-  , connectedComponents  -- Requires Ord v
-  , bfs                   -- Requires Ord v
-  , findPath              -- Requires Ord v
   ) where
 
 import Pattern.Core (Pattern(..))
 import Data.Maybe (mapMaybe)
-import qualified Data.Set as Set
 
 import Pattern.Graph.GraphClassifier (GraphValue(..))
 
@@ -400,90 +395,4 @@ incidentRels lens node =
 degree :: GraphValue v => GraphLens v -> Pattern v -> Int
 degree lens node = length (incidentRels lens node)
 
--- * Graph Analysis Operations
-
--- | Find all connected components in the graph.
---
--- A connected component is a set of nodes that are reachable from
--- each other via relationships. Returns a list of lists, where each
--- inner list represents a component.
---
--- == Time Complexity
--- O(n + r) where n is number of nodes and r is number of relationships
---
--- == Example
---
--- >>> let lens = GraphLens pattern isAtomic
--- >>> connectedComponents lens
--- [[pattern "A", pattern "B", pattern "C"], [pattern "D", pattern "E"]]
-connectedComponents :: GraphValue v => GraphLens v -> [[Pattern v]]
-connectedComponents lens = findComponents lens (nodes lens) Set.empty []
-
-findComponents :: GraphValue v => GraphLens v -> [Pattern v] -> Set.Set (Id v) -> [[Pattern v]] -> [[Pattern v]]
-findComponents _ [] _ acc = reverse acc
-findComponents lens (n:ns) visited acc =
-  if Set.member (identify (value n)) visited
-  then findComponents lens ns visited acc
-  else
-    let component = bfs lens n
-        newVisited = Set.union visited (Set.fromList (map (identify . value) component))
-        newAcc = component : acc
-    in findComponents lens ns newVisited newAcc
-
--- | Perform breadth-first search from a starting node.
---
--- Returns all nodes reachable from the starting node via relationships.
---
--- == Time Complexity
--- O(n + r) where n is number of nodes and r is number of relationships
---
--- == Example
---
--- >>> let lens = GraphLens pattern isAtomic
--- >>> bfs lens (point "Alice")
--- [point "Alice", point "Bob", pattern "Charlie"]
-bfs :: GraphValue v => GraphLens v -> Pattern v -> [Pattern v]
-bfs lens start = bfsHelper lens Set.empty [start] []
-
-bfsHelper :: GraphValue v => GraphLens v -> Set.Set (Id v) -> [Pattern v] -> [Pattern v] -> [Pattern v]
-bfsHelper _ _ [] acc = reverse acc
-bfsHelper lens visited (n:queue) acc
-  | Set.member (identify (value n)) visited = bfsHelper lens visited queue acc
-  | otherwise =
-      let newVisited = Set.insert (identify (value n)) visited
-          newAcc = n : acc
-          nodeNeighbors = Pattern.Graph.neighbors lens n
-          newQueue = queue ++ filter (\nb -> not (Set.member (identify (value nb)) newVisited)) nodeNeighbors
-      in bfsHelper lens newVisited newQueue newAcc
-
--- | Find a path between two nodes if one exists.
---
--- Returns Just [nodes] if a path exists, Nothing otherwise.
--- The path is a sequence of nodes connecting start to end.
---
--- == Time Complexity
--- O(n + r) where n is number of nodes and r is number of relationships
---
--- == Example
---
--- >>> let lens = GraphLens pattern isAtomic
--- >>> findPath lens (point "Alice") (pattern "Charlie")
--- Just [point "Alice", point "Bob", pattern "Charlie"]
-findPath :: GraphValue v => GraphLens v -> Pattern v -> Pattern v -> Maybe [Pattern v]
-findPath lens start end
-  | identify (value start) == identify (value end) = Just [start]
-  | otherwise = findPathHelper lens Set.empty [(start, [start])] end
-
-findPathHelper :: GraphValue v => GraphLens v -> Set.Set (Id v) -> [(Pattern v, [Pattern v])] -> Pattern v -> Maybe [Pattern v]
-findPathHelper _ _ [] _ = Nothing
-findPathHelper lens visited ((n, path):queue) targetNode
-  | identify (value n) == identify (value targetNode) = Just (reverse path)
-  | Set.member (identify (value n)) visited = findPathHelper lens visited queue targetNode
-  | otherwise =
-      let newVisited = Set.insert (identify (value n)) visited
-          nodeNeighbors = Pattern.Graph.neighbors lens n
-          newPaths = map (\neighbor -> (neighbor, neighbor:path)) nodeNeighbors
-          unvisitedPaths = filter (\(neighbor, _) -> not (Set.member (identify (value neighbor)) newVisited)) newPaths
-          newQueue = queue ++ unvisitedPaths
-      in findPathHelper lens newVisited newQueue targetNode
 

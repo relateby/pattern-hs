@@ -8,9 +8,9 @@
 
 ```haskell
 import Pattern.Graph.GraphClassifier (canonicalClassifier)
-import Pattern.Graph.GraphQuery      (fromPatternGraph, undirected)
+import Pattern.Graph.GraphQuery      (undirected)
 import Pattern.Graph.Algorithms      (shortestPath, connectedComponents)
-import Pattern.PatternGraph          (fromPatterns)
+import Pattern.PatternGraph          (fromPatterns, fromPatternGraph)
 
 -- Build a PatternGraph from patterns
 let pg = fromPatterns canonicalClassifier myPatterns
@@ -30,8 +30,9 @@ let components = connectedComponents gq undirected        -- [[Pattern v]]
 The same graph, queried with different traversal policies:
 
 ```haskell
-import Pattern.Graph.GraphQuery (fromPatternGraph, directed, undirected, directedReverse)
+import Pattern.Graph.GraphQuery (directed, undirected, directedReverse)
 import Pattern.Graph.Algorithms (hasPath)
+import Pattern.PatternGraph     (fromPatternGraph)
 
 let gq = fromPatternGraph pg
 
@@ -52,8 +53,9 @@ hasPath gq directedReverse nodeB nodeA
 Read edge weights from relationship properties:
 
 ```haskell
-import Pattern.Graph.GraphQuery (TraversalWeight, TraversalDirection(..), fromPatternGraph)
+import Pattern.Graph.GraphQuery (TraversalWeight, TraversalDirection(..))
 import Pattern.Graph.Algorithms (shortestPath)
+import Pattern.PatternGraph     (fromPatternGraph)
 import Subject.Core             (Symbol)
 
 -- A weight function that reads a "cost" property from the relationship value
@@ -72,8 +74,9 @@ let path = shortestPath gq weightedTraversal nodeA nodeB
 ### Subgraph frames (filter by predicate)
 
 ```haskell
-import Pattern.Graph.GraphQuery (fromPatternGraph, frameQuery, undirected)
+import Pattern.Graph.GraphQuery (frameQuery, undirected)
 import Pattern.Graph.Algorithms (connectedComponents)
+import Pattern.PatternGraph     (fromPatternGraph)
 
 -- Only include nodes and relationships with a "Person" label
 let personFrame = frameQuery isPerson (fromPatternGraph pg)
@@ -85,8 +88,9 @@ let components = connectedComponents personFrame undirected
 ### Memoizing incident relationship lookups
 
 ```haskell
-import Pattern.Graph.GraphQuery (fromPatternGraph, memoizeIncidentRels, undirected)
+import Pattern.Graph.GraphQuery (memoizeIncidentRels, undirected)
 import Pattern.Graph.Algorithms (betweennessCentrality)
+import Pattern.PatternGraph     (fromPatternGraph)
 
 -- Wrap with memoization before running a centrality algorithm
 let gq = memoizeIncidentRels (fromPatternGraph pg)
@@ -108,8 +112,9 @@ Ask "what contains this element?" without precomputing a context record:
 
 ```haskell
 import Pattern.Graph.GraphClassifier (canonicalClassifier)
-import Pattern.Graph.GraphQuery      (fromPatternGraph)
+import Pattern.Graph.GraphQuery      ()
 import Pattern.Graph.Algorithms      (queryAnnotationsOf, queryWalksContaining, queryCoMembers)
+import Pattern.PatternGraph          (fromPatternGraph)
 
 let gq = fromPatternGraph pg
 
