@@ -3,6 +3,7 @@
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Depends on**: GraphClassifier proposal  
+**Followed by**: GraphTransform proposal → GraphMutation proposal  
 **Relates to**: Feature 23 (GraphLens), Feature 33 (PatternGraph)
 
 ---
@@ -260,6 +261,31 @@ are moved here and re-expressed against `GraphQuery`. The existing `GraphLens` f
 are retained as convenience wrappers that call `fromGraphLens` and supply `undirected`
 as the default `TraversalWeight`, preserving backward compatibility.
 
+### Context query helpers
+
+A small family of derived functions answers common "what is the context of this element?"
+questions. These are built on `GraphQuery` primitives — no new interface fields required.
+They exist to support context-aware graph transformations (see the GraphTransform
+proposal), where a mapping function needs to ask "what annotations apply to this element?"
+or "what walks am I part of?" without precomputing a context record.
+
+```haskell
+-- All annotations attached to a given element
+queryAnnotationsOf :: GraphClassifier extra v -> GraphQuery v
+                   -> Pattern v -> [Pattern v]
+
+-- All walks that contain a given element (directly or via its relationships)
+queryWalksContaining :: GraphClassifier extra v -> GraphQuery v
+                     -> Pattern v -> [Pattern v]
+
+-- All elements sharing a specific container with a given element
+queryCoMembers :: GraphQuery v -> Pattern v -> Pattern v -> [Pattern v]
+```
+
+Each takes a `GraphClassifier` for category filtering and a `GraphQuery` for traversal.
+They are pure derived functions — calling `queryContainers` and filtering by
+`GraphClass`. The caller pays only for what they ask.
+
 ---
 
 ## Composability patterns
@@ -329,6 +355,7 @@ to graph algorithms, and `GraphLens`-specific use cases are covered by construct
 | `Pattern.Graph.GraphQuery` | **New** | Core new type; record of traversal functions including `queryContainers` |
 | `Pattern.Graph.TraversalWeight` | **New** | Traversal policy type; canonical values provided |
 | `Pattern.Graph.Algorithms` | **New** | All graph algorithms; operates on `GraphQuery v` + `TraversalWeight v` |
+| `Pattern.Graph.Algorithms` context helpers | **New** | `queryAnnotationsOf`, `queryWalksContaining`, `queryCoMembers` — derived context queries for graph transformations |
 | `Pattern.Graph` (existing algorithms) | **Retain as wrappers** | `bfs`, `findPath`, `connectedComponents` delegate to `Algorithms` with `undirected` default |
 | `Pattern.Graph.fromGraphLens` | **New** | Constructs `GraphQuery v` from `GraphLens v` |
 | `Pattern.PatternGraph.fromPatternGraph` | **New** | Constructs `GraphQuery v` from `PatternGraph v` directly |
@@ -372,8 +399,15 @@ to graph algorithms, and `GraphLens`-specific use cases are covered by construct
 - **`queryContainers` is a first-class primitive**: upward traversal — "what contains
   this element?" — is the dual of downward decomposition. Required by `GraphMutation`
   for coherent deletion; independently useful for impact analysis and pattern matching.
+- **Context query helpers are derived, not primitive**: `queryAnnotationsOf`,
+  `queryWalksContaining`, and `queryCoMembers` answer common "what is the context of
+  this element?" questions by filtering `queryContainers` results. No new interface
+  fields; callers pay only for what they ask. Required by the GraphTransform feature.
 - **Bulk adjacency deferred**: noted as a future extension point for performance-sensitive
   algorithms.
 - **`toGraphLens` retired**: superseded by `fromPatternGraph`; no remaining use cases.
 - **Backward compatibility preserved**: existing `GraphLens` algorithm functions are
   retained as wrappers over the new `Algorithms` module, defaulting to `undirected`.
+- **Implementation order**: GraphClassifier → GraphQuery → GraphTransform → GraphMutation.
+  `GraphQuery` is a prerequisite for `GraphTransform` (`mapWithContext`, `filterGraph`,
+  context helpers) and for `GraphMutation` (`queryContainers` in deletion).

@@ -3,7 +3,7 @@
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Relates to**: Feature 23 (GraphLens), Feature 33 (PatternGraph)  
-**Followed by**: GraphQuery proposal
+**Followed by**: GraphQuery proposal → GraphTransform proposal → GraphMutation proposal
 
 ---
 
@@ -293,3 +293,6 @@ the porting guide.
 - **Normalization is out of scope**: transforming arbitrary `Pattern v` into canonical
   graph form (e.g. a sequence of nodes into a walk) is a separate problem. This proposal
   describes the target structure, not the transformation paths into it.
+- **Implementation order**: GraphClassifier → GraphQuery → GraphTransform → GraphMutation.
+  `GraphTransform` introduces `GraphView` as the universal pipeline entry point;
+  `GraphMutation`'s construction path depends on `GraphView` being settled first.

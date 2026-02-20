@@ -2,7 +2,7 @@
 
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
-**Depends on**: GraphClassifier proposal, GraphQuery proposal  
+**Depends on**: GraphClassifier proposal, GraphQuery proposal, GraphTransform proposal  
 **Relates to**: Feature 23 (GraphLens), Feature 33 (PatternGraph)
 
 ---
@@ -240,19 +240,20 @@ The canonical in-memory implementation is provided by the library:
 ```haskell
 canonicalMutation :: (GraphValue v, Eq v)
                   => GraphClassifier extra v
-                  -> GraphQuery v         -- needed for queryContainers in deleteElement
+                  -> GraphView extra v    -- provides queryContainers for deleteElement
                   -> GraphMutation v
 ```
 
-The `GraphClassifier` is required to validate classification on insert and update. The
-`GraphQuery` is required for `deleteElement`'s container traversal. Both are passed
-explicitly — `GraphMutation` has no implicit access to either.
+`GraphView` replaces the earlier `GraphQuery v` parameter — `GraphView` contains the
+`GraphQuery` and provides classified element enumeration, which is needed by the
+mutation layer to know which map an element lives in. `GraphView` must be settled
+(in the GraphTransform proposal) before this constructor is finalized.
 
 For the common case, a convenience constructor takes a `PatternGraph` and derives both:
 
 ```haskell
 defaultMutation :: (GraphValue v, Eq v) => PatternGraph v -> GraphMutation v
-defaultMutation pg = canonicalMutation canonicalClassifier (fromPatternGraph pg)
+defaultMutation pg = canonicalMutation canonicalClassifier (fromPatternGraph canonicalClassifier pg)
 ```
 
 ---
@@ -454,3 +455,7 @@ Similarly retained as a convenience wrapper over `mergeElement` with `LastWriteW
 - **Database integration is deferred**: the record-of-functions design accommodates it
   without change. Out of scope for this proposal.
 - **Normalization is out of scope**: as established in the GraphClassifier proposal.
+- **Implementation order**: GraphClassifier → GraphQuery → GraphTransform → GraphMutation.
+  `GraphMutation` depends on `GraphView` (from GraphTransform) for its construction
+  path, and on `Substitution` (defined in shared types during GraphTransform) for
+  deletion. `GraphMutation` is the final foundational feature.

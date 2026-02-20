@@ -9,7 +9,8 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Map.Strict as MapStrict
 import qualified Data.Set as Set
 import qualified Pattern.Core as Pattern
-import Pattern.PatternGraph (MergeResult(..), fromPatterns, pgAnnotations, pgNodes, pgRelationships, pgWalks)
+import Pattern.Graph.GraphClassifier (canonicalClassifier)
+import Pattern.PatternGraph (fromPatterns, pgAnnotations, pgNodes, pgRelationships, pgWalks)
 import qualified Subject.Core as Subject
 import qualified Subject.Value as SubjectValue
 import qualified Gram.Parse as Gram
@@ -102,14 +103,14 @@ spec = do
       case Gram.fromGram gramText of
         Left _ -> expectationFailure "Should parse gram"
         Right parsed -> do
-          let MergeResult graph _ = fromPatterns parsed
+          let graph = fromPatterns canonicalClassifier parsed
           let flat = MapStrict.elems (pgNodes graph) ++ MapStrict.elems (pgRelationships graph)
                 ++ MapStrict.elems (pgWalks graph) ++ MapStrict.elems (pgAnnotations graph)
           let serialized = Gram.toGram flat
           case Gram.fromGram serialized of
             Left _ -> expectationFailure "Should re-parse serialized gram"
             Right reparsed -> do
-              let MergeResult graph2 _ = fromPatterns reparsed
+              let graph2 = fromPatterns canonicalClassifier reparsed
               MapStrict.size (pgNodes graph2) `shouldBe` MapStrict.size (pgNodes graph)
               MapStrict.size (pgRelationships graph2) `shouldBe` MapStrict.size (pgRelationships graph)
               Set.fromList (MapStrict.keys (pgNodes graph2)) `shouldBe` Set.fromList (MapStrict.keys (pgNodes graph))
@@ -122,14 +123,14 @@ spec = do
       case Gram.fromGram gramText of
         Left e -> expectationFailure $ "Should parse gram: " ++ show e
         Right parsed -> do
-          let MergeResult graph _ = fromPatterns parsed
+          let graph = fromPatterns canonicalClassifier parsed
           let flat = MapStrict.elems (pgNodes graph) ++ MapStrict.elems (pgRelationships graph)
                 ++ MapStrict.elems (pgWalks graph) ++ MapStrict.elems (pgAnnotations graph)
           let serialized = Gram.toGram flat
           case Gram.fromGram serialized of
             Left e2 -> expectationFailure $ "Should re-parse serialized gram: " ++ show e2
             Right reparsed -> do
-              let MergeResult graph2 _ = fromPatterns reparsed
+              let graph2 = fromPatterns canonicalClassifier reparsed
               -- Same node/relationship/walk counts
               MapStrict.size (pgNodes graph2) `shouldBe` MapStrict.size (pgNodes graph)
               MapStrict.size (pgRelationships graph2) `shouldBe` MapStrict.size (pgRelationships graph)
