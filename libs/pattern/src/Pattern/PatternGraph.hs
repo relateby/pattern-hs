@@ -38,7 +38,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Pattern.Core (Pattern(..))
 import Pattern.Graph (GraphLens(..), mkGraphLens)
-import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..))
+import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..), GraphValue(..))
 import qualified Pattern.Reconcile as Reconcile
 import Subject.Core (Subject(..), Symbol)
 import qualified Subject.Core as Subj
@@ -60,12 +60,6 @@ data PatternGraph extra v = PatternGraph
 
 deriving instance (Eq (Id v), Eq v, Eq extra) => Eq (PatternGraph extra v)
 deriving instance (Show (Id v), Show v, Show extra) => Show (PatternGraph extra v)
-
--- | Typeclass providing identity and classification for the value type @v@.
--- Used to key maps and to classify patterns as Node/Annotation/Relationship/Walk/Unrecognized.
-class Ord (Id v) => GraphValue v where
-  type Id v
-  identify :: v -> Id v
 
 -- ============================================================================
 -- GraphValue Subject
@@ -234,7 +228,7 @@ fromPatternsWithPolicy classifier policy ps =
 -- Returns 'Nothing' when the graph is empty, since there is no pattern value
 -- available to use as the scope decoration. Use 'toGraphLensWithScope' if you
 -- need a 'GraphLens' for an empty graph by providing the scope value explicitly.
-toGraphLens :: (GraphValue v, Eq v) => PatternGraph extra v -> Maybe (GraphLens v)
+toGraphLens :: GraphValue v => PatternGraph extra v -> Maybe (GraphLens v)
 toGraphLens g =
   let allPats = Map.elems (pgNodes g) ++ Map.elems (pgRelationships g) ++ Map.elems (pgWalks g)
   in case allPats of
@@ -243,7 +237,7 @@ toGraphLens g =
 
 -- | Convert a 'PatternGraph' to a 'GraphLens' using the given scope value.
 -- Total: can be used for empty graphs, in which case the scope pattern has no elements.
-toGraphLensWithScope :: (GraphValue v, Eq v) => v -> PatternGraph extra v -> GraphLens v
+toGraphLensWithScope :: GraphValue v => v -> PatternGraph extra v -> GraphLens v
 toGraphLensWithScope scopeVal g =
   let allPats = Map.elems (pgNodes g) ++ Map.elems (pgRelationships g) ++ Map.elems (pgWalks g)
       scope = Pattern scopeVal allPats
