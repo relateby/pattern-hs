@@ -11,7 +11,12 @@
 --
 -- * @Pattern.Core@ - Core Pattern data type, construction functions, query functions,
 --   predicate functions, and typeclass instances (Functor, Applicative, Comonad, etc.)
--- * @Pattern.Graph@ - Graph operations and transformations
+-- * @Pattern.Graph@ - Low-level graph structural operations (GraphLens, nodes, relationships, incidentRels, etc.)
+-- * @Pattern.Graph.GraphQuery@ - Portable graph query interface ('GraphQuery', 'TraversalWeight',
+--   'fromGraphLens', combinators)
+-- * @Pattern.Graph.Algorithms@ - Graph algorithms operating on 'GraphQuery' (bfs, dfs,
+--   shortestPath, connectedComponents, etc.)
+-- * @Pattern.PatternGraph@ - Typed graph container with O(log n) lookups; 'fromPatternGraph'
 -- * @Pattern.Reconcile@ - Pattern reconciliation for normalizing duplicate identities
 --
 -- == Usage
@@ -22,6 +27,12 @@
 -- >>> let p = point "test"
 -- >>> value p
 -- "test"
+--
+-- For graph algorithms, import the algorithm modules directly:
+--
+-- > import Pattern.PatternGraph (fromPatternGraph)
+-- > import Pattern.Graph.GraphQuery (directed)
+-- > import qualified Pattern.Graph.Algorithms as Alg
 --
 -- All public functions, types, and typeclass instances from Pattern.Core are
 -- available through this module. See individual module documentation for
@@ -35,6 +46,7 @@
 --   query functions, predicate functions, helper functions, and all typeclass instances)
 -- * All public exports from @Pattern.Graph@ (graph operations)
 -- * All public exports from @Pattern.Reconcile@ (reconciliation operations)
+-- * All public exports from @Pattern.Graph.GraphQuery@ (portable graph query interface)
 --
 -- Internal implementation details and helper functions are not exported through
 -- this module, ensuring a clean public API.
@@ -43,10 +55,13 @@ module Pattern
     module Pattern.Core
     -- * Graph Operations
   , module Pattern.Graph
+    -- * Portable Graph Query Interface
+  , module Pattern.Graph.GraphQuery
     -- * Reconciliation Operations
   , module Pattern.Reconcile
   ) where
 
 import Pattern.Core
 import Pattern.Graph
+import Pattern.Graph.GraphQuery
 import Pattern.Reconcile

@@ -28,3 +28,7 @@ cabal.sandbox.config
 
 # Other
 .ghc.environment.*
+
+# Universal additions
+Thumbs.db
+*.tmp
