@@ -30,6 +30,10 @@ module Pattern.PatternGraph
 
     -- * Conversion to GraphQuery
   , fromPatternGraph
+
+    -- * GraphView construction and materialization
+  , toGraphView
+  , materialize
   ) where
 
 import Data.List (foldl')
@@ -38,6 +42,7 @@ import qualified Data.Map.Strict as Map
 import Pattern.Core (Pattern(..))
 import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..), GraphValue(..))
 import Pattern.Graph.GraphQuery (GraphQuery(..))
+import Pattern.Graph.Types (GraphView(..))
 import qualified Pattern.Reconcile as Reconcile
 import Subject.Core (Subject(..), Symbol)
 import qualified Subject.Core as Subj
@@ -271,3 +276,55 @@ fromPatternGraph pg = GraphQuery
     tgtOf (Pattern _ [_, t]) = Just t
     tgtOf _                  = Nothing
 
+-- ============================================================================
+-- toGraphView
+-- ============================================================================
+
+-- | Construct a 'GraphView' from a 'PatternGraph'.
+--
+-- The 'GraphClassifier' determines the 'GraphClass' tag for each element.
+-- 'viewQuery' is the snapshot query built from the same graph; it is never
+-- updated by subsequent transformations, ensuring deterministic context-aware
+-- operations.
+--
+-- Note: defined here (not in "Pattern.Graph") to avoid a circular import —
+-- 'Pattern.Graph' cannot import 'PatternGraph'.
+toGraphView
+  :: (GraphValue v, Eq v)
+  => GraphClassifier extra v
+  -> PatternGraph extra v
+  -> GraphView extra v
+toGraphView classifier pg =
+  GraphView
+    { viewQuery    = fromPatternGraph pg
+    , viewElements = taggedElems
+    }
+  where
+    taggedElems =
+      map (\p -> (classify classifier p, p)) $
+        Map.elems (pgNodes pg)
+        ++ Map.elems (pgRelationships pg)
+        ++ Map.elems (pgWalks pg)
+        ++ Map.elems (pgAnnotations pg)
+        ++ map snd (Map.elems (pgOther pg))
+
+-- ============================================================================
+-- materialize
+-- ============================================================================
+
+-- | Reconstruct a 'PatternGraph' from a 'GraphView'.
+--
+-- Folds all elements in 'viewElements' through 'mergeWithPolicy', using the
+-- provided classifier and reconciliation policy. This is the finalizer for a
+-- lazy transformation pipeline.
+--
+-- Note: defined here (not in "Pattern.Graph") to avoid a circular import.
+materialize
+  :: ( GraphValue v, Eq v
+     , Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v )
+  => GraphClassifier extra v
+  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> GraphView extra v
+  -> PatternGraph extra v
+materialize classifier policy (GraphView _ elems) =
+  foldl' (\g (_, p) -> mergeWithPolicy classifier policy p g) empty elems
