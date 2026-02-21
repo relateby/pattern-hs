@@ -1,5 +1,5 @@
 -- | PatternGraph: container for nodes, relationships, walks, and annotations
--- backed by Pattern v, with merge-on-insert semantics and conversion to GraphLens.
+-- backed by Pattern v, with merge-on-insert semantics.
 --
 -- Unrecognized patterns are routed to 'pgOther' by the 'GraphClassifier'.
 -- Patterns that fail reconciliation are preserved in 'pgConflicts'.
@@ -28,17 +28,16 @@ module Pattern.PatternGraph
   , fromPatternsWithPolicy
   , empty
 
-    -- * Conversion to GraphLens
-  , toGraphLens
-  , toGraphLensWithScope
+    -- * Conversion to GraphQuery
+  , fromPatternGraph
   ) where
 
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Pattern.Core (Pattern(..))
-import Pattern.Graph (GraphLens(..), mkGraphLens)
 import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..), GraphValue(..))
+import Pattern.Graph.GraphQuery (GraphQuery(..))
 import qualified Pattern.Reconcile as Reconcile
 import Subject.Core (Subject(..), Symbol)
 import qualified Subject.Core as Subj
@@ -219,27 +218,56 @@ fromPatternsWithPolicy classifier policy ps =
   foldl' (\g p -> mergeWithPolicy classifier policy p g) empty ps
 
 -- ============================================================================
--- toGraphLens
+-- fromPatternGraph
 -- ============================================================================
 
--- | Convert a 'PatternGraph' to a 'GraphLens' (scope pattern + atomic predicate)
--- so existing graph algorithms can be used on the same data.
+-- | Construct a 'GraphQuery v' directly from a 'PatternGraph extra v'.
 --
--- Returns 'Nothing' when the graph is empty, since there is no pattern value
--- available to use as the scope decoration. Use 'toGraphLensWithScope' if you
--- need a 'GraphLens' for an empty graph by providing the scope value explicitly.
-toGraphLens :: GraphValue v => PatternGraph extra v -> Maybe (GraphLens v)
-toGraphLens g =
-  let allPats = Map.elems (pgNodes g) ++ Map.elems (pgRelationships g) ++ Map.elems (pgWalks g)
-  in case allPats of
-    (p : _) -> Just (toGraphLensWithScope (value p) g)
-    [] -> Nothing
+-- Reads from the typed maps (@pgNodes@, @pgRelationships@, @pgWalks@,
+-- @pgAnnotations@) without going through 'GraphLens'. Provides O(log n)
+-- lookups for 'queryNodeById' and 'queryRelationshipById'.
+--
+-- Preferred over constructing a 'GraphLens' for algorithm access.
+fromPatternGraph :: (GraphValue v, Eq v) => PatternGraph extra v -> GraphQuery v
+fromPatternGraph pg = GraphQuery
+  { queryNodes            = Map.elems (pgNodes pg)
+  , queryRelationships    = Map.elems (pgRelationships pg)
+  , queryIncidentRels     = \n ->
+      let nodeId = identify (value n)
+      in filter (\r -> case (srcOf r, tgtOf r) of
+                   (Just s, _) | identify (value s) == nodeId -> True
+                   (_, Just t) | identify (value t) == nodeId -> True
+                   _ -> False)
+               (Map.elems (pgRelationships pg))
+  , querySource           = srcOf
+  , queryTarget           = tgtOf
+  , queryDegree           = \n ->
+      let nodeId = identify (value n)
+      in length $ filter (\r -> case (srcOf r, tgtOf r) of
+                   (Just s, _) | identify (value s) == nodeId -> True
+                   (_, Just t) | identify (value t) == nodeId -> True
+                   _ -> False)
+               (Map.elems (pgRelationships pg))
+  , queryNodeById         = \i -> Map.lookup i (pgNodes pg)
+  , queryRelationshipById = \i -> Map.lookup i (pgRelationships pg)
+  , queryContainers       = \p ->
+      let nodeId = identify (value p)
+          inRel r = case (srcOf r, tgtOf r) of
+            (Just s, _) | identify (value s) == nodeId -> True
+            (_, Just t) | identify (value t) == nodeId -> True
+            _ -> False
+          containingRels  = filter inRel (Map.elems (pgRelationships pg))
+          containingWalks = filter (\w -> any (\r -> identify (value r) == nodeId) (elements w))
+                                   (Map.elems (pgWalks pg))
+          containingAnnotations = filter (\a -> case elements a of
+                                            [inner] -> identify (value inner) == nodeId
+                                            _ -> False)
+                                         (Map.elems (pgAnnotations pg))
+      in containingRels ++ containingWalks ++ containingAnnotations
+  }
+  where
+    srcOf (Pattern _ (s:_)) = Just s
+    srcOf _                  = Nothing
+    tgtOf (Pattern _ [_, t]) = Just t
+    tgtOf _                  = Nothing
 
--- | Convert a 'PatternGraph' to a 'GraphLens' using the given scope value.
--- Total: can be used for empty graphs, in which case the scope pattern has no elements.
-toGraphLensWithScope :: GraphValue v => v -> PatternGraph extra v -> GraphLens v
-toGraphLensWithScope scopeVal g =
-  let allPats = Map.elems (pgNodes g) ++ Map.elems (pgRelationships g) ++ Map.elems (pgWalks g)
-      scope = Pattern scopeVal allPats
-      isNodePred (Pattern _ els) = null els
-  in mkGraphLens scope isNodePred

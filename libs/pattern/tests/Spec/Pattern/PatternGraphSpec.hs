@@ -3,7 +3,6 @@
 
 module Spec.Pattern.PatternGraphSpec where
 
-import Data.Maybe (isNothing)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Pattern.Core (Pattern(..), pattern, point)
@@ -13,13 +12,12 @@ import Pattern.PatternGraph
     empty,
     fromPatterns,
     fromPatternsWithPolicy,
+    fromPatternGraph,
     merge,
     mergeWithPolicy,
-    toGraphLens,
-    toGraphLensWithScope,
   )
 import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..), canonicalClassifier, classify, classifyByShape)
-import Pattern.Graph (nodes, relationships)
+import Pattern.Graph.GraphQuery (queryNodes, queryRelationships)
 import Pattern.Reconcile (ReconciliationPolicy(..))
 import Subject.Core (Subject(..), Symbol(..))
 import Test.Hspec
@@ -90,20 +88,15 @@ spec = do
         let three = Pattern (Subject (Symbol "t") Set.empty Map.empty) [node (Symbol "a"), node (Symbol "b"), node (Symbol "c")]
         classify canonicalClassifier three `shouldBe` GOther ()
 
-    describe "toGraphLens" $ do
-      it "empty graph yields Nothing" $ do
-        (isNothing . toGraphLens) (empty :: PatternGraph () Subject) `shouldBe` True
-      it "nodes and relationships from lens match container" $ do
+    describe "fromPatternGraph" $ do
+      it "empty graph yields empty queryNodes" $ do
+        let gq = fromPatternGraph (empty :: PatternGraph () Subject)
+        length (queryNodes gq) `shouldBe` 0
+      it "nodes and relationships match container" $ do
         let graph = fromPatterns canonicalClassifier [node "a", node "b", rel "r" "a" "b"]
-        let Just lens = toGraphLens graph
-        length (nodes lens) `shouldBe` 2
-        length (relationships lens) `shouldBe` 1
-      it "toGraphLensWithScope is total for empty graph" $ do
-        let g = empty :: PatternGraph () Subject
-        let scopeVal = Subject (Symbol "scope") Set.empty Map.empty
-        let lens = toGraphLensWithScope scopeVal g
-        length (nodes lens) `shouldBe` 0
-        length (relationships lens) `shouldBe` 0
+        let gq = fromPatternGraph graph
+        length (queryNodes gq) `shouldBe` 2
+        length (queryRelationships gq) `shouldBe` 1
 
     describe "mergeWithPolicy / fromPatternsWithPolicy (T011)" $ do
       it "mergeWithPolicy accepts reconciliation policy" $ do
