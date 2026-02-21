@@ -45,7 +45,7 @@
 --
 -- 'GraphView' is the universal transformation interface produced from a 'GraphLens'
 -- (via 'toGraphView') or from a 'Pattern.PatternGraph.PatternGraph'
--- (via 'Pattern.PatternGraph.fromPatternGraph'). It pairs a snapshot 'GraphQuery'
+-- (via 'Pattern.PatternGraph.toGraphView'). It pairs a snapshot 'GraphQuery'
 -- with a categorized, traversable list of graph elements, enabling lazy pipeline
 -- transformations:
 --
@@ -55,7 +55,7 @@
 -- >   . mapWithContext canonicalClassifier enrich
 -- >   . filterGraph canonicalClassifier isRelevant dissolve
 -- >   . mapAllGraph updateTimestamp
--- >   . fromPatternGraph canonicalClassifier
+-- >   . Pattern.PatternGraph.toGraphView canonicalClassifier
 -- >   $ graph
 --
 -- Finalize a 'GraphView' pipeline back to a 'Pattern.PatternGraph.PatternGraph'

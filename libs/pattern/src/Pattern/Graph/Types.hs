@@ -29,8 +29,8 @@ import Pattern.Graph.GraphQuery (GraphQuery)
 -- a lazy transformation target: transformations operate over 'viewElements'
 -- while algorithms use 'viewQuery' for context lookups.
 --
--- Construct via 'Pattern.PatternGraph.fromPatternGraph' or
--- 'Pattern.PatternGraph.fromGraphLens'. Finalize via
+-- Construct via 'Pattern.PatternGraph.toGraphView' (from a 'PatternGraph')
+-- or 'Pattern.Graph.toGraphView' (from a 'GraphLens'). Finalize via
 -- 'Pattern.PatternGraph.materialize'.
 --
 -- == Design Principles

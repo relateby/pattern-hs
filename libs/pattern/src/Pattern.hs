@@ -58,7 +58,9 @@
 -- * All public exports from @Pattern.Graph.GraphQuery@ (portable graph query interface)
 -- * All public exports from @Pattern.Graph.Transform@ (bulk transformations and iterative algorithms)
 -- * Selected exports from @Pattern.PatternGraph@ (PatternGraph, mergeWithPolicy, fromPatterns,
---   fromPatternsWithPolicy, empty, fromPatternGraph, materialize); 'toGraphView' is available via @Pattern.Graph@
+--   fromPatternsWithPolicy, empty, fromPatternGraph, materialize). For a @GraphView@ from a
+--   @PatternGraph@ use @Pattern.PatternGraph.toGraphView@; 'toGraphView' for 'GraphLens' is
+--   re-exported from @Pattern.Graph@.
 -- * All public exports from @Pattern.Reconcile@ (reconciliation operations)
 --
 -- Internal implementation details and helper functions are not exported through

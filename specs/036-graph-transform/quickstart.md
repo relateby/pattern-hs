@@ -7,9 +7,9 @@ This guide demonstrates how to apply `GraphView` to execute bulk-transformations
 A pipeline always starts by applying a `GraphView` wrapper against your data source. Assuming we have an existing `PatternGraph`:
 
 ```haskell
-import Pattern.Graph
 import Pattern.Graph.Transform
 import Pattern.Graph.GraphClassifier (canonicalClassifier)
+import Pattern.PatternGraph (toGraphView)
 
 -- Convert existing graph into uniform view (GraphView, not GraphQuery)
 let view = toGraphView canonicalClassifier myGraph

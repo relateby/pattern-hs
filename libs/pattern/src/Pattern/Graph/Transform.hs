@@ -19,7 +19,7 @@
 -- >   . mapWithContext canonicalClassifier enrich
 -- >   . filterGraph canonicalClassifier isRelevant dissolve
 -- >   . mapAllGraph updateTimestamp
--- >   . fromPatternGraph canonicalClassifier
+-- >   . Pattern.PatternGraph.toGraphView canonicalClassifier
 -- >   $ graph
 module Pattern.Graph.Transform
   ( -- * Graph construction from seeds
