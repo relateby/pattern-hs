@@ -41,6 +41,26 @@
 -- transformed into graph interpretations. The transformation Pattern → Graph
 -- interpretation is functorial in nature.
 --
+-- == GraphView
+--
+-- 'GraphView' is the universal transformation interface produced from a 'GraphLens'
+-- (via 'toGraphView') or from a 'Pattern.PatternGraph.PatternGraph'
+-- (via 'Pattern.PatternGraph.fromPatternGraph'). It pairs a snapshot 'GraphQuery'
+-- with a categorized, traversable list of graph elements, enabling lazy pipeline
+-- transformations:
+--
+-- > pipeline :: PatternGraph Subject -> PatternGraph Subject
+-- > pipeline graph =
+-- >   materialize canonicalClassifier LastWriteWins
+-- >   . mapWithContext canonicalClassifier enrich
+-- >   . filterGraph canonicalClassifier isRelevant dissolve
+-- >   . mapAllGraph updateTimestamp
+-- >   . fromPatternGraph canonicalClassifier
+-- >   $ graph
+--
+-- Finalize a 'GraphView' pipeline back to a 'Pattern.PatternGraph.PatternGraph'
+-- by calling 'Pattern.PatternGraph.materialize'.
+--
 -- == Example
 --
 -- >>> let graphPattern = pattern "graph" [point "a", point "b", pattern "r1" [point "a", point "b"]]
@@ -73,12 +93,20 @@ module Pattern.Graph
   , neighbors
   , incidentRels
   , degree
+    -- * GraphQuery constructor
+  , fromGraphLens
+    -- * GraphView constructor
+  , toGraphView
+    -- * GraphView Type (re-exported from Pattern.Graph.Types)
+  , GraphView(..)
   ) where
 
 import Pattern.Core (Pattern(..))
 import Data.Maybe (mapMaybe)
 
-import Pattern.Graph.GraphClassifier (GraphValue(..))
+import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..), GraphValue(..))
+import Pattern.Graph.GraphQuery (GraphQuery(..))
+import Pattern.Graph.Types (GraphView(..))
 
 -- | A Graph Lens provides an interpretive view of a Pattern as a graph structure.
 -- 
@@ -395,4 +423,68 @@ incidentRels lens node =
 degree :: GraphValue v => GraphLens v -> Pattern v -> Int
 degree lens node = length (incidentRels lens node)
 
+-- ============================================================================
+-- GraphQuery constructor
+-- ============================================================================
 
+-- | Construct a 'GraphQuery' from a 'GraphLens'.
+--
+-- All fields are derived from existing 'Pattern.Graph' functions.
+-- 'queryNodeById' and 'queryRelationshipById' perform O(n) \/ O(r) scans
+-- (no index available from 'GraphLens'). 'queryContainers' scans relationships
+-- and walks.
+--
+-- Note: defined here (not in "Pattern.Graph.GraphQuery") to avoid a circular
+-- import between GraphQuery and Graph.
+fromGraphLens :: (GraphValue v, Eq v) => GraphLens v -> GraphQuery v
+fromGraphLens lens = GraphQuery
+  { queryNodes            = nodes lens
+  , queryRelationships    = relationships lens
+  , queryIncidentRels     = incidentRels lens
+  , querySource           = source lens
+  , queryTarget           = target lens
+  , queryDegree           = degree lens
+  , queryNodeById         = \i ->
+      foldr (\n acc -> if identify (value n) == i then Just n else acc)
+            Nothing
+            (nodes lens)
+  , queryRelationshipById = \i ->
+      foldr (\r acc -> if identify (value r) == i then Just r else acc)
+            Nothing
+            (relationships lens)
+  , queryContainers       = \p ->
+      let nodeId = identify (value p)
+          inRel r = case (source lens r, target lens r) of
+            (Just s, _) | identify (value s) == nodeId -> True
+            (_, Just t) | identify (value t) == nodeId -> True
+            _ -> False
+          containingRels  = filter inRel (relationships lens)
+          containingWalks = filter
+            (\w -> any (\r -> identify (value r) == nodeId) (elements w))
+            (walks lens)
+      in containingRels ++ containingWalks
+  }
+
+-- ============================================================================
+-- GraphView constructor from GraphLens
+-- ============================================================================
+
+-- | Construct a 'GraphView' from a 'GraphLens' and a 'GraphClassifier'.
+--
+-- The classifier assigns a 'GraphClass' tag to each element in the lens scope.
+-- 'viewQuery' is the snapshot query built from the same lens.
+--
+-- Note: defined here (not in "Pattern.Graph.GraphQuery") to avoid a circular
+-- import — GraphQuery cannot import Pattern.Graph.
+toGraphView
+  :: (GraphValue v, Eq v)
+  => GraphClassifier extra v
+  -> GraphLens v
+  -> GraphView extra v
+toGraphView classifier lens =
+  GraphView
+    { viewQuery    = fromGraphLens lens
+    , viewElements = map (\p -> (classify classifier p, p)) scopeElems
+    }
+  where
+    GraphLens (Pattern _ scopeElems) _ = lens

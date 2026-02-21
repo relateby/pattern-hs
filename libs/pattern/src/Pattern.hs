@@ -11,12 +11,17 @@
 --
 -- * @Pattern.Core@ - Core Pattern data type, construction functions, query functions,
 --   predicate functions, and typeclass instances (Functor, Applicative, Comonad, etc.)
--- * @Pattern.Graph@ - Low-level graph structural operations (GraphLens, nodes, relationships, incidentRels, etc.)
+-- * @Pattern.Graph@ - Low-level graph structural operations (GraphLens, nodes, relationships,
+--   incidentRels, etc.) and 'GraphView' constructor 'toGraphView'.
 -- * @Pattern.Graph.GraphQuery@ - Portable graph query interface ('GraphQuery', 'TraversalWeight',
 --   'fromGraphLens', combinators)
+-- * @Pattern.Graph.Types@ - 'GraphView' and 'Substitution' types (re-exported via @Pattern.Graph@)
 -- * @Pattern.Graph.Algorithms@ - Graph algorithms operating on 'GraphQuery' (bfs, dfs,
 --   shortestPath, connectedComponents, etc.)
--- * @Pattern.PatternGraph@ - Typed graph container with O(log n) lookups; 'fromPatternGraph'
+-- * @Pattern.Graph.Transform@ - Bulk graph transformations: 'unfoldGraph', 'mapGraph',
+--   'mapAllGraph', 'filterGraph', 'foldGraph', 'mapWithContext', 'paraGraph', 'paraGraphFixed'
+-- * @Pattern.PatternGraph@ - Typed graph container with O(log n) lookups; 'fromPatternGraph',
+--   'materialize', 'toGraphView'
 -- * @Pattern.Reconcile@ - Pattern reconciliation for normalizing duplicate identities
 --
 -- == Usage
@@ -28,9 +33,14 @@
 -- >>> value p
 -- "test"
 --
+-- For graph transformation pipelines:
+--
+-- > import Pattern
+-- > import Pattern.Graph.Transform (mapAllGraph, filterGraph, mapWithContext, materialize)
+-- > import Pattern.PatternGraph (fromPatternGraph)
+--
 -- For graph algorithms, import the algorithm modules directly:
 --
--- > import Pattern.PatternGraph (fromPatternGraph)
 -- > import Pattern.Graph.GraphQuery (directed)
 -- > import qualified Pattern.Graph.Algorithms as Alg
 --
@@ -44,19 +54,31 @@
 --
 -- * All public exports from @Pattern.Core@ (Pattern type, construction functions,
 --   query functions, predicate functions, helper functions, and all typeclass instances)
--- * All public exports from @Pattern.Graph@ (graph operations)
--- * All public exports from @Pattern.Reconcile@ (reconciliation operations)
+-- * All public exports from @Pattern.Graph@ (graph operations, 'GraphView', 'Substitution')
 -- * All public exports from @Pattern.Graph.GraphQuery@ (portable graph query interface)
+-- * All public exports from @Pattern.Graph.Transform@ (bulk transformations and iterative algorithms)
+-- * All public exports from @Pattern.PatternGraph@ (typed graph container and materialization)
+-- * All public exports from @Pattern.Reconcile@ (reconciliation operations)
 --
 -- Internal implementation details and helper functions are not exported through
 -- this module, ensuring a clean public API.
 module Pattern
   ( -- * Core Pattern Type and Operations
     module Pattern.Core
-    -- * Graph Operations
+    -- * Graph Operations and GraphView
   , module Pattern.Graph
     -- * Portable Graph Query Interface
   , module Pattern.Graph.GraphQuery
+    -- * Graph Transformations
+  , module Pattern.Graph.Transform
+    -- * Typed Graph Container
+  , PatternGraph(..)
+  , mergeWithPolicy
+  , fromPatterns
+  , fromPatternsWithPolicy
+  , empty
+  , fromPatternGraph
+  , materialize
     -- * Reconciliation Operations
   , module Pattern.Reconcile
   ) where
@@ -64,4 +86,14 @@ module Pattern
 import Pattern.Core
 import Pattern.Graph
 import Pattern.Graph.GraphQuery
+import Pattern.Graph.Transform
+import Pattern.PatternGraph
+  ( PatternGraph(..)
+  , mergeWithPolicy
+  , fromPatterns
+  , fromPatternsWithPolicy
+  , empty
+  , fromPatternGraph
+  , materialize
+  )
 import Pattern.Reconcile

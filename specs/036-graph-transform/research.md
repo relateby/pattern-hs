@@ -14,7 +14,7 @@ This document records key design decisions regarding `GraphView`, structural fol
 - **Alternatives Considered**: Incremental map updates (where subsequent elements "see" the mutations of prior elements). Rejected due to non-determinism and ordering dependence, creating correctness risks rather than a stable data structure API.
 
 ### Decision 3: Iterative Folding Convergence and Execution Order
-- **Decision**: `paraGraphFixed` executes rounds of pattern-centric structural folding (bottom-up by arity: nodes, then relationships, then walks), delegating convergence criteria between rounds to a user-supplied predicate (`r -> r -> Bool`) instead of utilizing strict `Eq r`.
+- **Decision**: `paraGraphFixed` executes rounds of pattern-centric structural folding (bottom-up containment order: atomic nodes first, then relationships, then walks, then annotations), delegating convergence criteria between rounds to a user-supplied predicate (`r -> r -> Bool`) instead of utilizing strict `Eq r`.
 - **Rationale**: By enforcing a pattern-centric execution model, we avoid complex topological sorting algorithms that fail on cycles. The fold naturally progresses up the compositional depth of `Pattern v`. Furthermore, iterative graph algorithms (PageRank, Belief Propagation, Centrality) inherently deal with floating point operations. Floating points seldom reach strict identity (`==`) in converging iterative processes. Requiring a generic predicate allows the caller to implement robust bounds, like `\old new -> abs(old - new) < epsilon`.
 - **Alternatives Considered**: Depending on typeclass `Eq`, or attempting to calculate graph-theoretic topological sorts. Rejected due to guaranteed divergence risks with real numbers and impossibility on cyclic graph structures.
 

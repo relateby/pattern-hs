@@ -14,14 +14,14 @@ description: "Task list for Graph Transform feature implementation"
 **Purpose**: Project initialization and basic types required before transformation stories begin.
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T001 Create structural file `src/Pattern/Graph/Types.hs` and define `Substitution v` type.
-- [ ] T002 Create structural file `src/Pattern/Graph/Transform.hs` with module exports.
-- [ ] T003 Create structural file `tests/Pattern/Graph/TransformSpec.hs` with hspec boilerplate.
-- [ ] T004 Define `GraphView` type and `fromPatternGraph`, `materialize` signatures in `src/Pattern/Graph.hs`.
-- [ ] T005 Implement `materialize` in `src/Pattern/Graph.hs`.
-- [ ] T006 Implement `fromPatternGraph` GraphView construction in `src/Pattern/Graph.hs`.
-- [ ] T007 Implement `fromGraphLens` GraphView construction in `src/Pattern/Graph.hs`.
-- [ ] T008 [P] Add unit tests for `GraphView` initialization and `materialize` in `tests/Pattern/GraphSpec.hs`.
+- [X] T001 Create structural file `src/Pattern/Graph/Types.hs` and define `Substitution v` type.
+- [X] T002 Create structural file `src/Pattern/Graph/Transform.hs` with module exports.
+- [X] T003 Create structural file `tests/Spec/Pattern/Graph/TransformSpec.hs` with hspec boilerplate.
+- [X] T004 Define `GraphView` type in `src/Pattern/Graph/Types.hs`; re-exported from `src/Pattern/Graph.hs`.
+- [X] T005 Implement `materialize` in `src/Pattern/PatternGraph.hs`.
+- [X] T006 Implement `toGraphView` (GraphView construction from PatternGraph) in `src/Pattern/PatternGraph.hs`.
+- [X] T007 Implement `toGraphView` (GraphView construction from GraphLens) in `src/Pattern/Graph.hs`.
+- [X] T008 [P] Add unit tests for `GraphView` initialization and `materialize` in `tests/Spec/Pattern/Graph/TransformSpec.hs`.
 
 **Checkpoint**: Foundation ready - `GraphView` is constructable and materializable.
 
@@ -35,13 +35,13 @@ description: "Task list for Graph Transform feature implementation"
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Add property tests for `unfold` in `tests/Pattern/CoreSpec.hs`.
-- [ ] T010 [P] [US1] Add unit tests for `unfoldGraph` with mock seed data in `tests/Pattern/Graph/TransformSpec.hs`.
+- [X] T009 [P] [US1] Add property tests for `unfold` in `tests/Spec/Pattern/CoreSpec.hs`.
+- [X] T010 [P] [US1] Add unit tests for `unfoldGraph` with mock seed data in `tests/Spec/Pattern/Graph/TransformSpec.hs`.
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Implement `unfold` anamorphism in `src/Pattern/Core.hs`.
-- [ ] T012 [US1] Implement `unfoldGraph` in `src/Pattern/Graph/Transform.hs` using `mergeWithPolicy` and `unfold`.
+- [X] T011 [P] [US1] Implement `unfold` anamorphism in `src/Pattern/Core.hs`.
+- [X] T012 [US1] Implement `unfoldGraph` in `src/Pattern/Graph/Transform.hs` using `mergeWithPolicy`.
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. You can now bootstrap graphs.
 
@@ -55,16 +55,16 @@ description: "Task list for Graph Transform feature implementation"
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add unit tests for `mapGraph` and `mapAllGraph` in `tests/Pattern/Graph/TransformSpec.hs`.
-- [ ] T014 [P] [US2] Add unit tests for `filterGraph` covering Walk gap substitutions in `tests/Pattern/Graph/TransformSpec.hs`.
-- [ ] T015 [P] [US2] Add unit tests for `foldGraph` aggregations in `tests/Pattern/Graph/TransformSpec.hs`.
+- [X] T013 [P] [US2] Add unit tests for `mapGraph` and `mapAllGraph` in `tests/Spec/Pattern/Graph/TransformSpec.hs`.
+- [X] T014 [P] [US2] Add unit tests for `filterGraph` covering Walk gap substitutions in `tests/Spec/Pattern/Graph/TransformSpec.hs`.
+- [X] T015 [P] [US2] Add unit tests for `foldGraph` aggregations in `tests/Spec/Pattern/Graph/TransformSpec.hs`.
 
 ### Implementation for User Story 2
 
-- [ ] T016 [P] [US2] Implement `mapGraph` with `{-# INLINE #-}` in `src/Pattern/Graph/Transform.hs`.
-- [ ] T017 [P] [US2] Implement `mapAllGraph` in `src/Pattern/Graph/Transform.hs`.
-- [ ] T018 [US2] Implement `filterGraph` applying `Substitution` logic for containers in `src/Pattern/Graph/Transform.hs`.
-- [ ] T019 [P] [US2] Implement `foldGraph` using Monoid accumulation in `src/Pattern/Graph/Transform.hs`.
+- [X] T016 [P] [US2] Implement `mapGraph` with `{-# INLINE #-}` in `src/Pattern/Graph/Transform.hs`.
+- [X] T017 [P] [US2] Implement `mapAllGraph` in `src/Pattern/Graph/Transform.hs`.
+- [X] T018 [US2] Implement `filterGraph` applying `Substitution` logic for containers in `src/Pattern/Graph/Transform.hs`.
+- [X] T019 [P] [US2] Implement `foldGraph` using Monoid accumulation in `src/Pattern/Graph/Transform.hs`.
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Bulk transforms are composable.
 
@@ -78,11 +78,11 @@ description: "Task list for Graph Transform feature implementation"
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Add unit tests verifying deterministic snapshot isolation for `mapWithContext` in `tests/Pattern/Graph/TransformSpec.hs`.
+- [X] T020 [P] [US3] Add unit tests verifying deterministic snapshot isolation for `mapWithContext` in `tests/Spec/Pattern/Graph/TransformSpec.hs`.
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Implement `mapWithContext` in `src/Pattern/Graph/Transform.hs` passing the unmodified `viewQuery` to the mapping function.
+- [X] T021 [US3] Implement `mapWithContext` in `src/Pattern/Graph/Transform.hs` passing the unmodified `viewQuery` to the mapping function.
 
 **Checkpoint**: All transformation and enrichment tasks are functional.
 
@@ -96,13 +96,13 @@ description: "Task list for Graph Transform feature implementation"
 
 ### Tests for User Story 4
 
-- [ ] T022 [P] [US4] Add unit tests for `paraGraph` (single structural round) in `tests/Pattern/Graph/TransformSpec.hs`.
-- [ ] T023 [US4] Add complex unit test for `paraGraphFixed` implementing a mock iterative convergence algorithm (e.g. PageRank-lite) in `tests/Pattern/Graph/TransformSpec.hs`.
+- [X] T022 [P] [US4] Add unit tests for `paraGraph` (single structural round) in `tests/Pattern/Graph/TransformSpec.hs`.
+- [X] T023 [US4] Add complex unit test for `paraGraphFixed` implementing a mock iterative convergence algorithm (e.g. PageRank-lite) in `tests/Pattern/Graph/TransformSpec.hs`.
 
 ### Implementation for User Story 4
 
-- [ ] T024 [P] [US4] Implement `paraGraph` as a bottom-up structural fold in `src/Pattern/Graph/Transform.hs`.
-- [ ] T025 [US4] Implement `paraGraphFixed` loop relying on the user-supplied convergence predicate (`r -> r -> Bool`) in `src/Pattern/Graph/Transform.hs`.
+- [X] T024 [P] [US4] Implement `paraGraph` as a bottom-up structural fold in `src/Pattern/Graph/Transform.hs`.
+- [X] T025 [US4] Implement `paraGraphFixed` loop relying on the user-supplied convergence predicate (`r -> r -> Bool`) in `src/Pattern/Graph/Transform.hs`.
 
 **Checkpoint**: Iterative algorithmic foundation is established.
 
@@ -112,10 +112,10 @@ description: "Task list for Graph Transform feature implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T026 [P] Update `Pattern.Graph` module documentation with `GraphView` details.
-- [ ] T027 [P] Export all new types and functions in top-level `src/Pattern.hs`.
-- [ ] T028 Run compilation check, run all `hspec` suites.
-- [ ] T029 Execute `quickstart.md` examples as a final integration sanity check.
+- [X] T026 [P] Update `Pattern.Graph` module documentation with `GraphView` details.
+- [X] T027 [P] Export all new types and functions in top-level `src/Pattern.hs`.
+- [X] T028 Run compilation check, run all `hspec` suites.
+- [X] T029 Execute `quickstart.md` examples as a final integration sanity check.
 
 ---
 

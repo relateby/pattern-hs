@@ -31,6 +31,8 @@ module Pattern.Core
   , indicesAt
     -- * Paramorphism Functions
   , para
+    -- * Anamorphism Functions
+  , unfold
   ) where
 
 import Prelude hiding (length)
@@ -1188,3 +1190,42 @@ indicesAt = go []
 para :: (Pattern v -> [r] -> r) -> Pattern v -> r
 para f (Pattern v els) = 
   f (Pattern v els) (map (para f) els)
+
+-- | Anamorphism: recursively unfold a seed value into a 'Pattern'.
+--
+-- The dual of 'para'. Given a seed of type @a@, the coalgebra function
+-- @f@ produces the decoration value @v@ and a list of child seeds. The
+-- process recurses until no children are produced (empty list), yielding
+-- atomic patterns at the leaves.
+--
+-- This is the canonical way to construct tree-shaped 'Pattern' structures
+-- from external data without manually building the recursive structure.
+--
+-- === Examples
+--
+-- Build a binary tree from an integer depth:
+--
+-- >>> unfold (\n -> (n, if n <= 0 then [] else [n-1, n-1])) 2
+-- Pattern 2 [Pattern 1 [Pattern 0 [],Pattern 0 []],Pattern 1 [Pattern 0 [],Pattern 0 []]]
+--
+-- Build a linear chain:
+--
+-- >>> unfold (\n -> (n, if n <= 0 then [] else [n-1])) 3
+-- Pattern 3 [Pattern 2 [Pattern 1 [Pattern 0 []]]]
+--
+-- Build an atomic pattern (no children):
+--
+-- >>> unfold (\s -> (s, [])) "leaf"
+-- Pattern "leaf" []
+--
+-- === Relationship to Other Operations
+--
+-- * 'para': The fold (catamorphism/paramorphism) — collapses a 'Pattern' to a value.
+-- * 'unfold': The unfold (anamorphism) — expands a seed into a 'Pattern'.
+-- * Together they form a hylomorphism when composed.
+--
+-- @since 0.4.0
+unfold :: (a -> (v, [a])) -> a -> Pattern v
+unfold f seed =
+  let (v, children) = f seed
+  in Pattern v (map (unfold f) children)

@@ -33,7 +33,7 @@ The conceptual graph models act exclusively via type-safe category-bound data tr
    - Mappers map per `GraphClass` and retain internal referential structure.
 
 3. **Paramorphisms for Topology** (`paraGraph`):
-   - Computes results matching `Map (Id v) r` against nodes. Folds structurally bottom-up via pattern depth (arity 0 nodes, arity 2 relationships, arity N walks), avoiding graph-topological sorts entirely in favor of data-structural anamorphisms.
+   - Computes results matching `Map (Id v) r` against nodes. Folds in bottom-up containment order (atomic nodes first, then relationships, then walks, then annotations), ensuring each element is processed only after the elements it contains. Avoids graph-topological sorts entirely in favor of data-structural containment depth.
 
 ## Validation & State Constraints
 
