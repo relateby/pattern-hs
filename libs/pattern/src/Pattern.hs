@@ -36,8 +36,8 @@
 -- For graph transformation pipelines:
 --
 -- > import Pattern
--- > import Pattern.Graph.Transform (mapAllGraph, filterGraph, mapWithContext, materialize)
--- > import Pattern.PatternGraph (fromPatternGraph)
+-- > import Pattern.Graph.Transform (mapAllGraph, filterGraph, mapWithContext)
+-- > import Pattern.PatternGraph (fromPatternGraph, materialize)
 --
 -- For graph algorithms, import the algorithm modules directly:
 --
@@ -57,7 +57,8 @@
 -- * All public exports from @Pattern.Graph@ (graph operations, 'GraphView', 'Substitution')
 -- * All public exports from @Pattern.Graph.GraphQuery@ (portable graph query interface)
 -- * All public exports from @Pattern.Graph.Transform@ (bulk transformations and iterative algorithms)
--- * All public exports from @Pattern.PatternGraph@ (typed graph container and materialization)
+-- * Selected exports from @Pattern.PatternGraph@ (PatternGraph, mergeWithPolicy, fromPatterns,
+--   fromPatternsWithPolicy, empty, fromPatternGraph, materialize); 'toGraphView' is available via @Pattern.Graph@
 -- * All public exports from @Pattern.Reconcile@ (reconciliation operations)
 --
 -- Internal implementation details and helper functions are not exported through

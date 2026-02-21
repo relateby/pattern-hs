@@ -97,8 +97,9 @@ module Pattern.Graph
   , fromGraphLens
     -- * GraphView constructor
   , toGraphView
-    -- * GraphView Type (re-exported from Pattern.Graph.Types)
+    -- * GraphView and Substitution (re-exported from Pattern.Graph.Types)
   , GraphView(..)
+  , Substitution(..)
   ) where
 
 import Pattern.Core (Pattern(..))
@@ -106,7 +107,7 @@ import Data.Maybe (mapMaybe)
 
 import Pattern.Graph.GraphClassifier (GraphClass(..), GraphClassifier(..), GraphValue(..))
 import Pattern.Graph.GraphQuery (GraphQuery(..))
-import Pattern.Graph.Types (GraphView(..))
+import Pattern.Graph.Types (GraphView(..), Substitution(..))
 
 -- | A Graph Lens provides an interpretive view of a Pattern as a graph structure.
 -- 

@@ -9,9 +9,10 @@ A pipeline always starts by applying a `GraphView` wrapper against your data sou
 ```haskell
 import Pattern.Graph
 import Pattern.Graph.Transform
+import Pattern.Graph.GraphClassifier (canonicalClassifier)
 
--- Convert existing graph into uniform view
-let view = fromPatternGraph canonicalClassifier myGraph
+-- Convert existing graph into uniform view (GraphView, not GraphQuery)
+let view = toGraphView canonicalClassifier myGraph
 ```
 
 ## 2. Pipelined Transformations
@@ -25,7 +26,7 @@ pipeline graph =
   . mapWithContext canonicalClassifier enrich     -- Advanced mapped queries
   . filterGraph canonicalClassifier isRelevant dissolve -- Pruning bad connections
   . mapAllGraph updateTimestamp                   -- Quick blanket update
-  . fromPatternGraph canonicalClassifier          -- Entry
+  . toGraphView canonicalClassifier              -- Entry: PatternGraph -> GraphView
   $ graph
 ```
 
