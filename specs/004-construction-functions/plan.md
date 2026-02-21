@@ -11,7 +11,7 @@ Implement three constructor functions to simplify pattern creation: `pattern` fo
 
 ## Technical Context
 
-**Language/Version**: Haskell / GHC 9.10.3 (from cabal.project, matches existing features)  
+**Language/Version**: Haskell / GHC 9.12.2 (from cabal.project, matches existing features)  
 **Primary Dependencies**: `base` ^>=4.17.0.0, `containers` ^>=0.6 (from existing pattern.cabal)  
 **Storage**: N/A (in-memory data structure)  
 **Testing**: QuickCheck ^>=2.14, hspec ^>=2.11 (from existing pattern.cabal)  

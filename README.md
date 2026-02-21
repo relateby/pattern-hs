@@ -7,13 +7,13 @@ A multi-library Haskell mono-repo providing libraries and tools for working with
 ### Installation
 
 **Prerequisites**:
-- GHC 9.10.3
+- GHC 9.12.2
 - Cabal 3.6.2.0 or later
 
 **Using ghcup**:
 ```bash
-ghcup install ghc 9.10.3
-ghcup set ghc 9.10.3
+ghcup install ghc 9.12.2
+ghcup set ghc 9.12.2
 ghcup install cabal
 ghcup set cabal
 ```

@@ -11,7 +11,7 @@ Implement a **PatternGraph** container type backed by `Pattern v`, storing nodes
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.10.3 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal)  
+**Language/Version**: Haskell (GHC 9.12.2 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal)  
 **Primary Dependencies**: pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern)  
 **Storage**: In-memory only (Map keyed by Id v); gram files for round-trip via libs/gram parse/serialize  
 **Testing**: Hspec, QuickCheck (pattern-test in libs/pattern); property tests for merge/classification  

@@ -3,38 +3,38 @@
 Auto-generated from all feature plans. Last updated: 2025-11-04
 
 ## Active Technologies
-- Haskell / GHC 9.8.4 (from cabal.project, matches feature 001) + `base` ^>=4.17.0.0, `containers` ^>=0.6 (from existing pattern.cabal) (002-basic-pattern-type)
+- Haskell / GHC 9.12.2 (from cabal.project, matches feature 001) + `base` ^>=4.17.0.0, `containers` ^>=0.6 (from existing pattern.cabal) (002-basic-pattern-type)
 - N/A (in-memory data structure) (002-basic-pattern-type)
-- Haskell (GHC 9.10.3) + Standard Haskell libraries (base, no external dependencies for this feature) (001-pattern-structure-review)
+- Haskell (GHC 9.12.2) + Standard Haskell libraries (base, no external dependencies for this feature) (001-pattern-structure-review)
 - N/A (documentation review feature, no data storage) (001-pattern-structure-review)
-- Haskell (GHC 9.8.4, 9.10.3) + `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11` (005-functor-instance)
-- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6 (008-basic-query-functions)
+- Haskell (GHC 9.12.2) + `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11` (005-functor-instance)
+- Haskell (GHC 9.12.2) + base >=4.17.0.0, containers ^>=0.6 (008-basic-query-functions)
 - N/A (pure functional data structure) (008-basic-query-functions)
-- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4 (012-hashable-instance)
-- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, QuickCheck (for property-based testing), Hspec (for test framework) (013-applicative-instance)
-- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, comonad (for Comonad typeclass), QuickCheck (for property-based testing), Hspec (for test framework) (014-comonad-instance)
-- Haskell (GHC 9.8.4, 9.10.3) + base >=4.17.0.0, comonad ^>=5, containers ^>=0.6, hashable ^>=1.4, unordered-containers ^>=0.2 (015-integration-polish)
+- Haskell (GHC 9.12.2) + base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4 (012-hashable-instance)
+- Haskell (GHC 9.12.2) + base >=4.17.0.0, QuickCheck (for property-based testing), Hspec (for test framework) (013-applicative-instance)
+- Haskell (GHC 9.12.2) + base >=4.17.0.0, comonad (for Comonad typeclass), QuickCheck (for property-based testing), Hspec (for test framework) (014-comonad-instance)
+- Haskell (GHC 9.12.2) + base >=4.17.0.0, comonad ^>=5, containers ^>=0.6, hashable ^>=1.4, unordered-containers ^>=0.2 (015-integration-polish)
 - N/A (in-memory data structure library) (015-integration-polish)
-- Haskell (GHC 9.10.3, 9.8.4) (014-gram-serialization)
+- Haskell (GHC 9.12.2) (014-gram-serialization)
 - N/A (text serialization/deserialization library) (014-gram-serialization)
-- Haskell (GHC 9.x) + `megaparsec` (parsing), `hspec` (testing) (016-gram-parsing-conformance)
+- Haskell (GHC 9.12.2) + `megaparsec` (parsing), `hspec` (testing) (016-gram-parsing-conformance)
 - N/A (In-memory data structures) (016-gram-parsing-conformance)
-- Haskell (GHC 9.8/9.10) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String) (020-subject-serialization)
-- Haskell / GHC 8.10.7+ (compatible with base >=4.17.0.0 && <5) (023-graph-lens)
+- Haskell (GHC 9.12.2) + `megaparsec` (parsing), `containers` (Map/Set), `text` (likely for efficiency, though current code uses String) (020-subject-serialization)
+- Haskell / GHC 9.12.2 (compatible with base >=4.17.0.0 && <5) (023-graph-lens)
 - N/A (in-memory data structure, no persistence) (023-graph-lens)
-- Haskell (GHC 9.10.3) + Megaparsec (parser combinators), pattern library, subject library (024-codefence-strings)
+- Haskell (GHC 9.12.2) + Megaparsec (parser combinators), pattern library, subject library (024-codefence-strings)
 - N/A (in-memory transformation) (024-codefence-strings)
 - Markdown documentation (CommonMark/GitHub Flavored Markdown) + Git (version control), Markdown renderers (GitHub, local viewers) (022-documentation-reorganization)
 - Git repository (markdown files in `docs/` directory structure) (022-documentation-reorganization)
 - Markdown documentation files + Git (for `git mv` to preserve history) (027-docs-reorganization)
 - File system (documentation files) (027-docs-reorganization)
-- Haskell with GHC 9.10.3 + aeson (JSON), aeson-pretty (formatting), optparse-applicative (CLI), pattern (core), subject (values), gram (serialization) (029-canonical-json-pattern)
+- Haskell with GHC 9.12.2 + aeson (JSON), aeson-pretty (formatting), optparse-applicative (CLI), pattern (core), subject (values), gram (serialization) (029-canonical-json-pattern)
 - N/A (serialization library feature) (029-canonical-json-pattern)
-- Haskell 2010 (GHC 9.4+) + `megaparsec`, `containers`, `pattern-core`, `subject` (030-separate-container-content-parsing)
+- Haskell 2010 (GHC 9.12.2) + `megaparsec`, `containers`, `pattern-core`, `subject` (030-separate-container-content-parsing)
 - N/A (Codec library) (030-separate-container-content-parsing)
-- Haskell (GHC 9.10.3) + megaparsec (parsing), hspec (testing) (032-gram-annotation-syntax)
+- Haskell (GHC 9.12.2) + megaparsec (parsing), hspec (testing) (032-gram-annotation-syntax)
 - N/A (in-memory CST) (032-gram-annotation-syntax)
-- Haskell (GHC 9.10.3 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern) (033-pattern-graph)
+- Haskell (GHC 9.12.2 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern) (033-pattern-graph)
 - In-memory only (Map keyed by Id v); gram files for round-trip via libs/gram parse/serialize (033-pattern-graph)
 
 - (001-pattern-data-structure)
@@ -55,9 +55,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
-- 033-pattern-graph: Added Haskell (GHC 9.10.3 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern)
-- 032-gram-annotation-syntax: Added Haskell (GHC 9.10.3) + megaparsec (parsing), hspec (testing)
-- 030-separate-container-content-parsing: Added Haskell 2010 (GHC 9.4+) + `megaparsec`, `containers`, `pattern-core`, `subject`
+- 033-pattern-graph: Added Haskell (GHC 9.12.2 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern)
+- 032-gram-annotation-syntax: Added Haskell (GHC 9.12.2) + megaparsec (parsing), hspec (testing)
+- 030-separate-container-content-parsing: Added Haskell 2010 (GHC 9.12.2) + `megaparsec`, `containers`, `pattern-core`, `subject`
 
 
 <!-- MANUAL ADDITIONS START -->

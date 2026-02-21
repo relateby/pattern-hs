@@ -11,7 +11,7 @@ Establish a canonical JSON representation of Pattern<Subject> as a first-class s
 
 ## Technical Context
 
-**Language/Version**: Haskell with GHC 9.10.3  
+**Language/Version**: Haskell with GHC 9.12.2  
 **Primary Dependencies**: aeson (JSON), aeson-pretty (formatting), optparse-applicative (CLI), pattern (core), subject (values), gram (serialization)  
 **Storage**: N/A (serialization library feature)  
 **Testing**: hspec (unit tests), QuickCheck (property-based tests), existing tree-sitter-gram test corpus  

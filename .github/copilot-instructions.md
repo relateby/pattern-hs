@@ -56,7 +56,7 @@ All code MUST comply with `.specify/memory/constitution.md`:
 ## Build and Test Commands
 
 ### Prerequisites
-- GHC 9.10.3 (specified in `cabal.project`)
+- GHC 9.12.2 (specified in `cabal.project`)
 - Cabal 3.6.2.0 or later
 
 ### Build Commands

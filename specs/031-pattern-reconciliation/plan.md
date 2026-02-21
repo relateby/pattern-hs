@@ -17,7 +17,7 @@ The technical approach involves:
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.10.3)
+**Language/Version**: Haskell (GHC 9.12.2)
 **Primary Dependencies**:
   - `pattern` library (v0.3.0.0) - provides Pattern type and operations
   - `subject` library (v0.1.0.0) - provides Subject type with identity, labels, properties

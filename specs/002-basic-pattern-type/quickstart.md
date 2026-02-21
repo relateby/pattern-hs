@@ -10,7 +10,7 @@ This quickstart guide shows how to create and use the basic Pattern type. The Pa
 ## Prerequisites
 
 - Haskell project with Pattern library installed
-- GHC 9.10.3 or compatible version
+- GHC 9.12.2 or compatible version
 - Basic understanding of Haskell data types
 
 ## Getting Started

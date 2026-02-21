@@ -11,7 +11,7 @@ Evaluate use cases for hash-based containers, design hash semantics consistent w
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.8.4, 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: base >=4.17.0.0, containers ^>=0.6, hashable ^>=1.4  
 **Storage**: N/A (pure functional data structure)  
 **Testing**: hspec ^>=2.11, QuickCheck ^>=2.14  

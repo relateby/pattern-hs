@@ -18,7 +18,7 @@ The technical approach involves:
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.10.3, 9.8.4)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: base >=4.17.0.0, pattern, subject, containers ^>=0.6, text >=2.0, parsing library (NEEDS CLARIFICATION: tree-sitter-gram vs. Parsec/Megaparsec)  
 **Storage**: N/A (text serialization/deserialization library)  
 **Testing**: hspec ^>=2.11, QuickCheck ^>=2.14 (for property-based tests), tree-sitter-gram test corpus integration  

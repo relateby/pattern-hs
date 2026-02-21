@@ -16,7 +16,7 @@ The technical approach involves reviewing current exports, organizing them into 
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.8.4, 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: base >=4.17.0.0, comonad ^>=5, containers ^>=0.6, hashable ^>=1.4, unordered-containers ^>=0.2  
 **Storage**: N/A (in-memory data structure library)  
 **Testing**: hspec ^>=2.11, QuickCheck ^>=2.14, mtl ^>=2.3  

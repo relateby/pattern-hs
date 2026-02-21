@@ -3,7 +3,7 @@
 This guide explains how to verify the integration and polish of the `pattern` library.
 
 ## Prerequisites
-- GHC 9.8+
+- GHC 9.12.2
 - Cabal 3.10+
 
 ## 1. Generating Documentation

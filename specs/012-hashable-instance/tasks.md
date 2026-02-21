@@ -154,7 +154,7 @@
 ### Final Validation
 
 - [x] T048 Verify all tests pass (run full test suite with timeout)
-- [x] T049 Verify `Hashable` instance compiles with all supported GHC versions (9.8.4, 9.10.3)
+- [x] T049 Verify `Hashable` instance compiles with all supported GHC versions (9.12.2)
 - [x] T050 Verify `Hashable` instance follows Haskell best practices and conventions
 
 **Checkpoint**: ✅ At this point, all tests pass, documentation is updated, and `Hashable` instance is fully integrated with the Pattern library.

@@ -11,7 +11,7 @@ Implement a semantic validator for the Gram language that enforces core rules: s
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.8+)
+**Language/Version**: Haskell (GHC 9.12.2)
 **Primary Dependencies**: `gram`, `pattern`, `megaparsec` (for error bundle types), `containers`, `mtl`
 **Storage**: N/A (In-memory validation)
 **Testing**: `hspec` for behavior verification

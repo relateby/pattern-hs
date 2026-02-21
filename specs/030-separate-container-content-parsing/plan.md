@@ -9,7 +9,7 @@ The core requirement is to refactor the `pattern-hs` parsing and serialization b
 
 ## Technical Context
 
-**Language/Version**: Haskell 2010 (GHC 9.4+)
+**Language/Version**: Haskell 2010 (GHC 9.12.2)
 **Primary Dependencies**: `megaparsec`, `containers`, `pattern-core`, `subject`
 **Storage**: N/A (Codec library)
 **Testing**: `hspec`, `QuickCheck`

@@ -9,7 +9,7 @@ Add support for multiline strings using triple-backtick codefence syntax in both
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: Megaparsec (parser combinators), pattern library, subject library  
 **Storage**: N/A (in-memory transformation)  
 **Testing**: Hspec (unit tests), QuickCheck (property-based tests)  

@@ -11,7 +11,7 @@ Initialize a Haskell project for a Pattern data structure that serves as a gener
 
 ## Technical Context
 
-**Language/Version**: Haskell / GHC - NEEDS CLARIFICATION (current: 8.10.7, latest: 9.10.1)  
+**Language/Version**: Haskell / GHC 9.12.2 (from cabal.project)  
 **Primary Dependencies**: NEEDS CLARIFICATION (will need category theory libraries, property testing frameworks, possibly graph libraries)  
 **Build Tool**: NEEDS CLARIFICATION (Cabal 3.6.2.0 available, Stack 2.7.5 available - need to choose)  
 **Storage**: N/A (in-memory data structure)  

@@ -444,7 +444,6 @@ spec = do
               length elems `shouldBe` 2
               let ids = map (Subj.identity . value) elems
               Set.fromList ids `shouldBe` Set.fromList [Symbol "alice", Symbol "bob"]
-            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
             Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
 
     describe "User Story 5: Track Reconciliation Actions (P4)" $ do
