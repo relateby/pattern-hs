@@ -11,7 +11,7 @@ Implement a `Traversable` instance for the `Pattern` data type that enables trav
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.8.4, 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: `base >=4.17.0.0 && <5`, `QuickCheck ^>=2.14`, `hspec ^>=2.11`  
 **Storage**: N/A (in-memory data structure)  
 **Testing**: Hspec for unit tests, QuickCheck for property-based testing  

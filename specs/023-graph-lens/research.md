@@ -173,7 +173,7 @@ This document consolidates research findings and design decisions for implementi
 - ✅ Pattern library provides `Pattern v` with `Eq` instance
 - ✅ `containers` library available for Set/Map
 - ✅ `hspec` and `QuickCheck` available for testing
-- ✅ GHC 8.10.7+ supports required language features
+- ✅ GHC 9.12.2 supports required language features
 - ✅ Base library provides necessary functions
 
 ## Open Questions (Resolved During Implementation)

@@ -12,7 +12,7 @@ Create comprehensive end-user documentation for the Pattern library that progres
 ## Technical Context
 
 **Language/Version**: Markdown (CommonMark/GitHub Flavored Markdown)  
-**Primary Dependencies**: Markdown rendering (GitHub Pages, Haddock, or similar), Haskell code examples (GHC 9.10.3)  
+**Primary Dependencies**: Markdown rendering (GitHub Pages, Haddock, or similar), Haskell code examples (GHC 9.12.2)  
 **Storage**: Markdown files in `docs/users/` directory  
 **Testing**: Documentation review process, user testing with target audience (test readers)  
 **Target Platform**: Web (GitHub Pages or similar) and source files (Markdown)  

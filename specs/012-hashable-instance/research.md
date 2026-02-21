@@ -178,7 +178,7 @@ instance Hashable v => Hashable (Pattern v) where
 - Standard library for `Hashable` typeclass
 - Provides `hashWithSalt` function for proper hash combination
 - Well-tested and widely used
-- Compatible with GHC 9.8.4 and 9.10.3
+- Compatible with GHC 9.12.2
 
 ### Documentation Requirements
 

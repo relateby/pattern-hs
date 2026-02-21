@@ -30,7 +30,7 @@ In this quick start, you'll:
 ## Prerequisites
 
 - Basic Haskell knowledge
-- GHC 9.10.3 or later
+- GHC 9.12.2 or later
 - Pattern library installed
 
 ## Your First Pattern

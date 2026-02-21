@@ -7,7 +7,7 @@
 
 ### Technical Context
 
-**Decision**: Use existing project infrastructure from feature 001 (GHC 9.10.3, Cabal, QuickCheck/HSpec).
+**Decision**: Use existing project infrastructure from feature 001 (GHC 9.12.2, Cabal, QuickCheck/HSpec).
 
 **Rationale**: 
 - Feature 001 already established the project structure and tooling

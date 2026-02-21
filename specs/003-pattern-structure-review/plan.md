@@ -18,7 +18,7 @@ This is primarily a documentation and specification refinement task, not a code 
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: Standard Haskell libraries (base, no external dependencies for this feature)  
 **Storage**: N/A (documentation review feature, no data storage)  
 **Testing**: Documentation review and consistency validation (manual review process)  

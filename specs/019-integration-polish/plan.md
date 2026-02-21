@@ -11,7 +11,7 @@ Finalize the core `Pattern` library API by establishing explicit export contract
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.8+)
+**Language/Version**: Haskell (GHC 9.12.2)
 **Primary Dependencies**: `base`, `comonad`, `containers`, `hashable`, `hspec`, `QuickCheck`
 **Storage**: N/A (Library)
 **Testing**: `hspec` (Behavior), `QuickCheck` (Properties)

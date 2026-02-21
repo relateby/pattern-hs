@@ -11,7 +11,7 @@ Implement a Comonad instance for the Pattern type that enables context-aware com
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.8.4, 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: base >=4.17.0.0, comonad (for Comonad typeclass), QuickCheck (for property-based testing), Hspec (for test framework)  
 **Storage**: N/A (in-memory data structure)  
 **Testing**: Hspec for unit tests, QuickCheck for property-based testing of Comonad laws  

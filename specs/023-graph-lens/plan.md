@@ -11,7 +11,7 @@ Implement the Graph Lens feature as a categorical functor interpretation of Patt
 
 ## Technical Context
 
-**Language/Version**: Haskell / GHC 8.10.7+ (compatible with base >=4.17.0.0 && <5)  
+**Language/Version**: Haskell / GHC 9.12.2 (compatible with base >=4.17.0.0 && <5)  
 **Primary Dependencies**: 
 - `base >=4.17.0.0 && <5` (standard library)
 - `containers ^>=0.6` (Set, Map for efficient graph operations)

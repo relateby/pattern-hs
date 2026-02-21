@@ -11,7 +11,7 @@ Implement the foundational Pattern data type as a decorated sequence that stores
 
 ## Technical Context
 
-**Language/Version**: Haskell / GHC 9.10.3 (from cabal.project, matches feature 001)  
+**Language/Version**: Haskell / GHC 9.12.2 (from cabal.project, matches feature 001)  
 **Primary Dependencies**: `base` ^>=4.17.0.0, `containers` ^>=0.6 (from existing pattern.cabal)  
 **Storage**: N/A (in-memory data structure)  
 **Testing**: QuickCheck ^>=2.14, hspec ^>=2.10, hspec-quickcheck ^>=0.1.0 (from existing pattern.cabal)  
@@ -85,7 +85,7 @@ No violations - this is a simple, foundational data type that aligns with all co
 **Output**: `research.md`
 
 **Decisions Made**:
-- Use existing project infrastructure (GHC 9.10.3, Cabal, QuickCheck/HSpec)
+- Use existing project infrastructure (GHC 9.12.2, Cabal, QuickCheck/HSpec)
 - Define Pattern as standard Haskell algebraic data type with record syntax
 - Use `value` and `elements` as field names
 - Use Haddock documentation with mathematical explanations
@@ -122,7 +122,7 @@ No violations - this is a simple, foundational data type that aligns with all co
    - Type safety examples
    - Troubleshooting
 
-4. **Agent Context**: Updated with Haskell/GHC 9.10.3, base/containers dependencies
+4. **Agent Context**: Updated with Haskell/GHC 9.12.2, base/containers dependencies
 
 **Constitution Check (Post-Phase 1)**:
 

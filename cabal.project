@@ -8,6 +8,5 @@ packages:
   libs/gram/
   apps/gramref-cli/
 
--- Use GHC 9.10.3 (latest stable version with good tooling support)
-with-compiler: ghc-9.10.3
-
+-- Use GHC 9.12.2 (latest stable version with good tooling support)
+with-compiler: ghc-9.12.2

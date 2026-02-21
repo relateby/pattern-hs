@@ -14,7 +14,7 @@ Update the Haskell Gram parser to support the extended annotation syntax defined
 
 ## Technical Context
 
-**Language/Version**: Haskell (GHC 9.10.3)  
+**Language/Version**: Haskell (GHC 9.12.2)  
 **Primary Dependencies**: megaparsec (parsing), hspec (testing)  
 **Storage**: N/A (in-memory CST)  
 **Testing**: hspec unit tests; tree-sitter-gram corpus runner (libs/gram test suite)  
