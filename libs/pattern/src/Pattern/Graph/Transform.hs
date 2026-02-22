@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}  -- required for Reconcile.HasIdentity v (Id v), Ord (Id v), etc.
+{-# LANGUAGE FlexibleContexts #-}  -- Reconcile.HasIdentity v (Id v), Ord (Id v) in signatures
 
 -- | Graph transformation operations over 'GraphView'.
 --
