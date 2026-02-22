@@ -20,8 +20,9 @@
 --
 -- == Example
 --
--- > import Pattern.Graph.GraphQuery (fromGraphLens, directed)
+-- > import Pattern.Graph (fromGraphLens)
 -- > import Pattern.PatternGraph (fromPatternGraph)
+-- > import Pattern.Graph.GraphQuery (directed)
 -- > import qualified Pattern.Graph.Algorithms as Alg
 -- >
 -- > -- From a PatternGraph (O(log n) lookups):
@@ -42,12 +43,12 @@ module Pattern.Graph.GraphQuery
   , directedReverse
     -- * GraphQuery interface
   , GraphQuery(..)
-    -- * Constructors
-  , fromGraphLens
+    -- * Combinators
+    -- Note: 'fromGraphLens' is defined in "Pattern.Graph" to avoid a circular
+    -- import (GraphQuery → Graph → GraphQuery).
     -- Note: 'fromPatternGraph' is defined in "Pattern.PatternGraph" to avoid
     -- a circular import (GraphQuery → PatternGraph → Graph → GraphQuery).
-    -- Import it from "Pattern.PatternGraph" directly.
-    -- * Combinators
+    -- Import constructors from their respective modules directly.
   , frameQuery
   , memoizeIncidentRels
   ) where
@@ -55,8 +56,6 @@ module Pattern.Graph.GraphQuery
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Pattern.Core (Pattern(..))
-import Pattern.Graph (GraphLens(..))
-import qualified Pattern.Graph as G
 import Pattern.Graph.GraphClassifier (GraphValue(..))
 
 -- Note: 'fromPatternGraph' is defined in "Pattern.PatternGraph" to avoid
@@ -147,39 +146,6 @@ data GraphQuery v = GraphQuery
   , queryContainers       :: Pattern v -> [Pattern v]
     -- ^ All higher-order structures (relationships, walks, annotations) that directly
     -- contain the given element. O(r + w + a).
-  }
-
--- ============================================================================
--- Constructors
--- ============================================================================
-
--- | Construct a 'GraphQuery' from a 'GraphLens'.
---
--- All fields are derived from existing 'Pattern.Graph' functions.
--- 'queryNodeById' and 'queryRelationshipById' perform O(n) \/ O(r) scans
--- (no index available from 'GraphLens'). 'queryContainers' scans relationships
--- and walks.
-fromGraphLens :: (GraphValue v, Eq v) => GraphLens v -> GraphQuery v
-fromGraphLens lens = GraphQuery
-  { queryNodes            = G.nodes lens
-  , queryRelationships    = G.relationships lens
-  , queryIncidentRels     = G.incidentRels lens
-  , querySource           = G.source lens
-  , queryTarget           = G.target lens
-  , queryDegree           = G.degree lens
-  , queryNodeById         = \i -> let ns = G.nodes lens
-                                  in foldr (\n acc -> if identify (value n) == i then Just n else acc) Nothing ns
-  , queryRelationshipById = \i -> let rs = G.relationships lens
-                                  in foldr (\r acc -> if identify (value r) == i then Just r else acc) Nothing rs
-  , queryContainers       = \p ->
-      let nodeId = identify (value p)
-          inRel r = case (G.source lens r, G.target lens r) of
-            (Just s, _) | identify (value s) == nodeId -> True
-            (_, Just t) | identify (value t) == nodeId -> True
-            _ -> False
-          containingRels = filter inRel (G.relationships lens)
-          containingWalks = filter (\w -> any (\r -> identify (value r) == nodeId) (elements w)) (G.walks lens)
-      in containingRels ++ containingWalks
   }
 
 -- ============================================================================

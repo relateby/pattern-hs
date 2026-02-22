@@ -14,7 +14,7 @@ import Test.Hspec
 import Test.QuickCheck
 
 import Pattern.Core (Pattern(..), point)
-import Pattern.Graph (GraphLens(..), mkGraphLens)
+import Pattern.Graph (GraphLens(..), mkGraphLens, fromGraphLens)
 import Pattern.Graph.GraphClassifier (GraphValue(..), canonicalClassifier)
 import Pattern.Graph.GraphQuery
 import Pattern.PatternGraph (PatternGraph(..), empty, merge, fromPatterns, fromPatternGraph)

@@ -27,6 +27,8 @@ library
         Pattern.Graph.GraphClassifier
         Pattern.Graph.GraphQuery
         Pattern.Graph.Algorithms
+        Pattern.Graph.Types
+        Pattern.Graph.Transform
         Pattern.PatternGraph
         Pattern.Reconcile
 
@@ -53,6 +55,7 @@ test-suite pattern-test
         Spec.Pattern.Graph.GraphClassifierSpec
         Spec.Pattern.Graph.GraphQuerySpec
         Spec.Pattern.Graph.AlgorithmsSpec
+        Spec.Pattern.Graph.TransformSpec
         Spec.Pattern.PatternGraphProperties
         Spec.Pattern.PatternGraphSpec
         Spec.Pattern.Properties

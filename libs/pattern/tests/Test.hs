@@ -7,6 +7,7 @@ import qualified Spec.Pattern.GraphSpec as GraphSpec
 import qualified Spec.Pattern.Graph.GraphClassifierSpec as GraphClassifierSpec
 import qualified Spec.Pattern.Graph.GraphQuerySpec as GraphQuerySpec
 import qualified Spec.Pattern.Graph.AlgorithmsSpec as AlgorithmsSpec
+import qualified Spec.Pattern.Graph.TransformSpec as TransformSpec
 import qualified Spec.Pattern.PatternGraphProperties as PatternGraphProperties
 import qualified Spec.Pattern.PatternGraphSpec as PatternGraphSpec
 import qualified Spec.Pattern.Properties as Properties
@@ -24,6 +25,7 @@ testSpec = do
     GraphClassifierSpec.spec
     GraphQuerySpec.spec
     AlgorithmsSpec.spec
+    TransformSpec.spec
     PatternGraphSpec.spec
     PatternGraphProperties.spec
     Properties.spec
