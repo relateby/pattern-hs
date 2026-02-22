@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts #-}  -- required for Reconcile.HasIdentity v (Id v), Ord (Id v), etc.
 
 -- | Graph transformation operations over 'GraphView'.
 --
@@ -9,13 +9,13 @@
 -- == Overview
 --
 -- Transformations operate lazily over 'GraphView' and are composed by
--- function composition. Finalize a pipeline by calling 'Pattern.Graph.materialize'.
+-- function composition. Finalize a pipeline by calling 'Pattern.PatternGraph.materialize'.
 --
 -- == Example
 --
 -- > pipeline :: PatternGraph Subject -> PatternGraph Subject
 -- > pipeline graph =
--- >   materialize canonicalClassifier LastWriteWins
+-- >   Pattern.PatternGraph.materialize canonicalClassifier LastWriteWins
 -- >   . mapWithContext canonicalClassifier enrich
 -- >   . filterGraph canonicalClassifier isRelevant dissolve
 -- >   . mapAllGraph updateTimestamp

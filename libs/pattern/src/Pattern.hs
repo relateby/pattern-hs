@@ -11,10 +11,10 @@
 --
 -- * @Pattern.Core@ - Core Pattern data type, construction functions, query functions,
 --   predicate functions, and typeclass instances (Functor, Applicative, Comonad, etc.)
--- * @Pattern.Graph@ - Low-level graph structural operations (GraphLens, nodes, relationships,
---   incidentRels, etc.) and 'GraphView' constructor 'toGraphView'.
+-- * @Pattern.Graph@ - Low-level graph structural operations (GraphLens, 'fromGraphLens', nodes,
+--   relationships, incidentRels, etc.) and 'GraphView' constructor 'toGraphView'.
 -- * @Pattern.Graph.GraphQuery@ - Portable graph query interface ('GraphQuery', 'TraversalWeight',
---   'fromGraphLens', combinators)
+--   combinators)
 -- * @Pattern.Graph.Types@ - 'GraphView' and 'Substitution' types (re-exported via @Pattern.Graph@)
 -- * @Pattern.Graph.Algorithms@ - Graph algorithms operating on 'GraphQuery' (bfs, dfs,
 --   shortestPath, connectedComponents, etc.)
@@ -37,7 +37,7 @@
 --
 -- > import Pattern
 -- > import Pattern.Graph.Transform (mapAllGraph, filterGraph, mapWithContext)
--- > import Pattern.PatternGraph (fromPatternGraph, materialize)
+-- > import Pattern.PatternGraph (toGraphView, materialize)
 --
 -- For graph algorithms, import the algorithm modules directly:
 --

@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
-
 -- | Types for graph transformation operations.
 --
 -- This module defines supporting types used by "Pattern.Graph.Transform":

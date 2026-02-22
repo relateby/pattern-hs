@@ -369,14 +369,16 @@ spec = do
                 let neighborCount = length (queryIncidentRels q p)
                 in Pattern (mkSubject (show neighborCount)) (elements p))
               view
-        -- Node 'b' has degree 2 (connected to both ab and bc)
-        let bId = Symbol "b"
+        -- Node 'b' has degree 2 (connected to both ab and bc), and the
+        -- enrichment stores this degree as the node's value.
         let bDeg = [ Subj.identity v
                    | (GNode, Pattern v _) <- viewElements enriched
-                   , Subj.identity (mkSubject "b") == bId
+                   , Subj.identity v == Symbol "2"
                    ]
-        -- There should be exactly one node entry for b; its enriched value
-        -- encodes its degree from the original snapshot.
+        -- There should be exactly one node entry whose enriched value encodes
+        -- degree 2 (this is node 'b' in simpleGraph).
+        bDeg `shouldBe` [Symbol "2"]
+        -- The total number of elements (3 nodes + 2 rels) remains unchanged.
         length (viewElements enriched) `shouldBe` 5
 
       it "viewQuery in the output still reflects the original snapshot" $ do

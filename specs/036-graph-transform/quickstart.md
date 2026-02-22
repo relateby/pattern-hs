@@ -9,10 +9,10 @@ A pipeline always starts by applying a `GraphView` wrapper against your data sou
 ```haskell
 import Pattern.Graph.Transform
 import Pattern.Graph.GraphClassifier (canonicalClassifier)
-import Pattern.PatternGraph (toGraphView)
+import Pattern.PatternGraph (toGraphView, materialize)
 
 -- Convert existing graph into uniform view (GraphView, not GraphQuery)
-let view = toGraphView canonicalClassifier myGraph
+let view = Pattern.PatternGraph.toGraphView canonicalClassifier myGraph
 ```
 
 ## 2. Pipelined Transformations
@@ -22,11 +22,11 @@ Transformations are entirely lazy over `GraphView`. You chain functions directly
 ```haskell
 pipeline :: PatternGraph Subject -> PatternGraph Subject
 pipeline graph =
-  materialize canonicalClassifier LastWriteWins  -- Back to storage
+  Pattern.PatternGraph.materialize canonicalClassifier LastWriteWins  -- Back to storage
   . mapWithContext canonicalClassifier enrich     -- Advanced mapped queries
   . filterGraph canonicalClassifier isRelevant dissolve -- Pruning bad connections
   . mapAllGraph updateTimestamp                   -- Quick blanket update
-  . toGraphView canonicalClassifier              -- Entry: PatternGraph -> GraphView
+  . Pattern.PatternGraph.toGraphView canonicalClassifier  -- Entry: PatternGraph -> GraphView
   $ graph
 ```
 
