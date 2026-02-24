@@ -4,12 +4,17 @@
 -- | Graph transformation operations over 'GraphView'.
 --
 -- This module provides bulk transformation, filtering, folding, and
--- iterative topology-aware algorithms for graphs represented as 'GraphView'.
+-- iterative shape-aware algorithms for graphs represented as 'GraphView'.
 --
 -- == Overview
 --
 -- Transformations operate lazily over 'GraphView' and are composed by
 -- function composition. Finalize a pipeline by calling 'Pattern.PatternGraph.materialize'.
+--
+-- Elements are classified by shape (via 'classifyByShape') into five buckets:
+-- @GNode@, @GRelationship@, @GWalk@, @GAnnotation@, and @GOther@. The
+-- 'topoShapeSort' function orders elements within a 'GraphView' so that
+-- each element is processed after all elements it structurally depends on.
 --
 -- == Example
 --
@@ -39,6 +44,7 @@ module Pattern.Graph.Transform
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (mapMaybe)
 import Pattern.Core (Pattern(..))
 import Pattern.Graph.Types (GraphView(..))
 import Pattern.Graph.GraphClassifier
@@ -219,13 +225,40 @@ mapWithContext _classifier f view@(GraphView q elems) =
 -- paraGraph
 -- ============================================================================
 
--- | Single structural fold round over a 'GraphView'.
+-- | Single-pass structure-aware fold over a 'GraphView'.
 --
--- Processes elements in bottom-up containment order: nodes first (atomic,
--- no sub-elements), then relationships (contain nodes), then walks (contain
--- relationships), then annotations (contain metadata about any of the above).
--- Each element is processed only after all elements it contains, so the
--- function receives already-computed results for its direct sub-elements.
+-- Elements are processed in containment order via 'topoShapeSort':
+-- each element receives already-computed results for its direct sub-elements.
+--
+-- == Processing Order
+--
+-- Determined by 'topoShapeSort':
+--
+-- 1. Nodes (atomic — no sub-elements)
+-- 2. Relationships (contain nodes)
+-- 3. Walks (contain relationships)
+-- 4. Annotations (contain any element type, including other annotations)
+-- 5. Other (GOther — unconstrained sub-elements)
+--
+-- Within the Annotation and Other buckets, elements are additionally sorted
+-- so that referenced elements appear before the elements that reference them.
+--
+-- == The @subResults@ Contract
+--
+-- The @[r]@ argument received by @f@ contains the results of all direct
+-- sub-elements of the current element that have already been processed.
+--
+-- If a sub-element has not yet been processed — which can occur when a
+-- dependency cycle exists within a bucket — its result is /omitted/ from
+-- @subResults@. The list will be shorter than @elements p@. Callers
+-- should treat @subResults@ as a best-effort list, not a guaranteed
+-- complete list.
+--
+-- == Example
+--
+-- > -- Count the number of sub-results (i.e., direct dependencies) for each element
+-- > countDeps :: GraphValue v => GraphView extra v -> Map (Id v) Int
+-- > countDeps = paraGraph (\_ _ subResults -> length subResults)
 paraGraph
   :: GraphValue v
   => (GraphQuery v -> Pattern v -> [r] -> r)
@@ -234,32 +267,119 @@ paraGraph
 paraGraph f (GraphView q elems) =
   foldl' processElem Map.empty sortedElems
   where
-    sortedElems = sortByArity elems
+    sortedElems = topoShapeSort elems
 
     processElem acc (_, p) =
-      let subResults = concatMap (\e -> maybe [] (:[]) (Map.lookup (identify (value e)) acc))
-                                 (elements p)
+      let subResults = mapMaybe (\e -> Map.lookup (identify (value e)) acc) (elements p)
           r = f q p subResults
       in Map.insert (identify (value p)) r acc
 
--- Sort elements by structural arity: nodes first, then relationships, then walks.
-sortByArity :: [(GraphClass extra, Pattern v)] -> [(GraphClass extra, Pattern v)]
-sortByArity elems =
+-- | Order graph elements for correct bottom-up processing in 'paraGraph'.
+--
+-- Elements are sorted in two passes:
+--
+-- __Pass 1 — Inter-bucket ordering__ (shape class priority):
+--
+-- > GNode < GRelationship < GWalk < GAnnotation < GOther
+--
+-- This ensures cross-class containment dependencies are satisfied:
+-- nodes (atomic) before relationships (contain nodes), relationships before
+-- walks (contain relationships), walks before annotations (annotations can
+-- reference any class below them), and annotations before other (GOther is
+-- unconstrained).
+--
+-- __Pass 2 — Within-bucket ordering__ (Kahn's algorithm):
+--
+-- Applied to the 'GAnnotation' and 'GOther' buckets only.
+-- For each element @p@, its direct sub-elements (@elements p@) that belong
+-- to the same bucket are treated as dependencies — they must appear before @p@.
+--
+-- 'GNode', 'GRelationship', and 'GWalk' require no within-bucket sort:
+-- by the definition of 'classifyByShape', their sub-elements always belong
+-- to a lower-priority bucket.
+--
+-- __Cycle handling:__
+--
+-- If a dependency cycle is detected within a bucket (e.g., annotation A
+-- references annotation B which references A), the cycle members are appended
+-- after all non-cycle elements in the bucket, in the order they appeared in
+-- the input. No error is raised. See 'paraGraph' for the consequence of this
+-- in fold results.
+--
+-- Requires 'GraphValue v' to extract element identities for dependency tracking.
+topoShapeSort :: GraphValue v
+              => [(GraphClass extra, Pattern v)]
+              -> [(GraphClass extra, Pattern v)]
+topoShapeSort elems =
   let isNode'  (GNode, _)         = True; isNode'  _ = False
       isRel'   (GRelationship, _) = True; isRel'   _ = False
       isWalk'  (GWalk, _)         = True; isWalk'  _ = False
       isAnnot' (GAnnotation, _)   = True; isAnnot' _ = False
+      isOther' (GOther _, _)      = True; isOther' _ = False
   in filter isNode' elems
      ++ filter isRel' elems
      ++ filter isWalk' elems
-     ++ filter isAnnot' elems
-     ++ filter (\(cls, _) -> case cls of { GOther _ -> True; _ -> False }) elems
+     ++ withinBucketTopoSort (filter isAnnot' elems)
+     ++ withinBucketTopoSort (filter isOther' elems)
+
+-- Topological sort within a single bucket using Kahn's algorithm.
+-- Elements are ordered so that each element appears after all elements
+-- it structurally depends on (i.e., contains as sub-elements of the same bucket).
+-- Cycle members are appended after all non-cycle elements in input order.
+withinBucketTopoSort :: GraphValue v
+                     => [(GraphClass extra, Pattern v)]
+                     -> [(GraphClass extra, Pattern v)]
+withinBucketTopoSort [] = []
+withinBucketTopoSort elems =
+  let idMap = Map.fromList [ (identify (value p), entry) | entry@(_, p) <- elems ]
+
+      inBucketDeps = Map.fromList
+        [ ( identify (value p)
+          , [ identify (value e) | e <- elements p, Map.member (identify (value e)) idMap ]
+          )
+        | (_, p) <- elems
+        ]
+
+      dependents = foldl'
+        (\acc (pid, deps) -> foldl' (\m dep -> Map.insertWith (++) dep [pid] m) acc deps)
+        (Map.map (const []) idMap)
+        (Map.toList inBucketDeps)
+
+      inDegree0 = Map.map length inBucketDeps
+
+      initQueue = [ identify (value p) | (_, p) <- elems
+                  , Map.findWithDefault 0 (identify (value p)) inDegree0 == 0 ]
+
+      go [] _ sorted = sorted
+      go (pid:queue) deg sorted =
+        let entry   = idMap Map.! pid
+            newDeps = Map.findWithDefault [] pid dependents
+            (queue', deg') = foldl'
+              (\(q, d) dep ->
+                let newD = Map.findWithDefault 0 dep d - 1
+                in if newD == 0
+                   then (q ++ [dep], Map.insert dep newD d)
+                   else (q,          Map.insert dep newD d))
+              (queue, deg)
+              newDeps
+        in go queue' deg' (sorted ++ [entry])
+
+      sorted       = go initQueue inDegree0 []
+      sortedSet    = Map.fromList [ (identify (value p), ()) | (_, p) <- sorted ]
+      cycleMembers = filter (\(_, p) -> not (Map.member (identify (value p)) sortedSet)) elems
+  in sorted ++ cycleMembers
 
 -- ============================================================================
 -- paraGraphFixed
 -- ============================================================================
 
 -- | Iterate 'paraGraph' rounds until the convergence predicate is satisfied.
+--
+-- Each round applies 'topoShapeSort' to ensure correct within-bucket
+-- dependency ordering. The ordering is recomputed identically every round
+-- (the 'GraphView' is immutable).
+--
+-- See 'paraGraph' for the @subResults@ contract, including cycle behaviour.
 --
 -- The convergence predicate @conv old new@ should return 'True' when the
 -- result is considered stable. A common example for floating-point algorithms:
@@ -304,10 +424,9 @@ paraGraphWithSeed
   -> Map (Id v) r
   -> Map (Id v) r
 paraGraphWithSeed f (GraphView q elems) seed =
-  foldl' processElem seed (sortByArity elems)
+  foldl' processElem seed (topoShapeSort elems)
   where
     processElem acc (_, p) =
-      let subResults = concatMap (\e -> maybe [] (:[]) (Map.lookup (identify (value e)) acc))
-                                 (elements p)
+      let subResults = mapMaybe (\e -> Map.lookup (identify (value e)) acc) (elements p)
           r = f q p subResults
       in Map.insert (identify (value p)) r acc

@@ -17,7 +17,7 @@
 
 **Purpose**: Audit existing references before any changes.
 
-- [ ] T001 Verify `sortByArity` is not exported and has no cross-module imports — search `libs/pattern/src/` for any file other than `Transform.hs` that references `sortByArity`; confirm FR-008 scope is module-local only
+- [X] T001 Verify `sortByArity` is not exported and has no cross-module imports — search `libs/pattern/src/` for any file other than `Transform.hs` that references `sortByArity`; confirm FR-008 scope is module-local only
 
 **Checkpoint**: Confirmed rename is safe to proceed — no external callers to update.
 
@@ -29,9 +29,9 @@
 
 **⚠️ CRITICAL**: All user story work depends on this phase.
 
-- [ ] T002 Implement `withinBucketTopoSort` helper using Kahn's algorithm in `libs/pattern/src/Pattern/Graph/Transform.hs` — pure function, requires `GraphValue v` constraint; builds `idMap`, `inBucketDeps`, `dependents`, `inDegree` from `data-model.md`; cycle members appended in encountered order with no error (see `specs/037-topo-shape-sort/data-model.md` for algorithm detail)
+- [X] T002 Implement `withinBucketTopoSort` helper using Kahn's algorithm in `libs/pattern/src/Pattern/Graph/Transform.hs` — pure function, requires `GraphValue v` constraint; builds `idMap`, `inBucketDeps`, `dependents`, `inDegree` from `data-model.md`; cycle members appended in encountered order with no error (see `specs/037-topo-shape-sort/data-model.md` for algorithm detail)
 
-- [ ] T003 Rename `sortByArity` → `topoShapeSort` in `libs/pattern/src/Pattern/Graph/Transform.hs`: (a) add `GraphValue v` constraint to the function signature, (b) update the implementation to call `withinBucketTopoSort` for the `GAnnotation` and `GOther` buckets (GNode/GRelationship/GWalk buckets remain filter-only), (c) replace both call sites in `paraGraph` (line 237) and `paraGraphWithSeed` (line 307), (d) replace the function's inline comment with the Haddock block from `specs/037-topo-shape-sort/contracts/Transform.hs`
+- [X] T003 Rename `sortByArity` → `topoShapeSort` in `libs/pattern/src/Pattern/Graph/Transform.hs`: (a) add `GraphValue v` constraint to the function signature, (b) update the implementation to call `withinBucketTopoSort` for the `GAnnotation` and `GOther` buckets (GNode/GRelationship/GWalk buckets remain filter-only), (c) replace both call sites in `paraGraph` (line 237) and `paraGraphWithSeed` (line 307), (d) replace the function's inline comment with the Haddock block from `specs/037-topo-shape-sort/contracts/Transform.hs`
 
 **Checkpoint**: Build passes (`cabal build libs/pattern`). All pre-existing tests in `TransformSpec.hs` pass unchanged. Foundation ready.
 
@@ -43,13 +43,13 @@
 
 **Independent Test**: Construct a `GraphView` with annotation B annotating a node and annotation A annotating B; call `paraGraph` with a fold that records `subResults` length; assert A receives exactly 1 result (B's), not 0.
 
-- [ ] T004 [P] [US1] Add `topoShapeSort` annotation-of-annotation ordering test to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — given two `GAnnotation` elements where A's `elements` contains B, assert B appears before A in `topoShapeSort` output (call `topoShapeSort` directly or verify via `paraGraph` accumulator order)
+- [X] T004 [P] [US1] Add `topoShapeSort` annotation-of-annotation ordering test to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — given two `GAnnotation` elements where A's `elements` contains B, assert B appears before A in `topoShapeSort` output (call `topoShapeSort` directly or verify via `paraGraph` accumulator order)
 
-- [ ] T005 [P] [US1] Add `topoShapeSort` cycle soft-failure test to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — given a cycle (annotation A references B, B references A), assert no exception is raised and output length equals input length
+- [X] T005 [P] [US1] Add `topoShapeSort` cycle soft-failure test to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — given a cycle (annotation A references B, B references A), assert no exception is raised and output length equals input length
 
-- [ ] T006 [P] [US1] Add `paraGraph` annotation-of-annotation fold correctness test (SC-006) to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — build a `GraphView` with node `n`, annotation `b` annotating `n`, annotation `a` annotating `b`; call `paraGraph` with a fold that returns `length subResults`; assert result for `a` is 1 (receives `b`'s result), result for `b` is 1 (receives `n`'s result)
+- [X] T006 [P] [US1] Add `paraGraph` annotation-of-annotation fold correctness test (SC-006) to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — build a `GraphView` with node `n`, annotation `b` annotating `n`, annotation `a` annotating `b`; call `paraGraph` with a fold that returns `length subResults`; assert result for `a` is 1 (receives `b`'s result), result for `b` is 1 (receives `n`'s result)
 
-- [ ] T007 [P] [US1] Add `topoShapeSort` `GOther`-of-`GOther` ordering test to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — given two `GOther` elements where X's `elements` contains Y, assert Y appears before X in `topoShapeSort` output
+- [X] T007 [P] [US1] Add `topoShapeSort` `GOther`-of-`GOther` ordering test to `libs/pattern/tests/Spec/Pattern/Graph/TransformSpec.hs` — given two `GOther` elements where X's `elements` contains Y, assert Y appears before X in `topoShapeSort` output
 
 **Checkpoint**: All four new tests pass. `paraGraph` with annotation-of-annotation produces correct `subResults`. US1 independently verifiable.
 
@@ -61,7 +61,7 @@
 
 **Independent Test**: Read the updated Haddock for `paraGraph` in Transform.hs; confirm it names `topoShapeSort`, describes the 5-layer processing order, and explicitly documents the `subResults` best-effort contract (cycle omission).
 
-- [ ] T008 [US2] Replace `paraGraph` Haddock comment in `libs/pattern/src/Pattern/Graph/Transform.hs` with the doc block from `specs/037-topo-shape-sort/contracts/Transform.hs` — must include: Processing Order section (5 layers), `subResults` contract section (best-effort, omission for cycle members), and a usage example
+- [X] T008 [US2] Replace `paraGraph` Haddock comment in `libs/pattern/src/Pattern/Graph/Transform.hs` with the doc block from `specs/037-topo-shape-sort/contracts/Transform.hs` — must include: Processing Order section (5 layers), `subResults` contract section (best-effort, omission for cycle members), and a usage example
 
 **Checkpoint**: `paraGraph` Haddock accurately describes `topoShapeSort` ordering and `subResults` contract. US2 independently verifiable by reading the source.
 
@@ -73,7 +73,7 @@
 
 **Independent Test**: Read the updated Haddock for `paraGraphFixed` and `paraGraphWithSeed` in Transform.hs; confirm both reference `topoShapeSort` and note ordering is recomputed per round from the immutable `GraphView`.
 
-- [ ] T009 [US3] Replace `paraGraphFixed` and `paraGraphWithSeed` Haddock comments in `libs/pattern/src/Pattern/Graph/Transform.hs` with the doc blocks from `specs/037-topo-shape-sort/contracts/Transform.hs` — must cross-reference `paraGraph`'s `subResults` contract and note that the immutable `GraphView` produces identical ordering every round
+- [X] T009 [US3] Replace `paraGraphFixed` and `paraGraphWithSeed` Haddock comments in `libs/pattern/src/Pattern/Graph/Transform.hs` with the doc blocks from `specs/037-topo-shape-sort/contracts/Transform.hs` — must cross-reference `paraGraph`'s `subResults` contract and note that the immutable `GraphView` produces identical ordering every round
 
 **Checkpoint**: `paraGraphFixed`/`paraGraphWithSeed` docs consistent with `paraGraph`. US3 independently verifiable.
 
@@ -85,7 +85,7 @@
 
 **Independent Test**: Read the module-level Haddock block at the top of Transform.hs; confirm "shape" appears as the organizing vocabulary, `topoShapeSort` is referenced, and "arity" does not appear as a sort criterion.
 
-- [ ] T010 [US4] Update the module-level Haddock comment in `libs/pattern/src/Pattern/Graph/Transform.hs` — remove any "arity" sort language, update the `== Overview` and `== Example` sections to reflect `topoShapeSort`-based processing, ensure vocabulary aligns with `classifyByShape`
+- [X] T010 [US4] Update the module-level Haddock comment in `libs/pattern/src/Pattern/Graph/Transform.hs` — remove any "arity" sort language, update the `== Overview` and `== Example` sections to reflect `topoShapeSort`-based processing, ensure vocabulary aligns with `classifyByShape`
 
 **Checkpoint**: Module header passes vocabulary audit. Zero uses of "arity" as sort criterion in entire module. US4 independently verifiable.
 
@@ -93,11 +93,11 @@
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T011 [P] Review and update `docs/reference/features/para-graph.md` post-implementation — verify code examples in "Annotation-of-Annotation Example" and "Cross-Language Implementation Notes" sections match the final `topoShapeSort` and `withinBucketTopoSort` implementations; update if any details changed during implementation
+- [X] T011 [P] Review and update `docs/reference/features/para-graph.md` post-implementation — verify code examples in "Annotation-of-Annotation Example" and "Cross-Language Implementation Notes" sections match the final `topoShapeSort` and `withinBucketTopoSort` implementations; update if any details changed during implementation
 
-- [ ] T012 Run full test suite (`cabal test pattern`) and confirm all pre-existing tests still pass alongside the new T004–T007 tests — verify SC-004 (no behavioral regression) and SC-006 (annotation-of-annotation test passes)
+- [X] T012 Run full test suite (`cabal test pattern`) and confirm all pre-existing tests still pass alongside the new T004–T007 tests — verify SC-004 (no behavioral regression) and SC-006 (annotation-of-annotation test passes)
 
-- [ ] T013 [P] Verify SC-001: search entire codebase for remaining references to `sortByArity` and confirm zero results — `grep -r sortByArity libs/ specs/ docs/`
+- [X] T013 [P] Verify SC-001: search entire codebase for remaining references to `sortByArity` and confirm zero results — `grep -r sortByArity libs/ specs/ docs/`
 
 ---
 

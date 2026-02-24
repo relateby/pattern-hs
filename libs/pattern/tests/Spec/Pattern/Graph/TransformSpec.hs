@@ -431,6 +431,84 @@ spec = do
         all (== 0) nodeCounts `shouldBe` True
 
     -- -----------------------------------------------------------------------
+    -- 037-topo-shape-sort / T004: topoShapeSort annotation-of-annotation ordering
+    -- -----------------------------------------------------------------------
+    describe "topoShapeSort: annotation-of-annotation ordering (T004)" $ do
+
+      it "annotation A wrapping annotation B: A receives B's result (B processed first)" $ do
+        -- B = GAnnotation wrapping a node; A = GAnnotation wrapping B
+        let annotB = Pattern (mkSubject "b") [mkNode "n"]
+            annotA = Pattern (mkSubject "a") [annotB]
+            g = PG.fromPatterns canonicalClassifier [mkNode "n", annotB, annotA]
+            view = toGraphView canonicalClassifier g
+            countSubs _ _ subResults = length (subResults :: [Int])
+            result = paraGraph countSubs view
+        -- n is GNode (no sub-elements → 0 subResults)
+        -- b is GAnnotation wrapping n → b receives [n's result] → 1 subResult
+        -- a is GAnnotation wrapping b → a receives [b's result] → 1 subResult
+        Map.lookup (identify (mkSubject "b")) result `shouldBe` Just 1
+        Map.lookup (identify (mkSubject "a")) result `shouldBe` Just 1
+
+    -- -----------------------------------------------------------------------
+    -- 037-topo-shape-sort / T005: topoShapeSort cycle soft-failure
+    -- -----------------------------------------------------------------------
+    describe "topoShapeSort: cycle soft-failure (T005)" $ do
+
+      it "mutual annotation cycle raises no exception and produces a result for every element" $ do
+        -- annotA wraps a pattern with id 'b', annotB wraps a pattern with id 'a'
+        -- This creates a cycle in the within-bucket dependency graph
+        let annotA = Pattern (mkSubject "a") [Pattern (mkSubject "b") []]
+            annotB = Pattern (mkSubject "b") [Pattern (mkSubject "a") []]
+            g = PG.fromPatterns canonicalClassifier [annotA, annotB]
+            view = toGraphView canonicalClassifier g
+            result = paraGraph (\_ _ subs -> length (subs :: [Int])) view
+        -- Both elements must be in the result (no element dropped)
+        Map.size result `shouldBe` 2
+
+    -- -----------------------------------------------------------------------
+    -- 037-topo-shape-sort / T006: paraGraph annotation-of-annotation fold correctness (SC-006)
+    -- -----------------------------------------------------------------------
+    describe "paraGraph: annotation-of-annotation fold correctness (T006 / SC-006)" $ do
+
+      it "node n, annotation b wrapping n, annotation a wrapping b: each receives exactly 1 subResult" $ do
+        let annotB = Pattern (mkSubject "b") [mkNode "n"]
+            annotA = Pattern (mkSubject "a") [annotB]
+            g = PG.fromPatterns canonicalClassifier [mkNode "n", annotB, annotA]
+            view = toGraphView canonicalClassifier g
+            countSubs _ _ subResults = length (subResults :: [Int])
+            result = paraGraph countSubs view
+        -- n has no sub-elements → 0 subResults
+        Map.lookup (identify (mkSubject "n")) result `shouldBe` Just 0
+        -- b wraps n → b receives [result_n] → 1 subResult
+        Map.lookup (identify (mkSubject "b")) result `shouldBe` Just 1
+        -- a wraps b → a receives [result_b] → 1 subResult (not 0)
+        Map.lookup (identify (mkSubject "a")) result `shouldBe` Just 1
+
+    -- -----------------------------------------------------------------------
+    -- 037-topo-shape-sort / T007: topoShapeSort GOther-of-GOther ordering
+    -- -----------------------------------------------------------------------
+    describe "topoShapeSort: GOther-of-GOther ordering (T007)" $ do
+
+      it "GOther X containing GOther Y: X receives Y's result (Y processed first)" $ do
+        -- gOtherY has 3 node children → classifies as GOther
+        -- gOtherX has gOtherY + 1 node child → classifies as GOther
+        -- insertOther does not recurse, so GNodes must be added as top-level patterns.
+        -- Input order deliberately puts X before Y to exercise within-bucket sort.
+        let gOtherY = Pattern (mkSubject "y") [mkNode "p", mkNode "q", mkNode "r"]
+            gOtherX = Pattern (mkSubject "x") [gOtherY, mkNode "q"]
+            g = PG.fromPatterns canonicalClassifier
+                  [ mkNode "p", mkNode "q", mkNode "r"  -- must be top-level for toGraphView
+                  , gOtherX, gOtherY ]
+            view = toGraphView canonicalClassifier g
+            countSubs _ _ subResults = length (subResults :: [Int])
+            result = paraGraph countSubs view
+        -- Y wraps 3 GNodes → Y gets 3 subResults
+        Map.lookup (identify (mkSubject "y")) result `shouldBe` Just 3
+        -- X wraps Y + 1 GNode → X gets 2 subResults (Y's result + q's result)
+        -- Without within-bucket sort, X would only get 1 (q only, since Y not yet processed)
+        Map.lookup (identify (mkSubject "x")) result `shouldBe` Just 2
+
+    -- -----------------------------------------------------------------------
     -- US4 / T023: paraGraphFixed convergence
     -- -----------------------------------------------------------------------
     describe "paraGraphFixed (US4)" $ do
