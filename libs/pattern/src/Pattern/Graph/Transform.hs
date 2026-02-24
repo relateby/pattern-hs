@@ -350,21 +350,21 @@ withinBucketTopoSort elems =
       initQueue = [ identify (value p) | (_, p) <- elems
                   , Map.findWithDefault 0 (identify (value p)) inDegree0 == 0 ]
 
-      go [] _ sorted = sorted
-      go (pid:queue) deg sorted =
+      go [] _ sortedRev = sortedRev
+      go (pid:queue) deg sortedRev =
         let entry   = idMap Map.! pid
             newDeps = Map.findWithDefault [] pid dependents
             (queue', deg') = foldl'
               (\(q, d) dep ->
                 let newD = Map.findWithDefault 0 dep d - 1
                 in if newD == 0
-                   then (q ++ [dep], Map.insert dep newD d)
-                   else (q,          Map.insert dep newD d))
+                   then (dep : q, Map.insert dep newD d)
+                   else (q,       Map.insert dep newD d))
               (queue, deg)
               newDeps
-        in go queue' deg' (sorted ++ [entry])
+        in go queue' deg' (entry : sortedRev)
 
-      sorted       = go initQueue inDegree0 []
+      sorted       = reverse (go initQueue inDegree0 [])
       sortedSet    = Map.fromList [ (identify (value p), ()) | (_, p) <- sorted ]
       cycleMembers = filter (\(_, p) -> not (Map.member (identify (value p)) sortedSet)) elems
   in sorted ++ cycleMembers
