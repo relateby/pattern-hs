@@ -7,6 +7,24 @@
 
 This guide provides a recommended implementation order for porting the pattern-hs libraries to other languages. The order is designed to minimize dependencies and build a solid foundation before adding serialization capabilities.
 
+## Scope Abstraction Mapping
+
+The structure-aware fold APIs now use a three-part correspondence that ports should preserve semantically, even if the host language uses different syntax:
+
+| Haskell | Meaning | Typical port shape |
+|---------|---------|--------------------|
+| `ScopeQuery` typeclass | Generic scope behavior | Trait / protocol / interface |
+| `ScopeDict i v` | First-class stored scope value | Concrete object / struct / class |
+| `toScopeDict` | Reify a polymorphic provider into a value | Adapter constructor |
+
+Recommended mapping:
+
+- Rust: trait + concrete struct, using trait bounds in the fast path and boxed trait objects only at dynamic boundaries
+- TypeScript: interface + object literal/class implementing the interface
+- Python: protocol-like duck typing + concrete helper object when a stored value is needed
+
+For tree folds, `para` should remain a wrapper over the generic fold with a subtree-only scope. For graph folds, keep the graph scheduler and result shape stable, but derive generic scope answers from the enclosing graph snapshot.
+
 ## Implementation Phases
 
 ### Phase 1: Pattern Library (Foundation)
@@ -41,9 +59,11 @@ The Pattern library is the foundation. All other libraries depend on it.
    - `Ord`, `Semigroup`, `Monoid`, `Hashable`, `Applicative`, `Comonad`
    - See: `docs/reference/features/typeclass-instances.md`
 
-6. **Paramorphism** (structure-aware folding)
-   - `para :: (Pattern v -> [r] -> r) -> Pattern v -> r`
-   - Enables structure-aware aggregations
+6. **Unified Structure-Aware Folding**
+   - `ScopeQuery`
+   - `ScopeDict`
+   - `paraWithScope`
+   - `para` as the subtree-scoped wrapper
    - See: `docs/reference/features/paramorphism.md` and section below
 
 7. **Graph Lens** (optional but recommended)
@@ -389,11 +409,30 @@ See `docs/reference/IMPLEMENTATION.md#testing` for patterns.
 
 ### Overview
 
-Paramorphism enables structure-aware folding over patterns. Unlike `Foldable` (which only provides values), paramorphism gives your folding function access to the full pattern structure at each position.
-
-### Core Function Signature
+Paramorphism now has an explicit scope-aware core:
 
 ```haskell
+paraWithScope
+  :: ScopeQuery q v
+  => q v
+  -> (q v -> Pattern v -> [r] -> r)
+  -> Pattern v
+  -> r
+```
+
+`para` is the backward-compatible wrapper:
+
+```haskell
+para :: (Pattern v -> [r] -> r) -> Pattern v -> r
+para f p = paraWithScope (trivialScope p) (\_ pat rs -> f pat rs) p
+```
+
+Ports should preserve that relationship instead of implementing two unrelated folds.
+
+### Core Function Signatures
+
+```haskell
+paraWithScope :: ScopeQuery q v => q v -> (q v -> Pattern v -> [r] -> r) -> Pattern v -> r
 para :: (Pattern v -> [r] -> r) -> Pattern v -> r
 ```
 
@@ -407,16 +446,16 @@ para :: (Pattern v -> [r] -> r) -> Pattern v -> r
 
 ### Implementation Pattern
 
-The standard paramorphism pattern for recursive tree structures:
+The standard scope-aware pattern for recursive tree structures:
 
 ```haskell
-para f (Pattern v els) = 
-  f (Pattern v els) (map (para f) els)
+paraWithScope scope f (Pattern v els) =
+  f scope (Pattern v els) (map (paraWithScope scope f) els)
 ```
 
 **Breakdown**:
-1. Recursively compute results for all children using `para f`
-2. Apply folding function `f` to: (1) current pattern subtree, (2) list of child results
+1. Recursively compute results for all children using the same fixed scope
+2. Apply folding function `f` to: (1) scope, (2) current pattern subtree, (3) list of child results
 3. Return aggregated result
 
 ### Language-Specific Implementations

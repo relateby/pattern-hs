@@ -1,10 +1,12 @@
 -- | Tests for Pattern.Graph.Transform module.
 module Spec.Pattern.Graph.TransformSpec where
 
+import Control.Exception (evaluate)
 import Test.Hspec
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Pattern.Core (Pattern(..), point)
+import Data.List (sort)
+import Pattern.Core (Pattern(..), ScopeQuery(..), point, toScopeDict)
 import qualified Pattern.Core as P
 import Pattern.Graph (GraphView(..))
 import Pattern.Graph.GraphClassifier
@@ -50,6 +52,12 @@ simpleGraph =
 mkWalk :: String -> [Pattern Subject] -> Pattern Subject
 mkWalk walkId rels = Pattern (mkSubject walkId) rels
 
+mkAnnotation :: String -> Pattern Subject -> Pattern Subject
+mkAnnotation annotId inner = Pattern (mkSubject annotId) [inner]
+
+mkOther :: String -> [Pattern Subject] -> Pattern Subject
+mkOther otherId parts = Pattern (mkSubject otherId) parts
+
 graphWithWalk :: PatternGraph () Subject
 graphWithWalk =
   PG.fromPatterns canonicalClassifier
@@ -61,10 +69,37 @@ graphWithWalk =
     , mkWalk "path1" [mkRel "ab" "a" "b", mkRel "bc" "b" "c"]
     ]
 
+graphWithScopeBoundary :: PatternGraph () Subject
+graphWithScopeBoundary =
+  PG.fromPatterns canonicalClassifier
+    [ mkNode "a"
+    , mkNode "b"
+    , mkNode "c"
+    , mkNode "d"
+    , mkRel "ab" "a" "b"
+    , mkRel "bc" "b" "c"
+    , mkWalk "path1" [mkRel "ab" "a" "b", mkRel "bc" "b" "c"]
+    , mkAnnotation "annot-ab" (mkRel "ab" "a" "b")
+    , mkOther "other" [mkNode "a", mkNode "c", mkNode "d"]
+    ]
+
+graphWithDuplicateScopeIds :: PatternGraph () Subject
+graphWithDuplicateScopeIds =
+  PG.fromPatterns canonicalClassifier
+    [ mkNode "dup"
+    , mkNode "a"
+    , mkNode "b"
+    , mkNode "c"
+    , mkOther "dup" [mkNode "a", mkNode "b", mkNode "c"]
+    ]
+
 -- Count elements by class
 countByClass :: GraphClass () -> GraphView () Subject -> Int
 countByClass target view =
   length [ () | (cls, _) <- viewElements view, cls == target ]
+
+subjectIds :: [Pattern Subject] -> [Symbol]
+subjectIds = map (Subj.identity . value)
 
 -- ---------------------------------------------------------------------------
 -- Spec
@@ -73,6 +108,52 @@ countByClass target view =
 spec :: Spec
 spec = do
   describe "Pattern.Graph.Transform" $ do
+
+    describe "graph-backed scope answers (US2/US3)" $ do
+
+      it "T014: scopeDictFromGraphView covers all graph-scoped elements and lookups" $ do
+        let view = toGraphView canonicalClassifier graphWithScopeBoundary
+        let scope = scopeDictFromGraphView view
+
+        length (allElements scope) `shouldBe` length (viewElements view)
+        fmap (Subj.identity . value) (byIdentity scope (Symbol "path1")) `shouldBe` Just (Symbol "path1")
+        fmap (Subj.identity . value) (byIdentity scope (Symbol "annot-ab")) `shouldBe` Just (Symbol "annot-ab")
+        fmap (Subj.identity . value) (byIdentity scope (Symbol "other")) `shouldBe` Just (Symbol "other")
+
+      it "T014b: graph scope answers direct containers and siblings within one GraphView" $ do
+        let view = toGraphView canonicalClassifier graphWithScopeBoundary
+        let scope = scopeDictFromGraphView view
+        let Just relAb = byIdentity scope (Symbol "ab")
+        let Just nodeA = byIdentity scope (Symbol "a")
+
+        sort (subjectIds (containers scope relAb)) `shouldBe` sort [Symbol "path1", Symbol "annot-ab"]
+        sort (subjectIds (siblings scope relAb)) `shouldBe` sort [Symbol "bc"]
+        sort (subjectIds (siblings scope nodeA)) `shouldBe` sort [Symbol "b", Symbol "c", Symbol "d"]
+
+      it "T020: reifying a graph-backed scope value preserves generic scope answers" $ do
+        let view = toGraphView canonicalClassifier graphWithScopeBoundary
+        let direct = scopeDictFromGraphView view
+        let reified = toScopeDict direct
+        let ids = [Symbol "a", Symbol "ab", Symbol "path1", Symbol "annot-ab", Symbol "other"]
+        let elementsInScope = allElements direct
+        let sampleElements =
+              [ p
+              | symbol <- ids
+              , Just p <- [byIdentity direct symbol]
+              ]
+
+        allElements reified `shouldBe` elementsInScope
+        map (fmap (Subj.identity . value) . byIdentity reified) ids
+          `shouldBe` map (fmap (Subj.identity . value) . byIdentity direct) ids
+        map (sort . subjectIds . containers reified) sampleElements
+          `shouldBe` map (sort . subjectIds . containers direct) sampleElements
+        map (sort . subjectIds . siblings reified) sampleElements
+          `shouldBe` map (sort . subjectIds . siblings direct) sampleElements
+
+      it "rejects duplicate graph identities when reifying generic graph scope" $ do
+        let view = toGraphView canonicalClassifier graphWithDuplicateScopeIds
+        evaluate (byIdentity (scopeDictFromGraphView view) (Symbol "dup"))
+          `shouldThrow` anyErrorCall
 
     -- -----------------------------------------------------------------------
     -- Phase 1 / T008: GraphView initialization
@@ -413,6 +494,16 @@ spec = do
     -- -----------------------------------------------------------------------
     describe "paraGraph (US4)" $ do
 
+      it "T010: paraGraph preserves wrapper behavior on graph-scoped inputs" $ do
+        let view = toGraphView canonicalClassifier graphWithWalk
+        let score _ p subResults = length (elements p) + sum (subResults :: [Int])
+        let result = paraGraph score view
+
+        Map.lookup (identify (mkSubject "a")) result `shouldBe` Just 0
+        Map.lookup (identify (mkSubject "ab")) result `shouldBe` Just 2
+        Map.lookup (identify (mkSubject "bc")) result `shouldBe` Just 2
+        Map.lookup (identify (mkSubject "path1")) result `shouldBe` Just 6
+
       it "produces a result for every element" $ do
         let view = toGraphView canonicalClassifier simpleGraph
         let countChildren _ _ subResults = length subResults
@@ -512,6 +603,14 @@ spec = do
     -- US4 / T023: paraGraphFixed convergence
     -- -----------------------------------------------------------------------
     describe "paraGraphFixed (US4)" $ do
+
+      it "T010b: paraGraphFixed preserves stable wrapper results" $ do
+        let view = toGraphView canonicalClassifier graphWithWalk
+        let conv old new = old == new
+        let score _ p subResults = length (elements p) + sum (subResults :: [Int])
+        let result = paraGraphFixed conv score 0 view
+
+        Map.lookup (identify (mkSubject "path1")) result `shouldBe` Just 6
 
       it "converges to a stable result" $ do
         let view = toGraphView canonicalClassifier simpleGraph

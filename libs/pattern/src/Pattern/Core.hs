@@ -1,4 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 module Pattern.Core
   ( -- * Pattern Type
     Pattern(..)
@@ -30,6 +33,12 @@ module Pattern.Core
   , sizeAt
   , indicesAt
     -- * Paramorphism Functions
+  , ScopeQuery(..)
+  , TrivialScope
+  , trivialScope
+  , ScopeDict(..)
+  , toScopeDict
+  , paraWithScope
   , para
     -- * Anamorphism Functions
   , unfold
@@ -1140,6 +1149,157 @@ indicesAt = go []
     go path (Pattern _ es) =
       Pattern path (zipWith (\i e -> go (path ++ [i]) e) [0..] es)
 
+-- | Generic contract for the scope available during a structure-aware fold.
+--
+-- Conceptually, a 'ScopeQuery' is the coalgebraic "context of visibility" for a
+-- fold: it answers what else can be observed while the fold is focused on one
+-- element. The fold target and the enclosing scope are intentionally distinct.
+--
+-- Invariants:
+--
+-- * 'containers' returns only /direct/ containers in the current scope.
+-- * 'siblings' returns only co-elements from those direct containers.
+-- * 'byIdentity' never widens the declared scope boundary.
+-- * 'allElements' enumerates exactly the current scope, no more and no less.
+--
+-- Different scope providers choose their own identity type through 'ScopeId'.
+-- Tree-only scopes can use a local, scope-relative identity, while graph-backed
+-- scopes can use their native graph element identifiers.
+--
+-- Example:
+--
+-- >>> let p = pattern "root" [point "a", point "b"]
+-- >>> let scope = trivialScope p
+-- >>> length (allElements scope)
+-- 3
+class ScopeQuery q v where
+  type ScopeId q v
+
+  -- | Direct containers of an element within the current scope.
+  containers :: q v -> Pattern v -> [Pattern v]
+
+  -- | Siblings of an element within the current scope.
+  siblings :: q v -> Pattern v -> [Pattern v]
+
+  -- | Lookup an element by the scope's identity type.
+  byIdentity :: q v -> ScopeId q v -> Maybe (Pattern v)
+
+  -- | Enumerate every element in scope.
+  allElements :: q v -> [Pattern v]
+
+-- | The subtree-only scope used by 'para'.
+--
+-- This is the smallest useful scope provider: it fixes visibility to one rooted
+-- subtree and intentionally omits parent and sibling context beyond that
+-- boundary. It preserves the original meaning of 'para'.
+--
+-- Invariants:
+--
+-- * 'containers' and 'siblings' are always @[]@.
+-- * 'allElements' is the subtree's preorder traversal.
+-- * 'byIdentity' uses zero-based preorder positions within that traversal.
+--
+-- Example:
+--
+-- >>> let p = pattern "root" [point "a", point "b"]
+-- >>> let scope = trivialScope p
+-- >>> fmap value (byIdentity scope 1)
+-- Just "a"
+newtype TrivialScope v = TrivialScope (Pattern v)
+
+-- | Construct the subtree-only scope used by 'para'.
+--
+-- The resulting scope remains fixed for the entire fold.
+trivialScope :: Pattern v -> TrivialScope v
+trivialScope = TrivialScope
+
+instance ScopeQuery TrivialScope v where
+  type ScopeId TrivialScope v = Int
+
+  containers _ _ = []
+  siblings _ _ = []
+  byIdentity (TrivialScope p) = subtreeElementAt p
+  allElements (TrivialScope p) = subtreeElements p
+
+-- | First-class value form of a scope provider.
+--
+-- 'ScopeDict' is the value-level analogue of the 'ScopeQuery' typeclass. It is
+-- useful when scope behavior needs to be stored, passed to non-polymorphic
+-- helpers, or reified for dynamic composition.
+--
+-- Example:
+--
+-- >>> let p = pattern "root" [point "a"]
+-- >>> let dict = toScopeDict (trivialScope p)
+-- >>> length (allElements dict)
+-- 2
+data ScopeDict i v = ScopeDict
+  { dictContainers  :: Pattern v -> [Pattern v]
+  , dictSiblings    :: Pattern v -> [Pattern v]
+  , dictByIdentity  :: i -> Maybe (Pattern v)
+  , dictAllElements :: [Pattern v]
+  }
+
+instance ScopeQuery (ScopeDict i) v where
+  type ScopeId (ScopeDict i) v = i
+
+  containers = dictContainers
+  siblings = dictSiblings
+  byIdentity = dictByIdentity
+  allElements = dictAllElements
+
+-- | Reify any scope provider into its first-class dictionary form.
+--
+-- This preserves the provider's observable generic scope answers.
+toScopeDict :: ScopeQuery q v => q v -> ScopeDict (ScopeId q v) v
+toScopeDict q = ScopeDict
+  { dictContainers = containers q
+  , dictSiblings = siblings q
+  , dictByIdentity = byIdentity q
+  , dictAllElements = allElements q
+  }
+
+-- | Enumerate a subtree in preorder.
+subtreeElements :: Pattern v -> [Pattern v]
+subtreeElements p@(Pattern _ es) = p : concatMap subtreeElements es
+
+-- | Lookup a subtree element by its zero-based preorder position.
+subtreeElementAt :: Pattern v -> Int -> Maybe (Pattern v)
+subtreeElementAt p i
+  | i < 0 = Nothing
+  | otherwise = safeIndex i (subtreeElements p)
+  where
+    safeIndex n xs = case drop n xs of
+      y:_ -> Just y
+      [] -> Nothing
+
+-- | Structure-aware fold with an explicit, fixed scope.
+--
+-- Categorically, this is the scope-aware paramorphism for 'Pattern': each step
+-- receives the current node, the already-computed direct child results, and the
+-- same enclosing scope value for the duration of the fold.
+--
+-- Invariants:
+--
+-- * Child results are computed bottom-up.
+-- * Child results preserve 'elements' order.
+-- * The supplied scope is not recomputed while descending.
+--
+-- Example:
+--
+-- >>> let p = pattern 10 [point 5, point 3]
+-- >>> paraWithScope (trivialScope p) (\_ pat rs -> value pat + sum rs) p
+-- 18
+paraWithScope
+  :: ScopeQuery q v
+  => q v
+  -> (q v -> Pattern v -> [r] -> r)
+  -> Pattern v
+  -> r
+paraWithScope scope f = go
+  where
+    go pat@(Pattern _ es) = f scope pat (map go es)
+
 -- | Paramorphism: structure-aware folding over patterns.
 --
 -- Paramorphism enables folding over pattern structures while providing access
@@ -1188,8 +1348,7 @@ indicesAt = go []
 --
 -- @since 0.1.0
 para :: (Pattern v -> [r] -> r) -> Pattern v -> r
-para f (Pattern v els) = 
-  f (Pattern v els) (map (para f) els)
+para f p = paraWithScope (trivialScope p) (\_ pat rs -> f pat rs) p
 
 -- | Anamorphism: recursively unfold a seed value into a 'Pattern'.
 --

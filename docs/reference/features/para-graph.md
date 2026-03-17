@@ -5,7 +5,16 @@
 
 ## Overview
 
-`paraGraph` is the graph-level counterpart to `para` (paramorphism on `Pattern`). Where `para` recurses through a single pattern's tree structure, `paraGraph` folds across an entire `GraphView` — a flat collection of classified graph elements — in the correct containment order.
+`paraGraph` is now the graph-scoped wrapper in the same unified scope model that also powers `para`.
+
+Where `para` uses `TrivialScope` over one subtree, `paraGraph` keeps graph scheduling unchanged and derives generic scope answers from the whole `GraphView` snapshot. That graph adapter remains internal; the public API of `paraGraph` is unchanged.
+
+The key distinction is now explicit:
+
+- `para` folds one recursive tree with subtree-only scope
+- `paraGraph` folds one `GraphView` snapshot with graph-wide scope
+
+In both cases, the fold step is still driven by already-computed direct child results.
 
 The key challenge: a `GraphView` is a flat list, not a tree. `topoShapeSort` establishes the right processing order before the fold begins, so that every element is processed only after all elements it directly contains.
 
@@ -24,6 +33,23 @@ Layer 4: Other (GOther) — contain elements of any structure
 `paraGraph` processes layers 0 → 4 in order. Within layers 3 and 4, elements are additionally sorted by their dependency on each other: if annotation A annotates annotation B, B is processed before A.
 
 When your fold function `f` is called for element `p`, the `subResults` list contains computed results for every direct sub-element of `p` that has already been processed — which, in the absence of cycles, is all of them.
+
+## Unified Scope Relationship
+
+Graph folds now expose generic scope answers through `scopeDictFromGraphView`:
+
+```haskell
+scopeDictFromGraphView :: GraphValue v => GraphView extra v -> ScopeDict (Id v) v
+```
+
+This gives higher-order helpers access to:
+
+- `allElements` across the full classified `GraphView`
+- identity lookup bounded to that snapshot
+- direct containers across relationships, walks, annotations, and `GOther`
+- sibling derivation from those direct containers
+
+`paraGraph` itself still passes `GraphQuery v` to the user algebra so existing call sites do not change.
 
 ## Function Reference
 
@@ -196,6 +222,7 @@ An annotation that contains itself in `elements` creates a 1-element cycle. It w
 | | `para` | `paraGraph` |
 |-|--------|------------|
 | Input | Single `Pattern v` | `GraphView extra v` (flat collection) |
+| Scope boundary | `TrivialScope` over one subtree | Internal `GraphView`-backed scope over one snapshot |
 | Structure | Recursive tree descent | `topoShapeSort` then linear fold |
 | Order | Bottom-up by tree depth | Bottom-up by shape class + within-bucket deps |
 | Sub-results | Always complete (all children) | Best-effort (may be empty for cycle members) |

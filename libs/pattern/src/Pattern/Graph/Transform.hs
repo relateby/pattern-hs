@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}  -- Reconcile.HasIdentity v (Id v), Ord (Id v) in signatures
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | Graph transformation operations over 'GraphView'.
 --
@@ -37,6 +39,7 @@ module Pattern.Graph.Transform
     -- * Context-aware enrichment
   , mapWithContext
     -- * Iterative topology-aware algorithms
+  , scopeDictFromGraphView
   , paraGraph
   , paraGraphFixed
   ) where
@@ -45,7 +48,8 @@ import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
-import Pattern.Core (Pattern(..))
+import qualified Data.Set as Set
+import Pattern.Core (Pattern(..), ScopeDict, ScopeQuery(..), toScopeDict)
 import Pattern.Graph.Types (GraphView(..))
 import Pattern.Graph.GraphClassifier
   ( GraphClass(..), GraphClassifier(..), GraphValue(..) )
@@ -221,6 +225,26 @@ mapWithContext
 mapWithContext _classifier f view@(GraphView q elems) =
   view { viewElements = map (\(cls, p) -> (cls, f q p)) elems }
 
+-- | Reify the generic scope answers for a 'GraphView' snapshot.
+--
+-- This exposes the unified scope model without exporting the internal adapter
+-- type used to compute it.
+--
+-- Invariants:
+--
+-- * 'allElements' covers every classified element in the 'GraphView'.
+-- * 'byIdentity' is bounded to that snapshot.
+-- * 'containers' and 'siblings' are derived from direct containment only.
+-- * Duplicate graph identities are rejected when reifying generic scope
+--   answers, because 'ScopeQuery' lookup is keyed only by 'Id v'.
+--
+-- Example:
+--
+-- > let scope = scopeDictFromGraphView view
+-- > length (allElements scope)
+scopeDictFromGraphView :: GraphValue v => GraphView extra v -> ScopeDict (Id v) v
+scopeDictFromGraphView = toScopeDict . graphViewScope
+
 -- ============================================================================
 -- paraGraph
 -- ============================================================================
@@ -264,15 +288,72 @@ paraGraph
   => (GraphQuery v -> Pattern v -> [r] -> r)
   -> GraphView extra v
   -> Map (Id v) r
-paraGraph f (GraphView q elems) =
-  foldl' processElem Map.empty sortedElems
-  where
-    sortedElems = topoShapeSort elems
+paraGraph f view = paraGraphWithSeed f view Map.empty
 
-    processElem acc (_, p) =
-      let subResults = mapMaybe (\e -> Map.lookup (identify (value e)) acc) (elements p)
-          r = f q p subResults
-      in Map.insert (identify (value p)) r acc
+-- Internal adapter that exposes full GraphView scope to the generic scope layer
+-- without changing the public GraphQuery record shape.
+data GraphViewScope v = GraphViewScope
+  { gvsQuery      :: GraphQuery v
+  , gvsElements   :: [Pattern v]
+  , gvsIndex      :: Map (Id v) (Pattern v)
+  , gvsContainers :: Map (Id v) [Pattern v]
+  }
+
+instance GraphValue v => ScopeQuery GraphViewScope v where
+  type ScopeId GraphViewScope v = Id v
+
+  containers scope p =
+    Map.findWithDefault [] (identify (value p)) (gvsContainers scope)
+
+  siblings scope p =
+    dedupeById
+      [ sibling
+      | container <- containers scope p
+      , child <- elements container
+      , let childId = identify (value child)
+      , childId /= identify (value p)
+      , Just sibling <- [Map.lookup childId (gvsIndex scope)]
+      ]
+
+  byIdentity scope i = Map.lookup i (gvsIndex scope)
+  allElements = gvsElements
+
+dedupeById :: GraphValue v => [Pattern v] -> [Pattern v]
+dedupeById = reverse . fst . foldl' step ([], Set.empty)
+  where
+    step (acc, seen) p =
+      let pid = identify (value p)
+      in if Set.member pid seen
+           then (acc, seen)
+           else (p : acc, Set.insert pid seen)
+
+graphViewScope :: GraphValue v => GraphView extra v -> GraphViewScope v
+graphViewScope (GraphView q taggedElems) = GraphViewScope
+  { gvsQuery = q
+  , gvsElements = elems
+  , gvsIndex = index
+  , gvsContainers = containerIndex
+  }
+  where
+    elems = map snd taggedElems
+    index = foldl' insertUniqueElement Map.empty elems
+    containerIndex = foldl' indexContainer Map.empty elems
+
+    insertUniqueElement acc p =
+      let pid = identify (value p)
+      in case Map.lookup pid acc of
+           Nothing -> Map.insert pid p acc
+           Just _ ->
+             error "scopeDictFromGraphView: duplicate element identity in GraphView"
+
+    indexContainer acc container =
+      foldl' (insertContainer container) acc (elements container)
+
+    insertContainer container acc child =
+      let childId = identify (value child)
+      in if Map.member childId index
+           then Map.insertWith (++) childId [container] acc
+           else acc
 
 -- | Order graph elements for correct bottom-up processing in 'paraGraph'.
 --
@@ -423,9 +504,12 @@ paraGraphWithSeed
   -> GraphView extra v
   -> Map (Id v) r
   -> Map (Id v) r
-paraGraphWithSeed f (GraphView q elems) seed =
-  foldl' processElem seed (topoShapeSort elems)
+paraGraphWithSeed f view seed =
+  foldl' processElem seed (topoShapeSort taggedElems)
   where
+    q = viewQuery view
+    taggedElems = viewElements view
+
     processElem acc (_, p) =
       let subResults = mapMaybe (\e -> Map.lookup (identify (value e)) acc) (elements p)
           r = f q p subResults

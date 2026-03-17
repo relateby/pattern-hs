@@ -10,7 +10,8 @@
 -- The Pattern library is organized into several modules:
 --
 -- * @Pattern.Core@ - Core Pattern data type, construction functions, query functions,
---   predicate functions, and typeclass instances (Functor, Applicative, Comonad, etc.)
+--   predicate functions, the unified scope abstractions ('ScopeQuery', 'TrivialScope',
+--   'ScopeDict'), and typeclass instances (Functor, Applicative, Comonad, etc.)
 -- * @Pattern.Graph@ - Low-level graph structural operations (GraphLens, 'fromGraphLens', nodes,
 --   relationships, incidentRels, etc.) and 'GraphView' constructor 'toGraphView'.
 -- * @Pattern.Graph.GraphQuery@ - Portable graph query interface ('GraphQuery', 'TraversalWeight',
@@ -19,7 +20,8 @@
 -- * @Pattern.Graph.Algorithms@ - Graph algorithms operating on 'GraphQuery' (bfs, dfs,
 --   shortestPath, connectedComponents, etc.)
 -- * @Pattern.Graph.Transform@ - Bulk graph transformations: 'unfoldGraph', 'mapGraph',
---   'mapAllGraph', 'filterGraph', 'foldGraph', 'mapWithContext', 'paraGraph', 'paraGraphFixed'
+--   'mapAllGraph', 'filterGraph', 'foldGraph', 'mapWithContext', the graph-scope
+--   reifier 'scopeDictFromGraphView', 'paraGraph', and 'paraGraphFixed'
 -- * @Pattern.PatternGraph@ - Typed graph container with O(log n) lookups; 'fromPatternGraph',
 --   'materialize', 'toGraphView'
 -- * @Pattern.Reconcile@ - Pattern reconciliation for normalizing duplicate identities
