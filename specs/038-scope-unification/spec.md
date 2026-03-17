@@ -3,7 +3,7 @@
 **Feature Branch**: `038-scope-unification`  
 **Created**: 2026-03-17  
 **Status**: Draft  
-**Input**: User description: "Unify the use of scope for stucture+scope aware operations as described in @proposals/scope-unification-proposal.md"
+**Input**: User description: "Unify the use of scope for structure+scope aware operations as described in @proposals/scope-unification-proposal.md"
 
 ## User Scenarios & Testing *(mandatory)*
 

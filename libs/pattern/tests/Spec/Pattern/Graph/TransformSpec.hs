@@ -1,6 +1,7 @@
 -- | Tests for Pattern.Graph.Transform module.
 module Spec.Pattern.Graph.TransformSpec where
 
+import Control.Exception (evaluate)
 import Test.Hspec
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -82,6 +83,16 @@ graphWithScopeBoundary =
     , mkOther "other" [mkNode "a", mkNode "c", mkNode "d"]
     ]
 
+graphWithDuplicateScopeIds :: PatternGraph () Subject
+graphWithDuplicateScopeIds =
+  PG.fromPatterns canonicalClassifier
+    [ mkNode "dup"
+    , mkNode "a"
+    , mkNode "b"
+    , mkNode "c"
+    , mkOther "dup" [mkNode "a", mkNode "b", mkNode "c"]
+    ]
+
 -- Count elements by class
 countByClass :: GraphClass () -> GraphView () Subject -> Int
 countByClass target view =
@@ -138,6 +149,11 @@ spec = do
           `shouldBe` map (sort . subjectIds . containers direct) sampleElements
         map (sort . subjectIds . siblings reified) sampleElements
           `shouldBe` map (sort . subjectIds . siblings direct) sampleElements
+
+      it "rejects duplicate graph identities when reifying generic graph scope" $ do
+        let view = toGraphView canonicalClassifier graphWithDuplicateScopeIds
+        evaluate (byIdentity (scopeDictFromGraphView view) (Symbol "dup"))
+          `shouldThrow` anyErrorCall
 
     -- -----------------------------------------------------------------------
     -- Phase 1 / T008: GraphView initialization

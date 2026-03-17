@@ -1,6 +1,6 @@
 # pattern-hs Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-11-04
+Auto-generated from all feature plans. Last updated: 2026-03-17
 
 ## Active Technologies
 - Haskell / GHC 9.12.2 (from cabal.project, matches feature 001) + `base` ^>=4.17.0.0, `containers` ^>=0.6 (from existing pattern.cabal) (002-basic-pattern-type)

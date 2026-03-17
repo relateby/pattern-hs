@@ -5,7 +5,7 @@
 **Depends on:** GraphQuery proposal (design only; `GraphQuery` record must be in scope)  
 **Part of:** `representation-map-proposal.md` (scope unification layer only)  
 **Followed by:** RepresentationMap proposal (depends on this proposal being implemented)  
-**Location:** `proposals/scope-unification.md` within the `pattern-hs` workspace
+**Location:** `proposals/scope-unification-proposal.md` within the `pattern-hs` workspace
 
 ---
 
@@ -66,19 +66,22 @@ Different containers provide different operations; richer containers extend simp
 -- Pattern.Core
 
 class ScopeQuery q v where
+  type ScopeId q v
+
   containers  :: q v -> Pattern v -> [Pattern v]
     -- ^ patterns that directly contain this element within the scope
   siblings    :: q v -> Pattern v -> [Pattern v]
     -- ^ co-elements of the same immediate parent within the scope
-  byIdentity  :: q v -> Id v -> Maybe (Pattern v)
+  byIdentity  :: q v -> ScopeId q v -> Maybe (Pattern v)
     -- ^ look up any element in scope by identity
   allElements :: q v -> [Pattern v]
     -- ^ enumerate all elements within the scope
 ```
 
 The type variable `q` is the scope query implementation. Different containers
-instantiate `q` differently: `TrivialScope` for immediate-children scope, `GraphQuery`
-for graph-classified scope, and any future scope the caller cares to define.
+instantiate `q` differently: `TrivialScope` for subtree scope, `GraphView`-backed
+scope dictionaries for graph-wide generic answers, and any future scope the caller
+cares to define.
 
 The caller is always responsible for constructing the scope. The scope is not inferred
 from the fold target — it is passed in explicitly.
@@ -97,23 +100,27 @@ trivialScope :: Pattern v -> TrivialScope v
 trivialScope = TrivialScope
 
 instance ScopeQuery TrivialScope v where
+  type ScopeId TrivialScope v = Int
+
   containers  _ _               = []
     -- no parent information available in trivial scope
   siblings    _ _               = []
     -- no sibling information available in trivial scope
-  byIdentity  (TrivialScope p) i = findInSubtree i p
-    -- search within the subtree only
+  byIdentity  (TrivialScope p) i = subtreeElementAt p i
+    -- preorder lookup within the subtree only
   allElements (TrivialScope p)   = subtreeElements p
     -- all elements reachable within the subtree
 ```
 
-`findInSubtree` and `subtreeElements` are straightforward recursive traversals over
+`subtreeElementAt` and `subtreeElements` are straightforward recursive traversals over
 `Pattern v`. Both should already exist or be trivial to add in `Pattern.Core`.
 
-### `GraphScope` — graph-topology-aware scope
+### Possible follow-on: `GraphScope`
 
-A subclass of `ScopeQuery` that adds operations meaningful only when the scoped
-patterns are graph-classified (i.e. satisfy `GNode`, `GRelationship`, etc.).
+A natural follow-on is a graph-topology-specific subclass of `ScopeQuery` that adds
+operations meaningful only when the scoped patterns are graph-classified
+(i.e. satisfy `GNode`, `GRelationship`, etc.). This PR does not implement that
+extension; it stops at the generic scope layer plus graph-wide scope reification.
 
 ```haskell
 -- Pattern.Graph
@@ -128,36 +135,33 @@ class ScopeQuery q v => GraphScope q v where
 ```
 
 `source`, `target`, and `incidents` are only meaningful on `GRelationship`- and
-`GNode`-kinded patterns. The constraint hierarchy mirrors this: code that needs graph
-topology requires `GraphScope q v`; code that needs only containment and lookup
-requires only `ScopeQuery q v`.
+`GNode`-kinded patterns. If added later, the constraint hierarchy would mirror this:
+code that needs graph topology would require `GraphScope q v`; code that needs only
+containment and lookup would continue to require only `ScopeQuery q v`.
 
-### `GraphQuery` gains instances
+### `GraphView` provides graph-wide generic scope answers
 
-The existing `GraphQuery v` record-of-functions gains `ScopeQuery` and `GraphScope`
-instances. The existing record fields become the implementations. **No fields are
-removed or renamed.**
+The existing `GraphQuery v` record remains unchanged. In the implemented design,
+`GraphQuery` alone is not sufficient to answer generic `ScopeQuery` operations such as
+`allElements` and graph-wide `byIdentity`, because it only exposes nodes,
+relationships, and graph-topology queries. Walks, annotations, and other classified
+elements live in `GraphView`.
+
+Instead, graph-wide generic scope answers are derived from a full `GraphView`
+snapshot via an internal `GraphViewScope` adapter and the exported
+`scopeDictFromGraphView` helper. This keeps `GraphQuery` additive-only while making
+the complete classified `GraphView` available to the generic scope layer.
 
 ```haskell
--- Pattern.Graph
+-- Pattern.Graph.Transform
 
-instance ScopeQuery GraphQuery v where
-  containers  q p = queryContainers q p
-  siblings    q p = concatMap elements (queryContainers q p)
-  byIdentity  q i = queryNodeById q i
-  allElements q   = queryNodes q ++ queryRelationships q
-
-instance GraphScope GraphQuery v where
-  source    = querySource
-  target    = queryTarget
-  incidents = queryIncidentRels
-  degree    = queryDegree
-  nodes     = queryNodes
-  rels      = queryRelationships
+scopeDictFromGraphView :: GraphValue v => GraphView extra v -> ScopeDict (Id v) v
 ```
 
-All existing code that passes `GraphQuery v` values around continues to work
-unchanged. These instances are additive declarations only.
+This design also makes an important invariant explicit: generic graph-wide
+`byIdentity` is well-defined only when `Id v` is unique across the classified
+`GraphView` snapshot. Duplicate identities should be rejected rather than silently
+collapsed.
 
 ### `ScopeDict` — the first-class value form
 
@@ -165,26 +169,28 @@ For situations where a `ScopeQuery` instance needs to be stored in a data struct
 passed to a non-polymorphic higher-order function, or constructed dynamically at
 runtime, a `ScopeDict` record is provided alongside the typeclass. The record is itself
 a `ScopeQuery` instance, and any instance can be reified into a `ScopeDict` via
-`toDict`.
+`toScopeDict`.
 
 ```haskell
 -- Pattern.Core
 
-data ScopeDict v = ScopeDict
+data ScopeDict i v = ScopeDict
   { dictContainers  :: Pattern v -> [Pattern v]
   , dictSiblings    :: Pattern v -> [Pattern v]
-  , dictByIdentity  :: Id v -> Maybe (Pattern v)
+  , dictByIdentity  :: i -> Maybe (Pattern v)
   , dictAllElements :: [Pattern v]
   }
 
-instance ScopeQuery ScopeDict v where
+instance ScopeQuery (ScopeDict i) v where
+  type ScopeId (ScopeDict i) v = i
+
   containers  d   = dictContainers d
   siblings    d   = dictSiblings d
   byIdentity  d   = dictByIdentity d
-  allElements d _ = dictAllElements d
+  allElements d   = dictAllElements d
 
-toDict :: ScopeQuery q v => q v -> ScopeDict v
-toDict q = ScopeDict
+toScopeDict :: ScopeQuery q v => q v -> ScopeDict (ScopeId q v) v
+toScopeDict q = ScopeDict
   { dictContainers  = containers q
   , dictSiblings    = siblings q
   , dictByIdentity  = byIdentity q
@@ -230,7 +236,7 @@ para f p = paraWithScope (trivialScope p) (\_ pat rs -> f pat rs) p
 `para` is unchanged at every call site. The `ScopeQuery` parameter is hidden behind
 `trivialScope`. Behavior is identical to the current implementation.
 
-### `paraGraph` redefined
+### `paraGraph` preserved as the graph-specific wrapper
 
 ```haskell
 -- Pattern.Graph
@@ -239,13 +245,14 @@ paraGraph
   :: (GraphQuery v -> Pattern v -> [r] -> r)
   -> GraphView extra v
   -> Map (Id v) r
-paraGraph f view =
-  paraWithScope (viewQuery view) f (viewRoot view)
+paraGraph f view = ...
 ```
 
-`paraGraph` is unchanged at every call site. The scope is now explicitly the
-`GraphQuery v` derived from the `GraphView`, which is what it always was implicitly.
-Behavior is identical to the current implementation.
+`paraGraph` is unchanged at every call site and still passes a `GraphQuery v` into the
+algebra, preserving the existing scheduling and cycle-softening semantics over
+`GraphView`. The unified generic scope layer is exposed separately via
+`scopeDictFromGraphView`; `paraGraph` itself remains a graph-specific wrapper because
+it folds over a classified `GraphView`, not a single rooted `Pattern`.
 
 ### Other derived operations
 
@@ -262,13 +269,12 @@ is confirmed.
 |---|---|---|
 | `ScopeQuery` typeclass | `Pattern.Core` | **New** |
 | `TrivialScope` + `trivialScope` | `Pattern.Core` | **New** |
-| `ScopeDict` + `toDict` | `Pattern.Core` | **New** |
+| `ScopeDict` + `toScopeDict` | `Pattern.Core` | **New** |
 | `paraWithScope` | `Pattern.Core` | **New** |
 | `para` | `Pattern.Core` | **Redefine** (no API change) |
-| `GraphScope` typeclass | `Pattern.Graph` | **New** |
-| `ScopeQuery GraphQuery` instance | `Pattern.Graph` | **New** |
-| `GraphScope GraphQuery` instance | `Pattern.Graph` | **New** |
-| `paraGraph` | `Pattern.Graph` | **Redefine** (no API change) |
+| `scopeDictFromGraphView` | `Pattern.Graph.Transform` | **New** |
+| Internal `GraphViewScope` adapter | `Pattern.Graph.Transform` | **New (internal)** |
+| `paraGraph` | `Pattern.Graph.Transform` | **Preserve wrapper** (no API change) |
 
 No existing definitions are removed. No existing call sites require changes.
 
@@ -276,19 +282,20 @@ No existing definitions are removed. No existing call sites require changes.
 
 ## Interface convention note
 
-This proposal introduces `ScopeQuery` and `GraphScope` as typeclasses rather than
-records-of-functions. This is a deliberate choice for new interfaces in `pattern-hs`
+This proposal introduces `ScopeQuery` as a typeclass rather than a
+record-of-functions, and sketches how follow-on interfaces like `GraphScope` would use
+the same convention. This is a deliberate choice for new interfaces in `pattern-hs`
 going forward, and the reasoning is documented here to be explicit.
 
 The existing `GraphQuery` and `GraphClassifier` records are **not** converted — that
-would be a breaking change with limited benefit. Instead they gain typeclass instances,
-which is purely additive.
+would be a breaking change with limited benefit. Instead, new generic scope behavior is
+reified from `GraphView` where the full classified element set is available.
 
 For new interfaces from this point forward:
 
 1. Define the interface as a typeclass
-2. Provide a `*Dict` record as the first-class value form, with a `toDict` reification
-3. Give existing records typeclass instances where they satisfy the interface
+2. Provide a `*Dict` record as the first-class value form, with a `toScopeDict` reification
+3. Reify existing records/snapshots into the new interface when they satisfy it without losing information
 4. Document the cross-language correspondence in the porting guide
 
 **Cross-language correspondence:**
@@ -297,7 +304,7 @@ For new interfaces from this point forward:
 |---|---|---|
 | Typeclass | Trait | Protocol / Interface |
 | `*Dict` record | Struct implementing trait | Concrete class |
-| `toDict` | `impl Trait for Struct` | `__init__` + protocol conformance |
+| `toScopeDict` | `impl Trait for Struct` | `__init__` + protocol conformance |
 | `&dyn ScopeQuery<V>` (at boundary) | `Box<dyn ScopeQuery<V>>` | WASM-exported object |
 
 The Rust port uses `&dyn ScopeQuery<V>` at FFI and dynamic-dispatch boundaries. Within
@@ -315,7 +322,7 @@ Confirm that `findInSubtree` and `subtreeElements` exist and are correct. Add th
 missing. These are simple recursive traversals; their correctness is a prerequisite for
 `TrivialScope`.
 
-### Step 2 — `ScopeQuery`, `TrivialScope`, `ScopeDict`, `toDict`
+### Step 2 — `ScopeQuery`, `TrivialScope`, `ScopeDict`, `toScopeDict`
 
 Add to `Pattern.Core`. No dependencies on other new definitions. Write unit tests
 for `TrivialScope`: `containers` and `siblings` return `[]`; `byIdentity` finds
@@ -327,10 +334,11 @@ Implement `paraWithScope`. Redefine `para` in terms of it. Run the existing `par
 test suite — all tests must pass without modification. This is the primary correctness
 check: if `para` is behaviorally identical before and after, the refactoring is sound.
 
-### Step 4 — `GraphScope`, instances in `Pattern.Graph`
+### Step 4 — graph-wide scope reification in `Pattern.Graph.Transform`
 
-Add `GraphScope` typeclass to `Pattern.Graph`. Add `ScopeQuery GraphQuery` and
-`GraphScope GraphQuery` instances. Redefine `paraGraph` in terms of `paraWithScope`.
+Add the internal `GraphViewScope` adapter and exported `scopeDictFromGraphView` helper
+to `Pattern.Graph.Transform`. Keep `GraphQuery(..)` unchanged, and preserve
+`paraGraph`/`paraGraphFixed` as wrappers over graph-specific scheduling.
 Run the existing `paraGraph` test suite — all tests must pass without modification.
 
 ### Step 5 — verify no regressions
@@ -364,11 +372,10 @@ This proposal deliberately excludes the following, which belong to later proposa
 
 The implementation is complete when:
 
-1. `ScopeQuery`, `TrivialScope`, `ScopeDict`, `toDict`, and `paraWithScope` are
+1. `ScopeQuery`, `TrivialScope`, `ScopeDict`, `toScopeDict`, and `paraWithScope` are
    present in `Pattern.Core` and exported.
-2. `GraphScope`, `ScopeQuery GraphQuery`, and `GraphScope GraphQuery` are present in
-   `Pattern.Graph` and exported.
-3. `para` and `paraGraph` are redefined as derived operations and pass their existing
+2. `scopeDictFromGraphView` is present in `Pattern.Graph.Transform` and exported.
+3. `para` and `paraGraph` preserve their existing call sites and pass their existing
    test suites without modification.
 4. The full `pattern-hs` test suite passes with no failures.
 5. No existing call sites required changes.
@@ -379,7 +386,7 @@ The implementation is complete when:
 
 - `representation-map-proposal.md` — the larger proposal this is extracted from;
   `RepresentationMap` depends on this proposal being implemented first
-- `proposals/graph-query.md` — `GraphQuery` record that gains `ScopeQuery` and
-  `GraphScope` instances here
+- `proposals/graph-query.md` — `GraphQuery` record used by `paraGraph`; generic
+  graph-wide scope answers are reified from `GraphView` rather than added here
 - `proposals/graph-transform.md` — the next proposal in sequence after this one is
   merged; `RepresentationMap` depends on both

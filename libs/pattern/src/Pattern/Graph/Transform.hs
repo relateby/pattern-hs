@@ -235,6 +235,8 @@ mapWithContext _classifier f view@(GraphView q elems) =
 -- * 'allElements' covers every classified element in the 'GraphView'.
 -- * 'byIdentity' is bounded to that snapshot.
 -- * 'containers' and 'siblings' are derived from direct containment only.
+-- * Duplicate graph identities are rejected when reifying generic scope
+--   answers, because 'ScopeQuery' lookup is keyed only by 'Id v'.
 --
 -- Example:
 --
@@ -334,11 +336,15 @@ graphViewScope (GraphView q taggedElems) = GraphViewScope
   }
   where
     elems = map snd taggedElems
-    index = Map.fromList
-      [ (identify (value p), p)
-      | p <- elems
-      ]
+    index = foldl' insertUniqueElement Map.empty elems
     containerIndex = foldl' indexContainer Map.empty elems
+
+    insertUniqueElement acc p =
+      let pid = identify (value p)
+      in case Map.lookup pid acc of
+           Nothing -> Map.insert pid p acc
+           Just _ ->
+             error "scopeDictFromGraphView: duplicate element identity in GraphView"
 
     indexContainer acc container =
       foldl' (insertContainer container) acc (elements container)
@@ -501,8 +507,7 @@ paraGraphWithSeed
 paraGraphWithSeed f view seed =
   foldl' processElem seed (topoShapeSort taggedElems)
   where
-    scope = graphViewScope view
-    q = gvsQuery scope
+    q = viewQuery view
     taggedElems = viewElements view
 
     processElem acc (_, p) =
