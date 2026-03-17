@@ -42,6 +42,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-04
 - N/A — pure in-memory data structures (035-graph-query)
 - Haskell (GHC 9.12.2) + `pattern-hs` core (GraphClassifier, GraphQuery, PatternGraph) (036-graph-transform)
 - In-memory `PatternGraph` and `GraphView` representations (036-graph-transform)
+- Haskell (GHC 9.12.2) + `base`, `containers`, existing `pattern` modules (`Pattern.Core`, `Pattern.Graph`, `Pattern.Graph.GraphQuery`, `Pattern.Graph.Transform`) (038-scope-unification)
+- N/A - pure in-memory library behavior (038-scope-unification)
 
 - (001-pattern-data-structure)
 
@@ -61,9 +63,9 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 038-scope-unification: Added Haskell (GHC 9.12.2) + `base`, `containers`, existing `pattern` modules (`Pattern.Core`, `Pattern.Graph`, `Pattern.Graph.GraphQuery`, `Pattern.Graph.Transform`)
 - 036-graph-transform: Added Haskell (GHC 9.12.2) + `pattern-hs` core (GraphClassifier, GraphQuery, PatternGraph)
 - 033-pattern-graph: Added Haskell (GHC 9.12.2 per CLAUDE.md; base >=4.17.0.0 from pattern.cabal) + pattern (Pattern.Core, Pattern.Reconcile), subject, containers, hashable, unordered-containers (from libs/pattern)
-- 032-gram-annotation-syntax: Added Haskell (GHC 9.12.2) + megaparsec (parsing), hspec (testing)
 
 
 <!-- MANUAL ADDITIONS START -->
