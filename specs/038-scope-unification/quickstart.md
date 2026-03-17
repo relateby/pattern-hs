@@ -61,10 +61,10 @@ Document:
 Run the pattern test suite:
 
 ```bash
-cabal test pattern-test
+cabal test --enable-tests pattern:test:pattern-test
 ```
 
-If the workspace requires package-qualified execution, run from repo root with the existing package configuration.
+Run from repo root. This workspace currently requires the explicit `--enable-tests` package-qualified form so Cabal includes the `pattern-test` suite in the solver plan.
 
 ## Expected Outcome
 

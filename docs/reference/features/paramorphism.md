@@ -5,7 +5,63 @@
 
 ## Overview
 
-Paramorphism enables structure-aware folding over patterns. Unlike `Foldable` (which only provides values), paramorphism gives your folding function access to the full pattern structure at each position, enabling sophisticated aggregations that consider depth, element count, and nesting level.
+Paramorphism now sits inside a broader unified scope model:
+
+- `ScopeQuery` describes what is visible during a structure-aware operation
+- `paraWithScope` is the canonical fold primitive
+- `TrivialScope` is the subtree-only scope used to preserve classic `para`
+- `ScopeDict` is the first-class value form for passing scope behavior around as data
+
+For existing callers, nothing changes: `para` remains the same API and the same behavior. Internally it is now derived as:
+
+```haskell
+para f p = paraWithScope (trivialScope p) (\_ pat rs -> f pat rs) p
+```
+
+This keeps the fold bottom-up and child-order-preserving while making the scope boundary explicit.
+
+## Unified Scope Model
+
+### `ScopeQuery`
+
+`ScopeQuery` answers four generic questions for the current scope:
+
+- direct containers of an element
+- siblings within those direct containers
+- lookup by scope identity
+- full enumeration of in-scope elements
+
+Tree-only scopes and graph-backed scopes can answer these questions differently, but folds can now talk to both through the same interface.
+
+### `paraWithScope`
+
+```haskell
+paraWithScope
+  :: ScopeQuery q v
+  => q v
+  -> (q v -> Pattern v -> [r] -> r)
+  -> Pattern v
+  -> r
+```
+
+The fold algebra receives:
+
+- the fixed scope value
+- the current pattern node
+- already-computed direct child results in `elements` order
+
+### `TrivialScope`
+
+`TrivialScope` keeps `para` backward-compatible by exposing only subtree information. It intentionally returns:
+
+- `containers = []`
+- `siblings = []`
+
+Its identity lookup is scope-local, using zero-based preorder positions within `allElements`.
+
+### `ScopeDict`
+
+`ScopeDict` is the value-form equivalent of `ScopeQuery`. Use it when a helper needs stored scope behavior instead of a polymorphic scope provider.
 
 ## Function Reference
 
@@ -15,7 +71,7 @@ Paramorphism enables structure-aware folding over patterns. Unlike `Foldable` (w
 para :: (Pattern v -> [r] -> r) -> Pattern v -> r
 ```
 
-**Description**: Paramorphism function that enables structure-aware folding over patterns. The folding function receives both the current pattern subtree and recursively computed results from children.
+**Description**: Backward-compatible wrapper over `paraWithScope` and `TrivialScope`. The folding function receives the current pattern subtree and recursively computed child results exactly as before.
 
 **Parameters**:
 - `f :: Pattern v -> [r] -> r`: Folding function that receives:
@@ -40,9 +96,16 @@ depthWeightedSum = para (\pat rs -> value pat * depth pat + sum rs) p
 
 ## Type Signatures
 
-### Core Function
+### Core Functions
 
 ```haskell
+paraWithScope
+  :: ScopeQuery q v
+  => q v
+  -> (q v -> Pattern v -> [r] -> r)
+  -> Pattern v
+  -> r
+
 para :: (Pattern v -> [r] -> r) -> Pattern v -> r
 ```
 
@@ -148,9 +211,11 @@ para (\p rs -> value p * depth p + sum rs) pattern  -- Aggregates, returns resul
 ### Standard Pattern
 
 ```haskell
-para :: (Pattern v -> [r] -> r) -> Pattern v -> r
-para f (Pattern v els) = 
-  f (Pattern v els) (map (para f) els)
+paraWithScope scope f (Pattern v els) =
+  f scope (Pattern v els) (map (paraWithScope scope f) els)
+
+para f p =
+  paraWithScope (trivialScope p) (\_ pat rs -> f pat rs) p
 ```
 
 **Breakdown**:
@@ -243,6 +308,7 @@ para (\p rs -> value p + sum rs) nested
 
 ## See Also
 
+- [paraGraph Reference](./para-graph.md) - Graph-scoped wrapper over the same scope model
 - [User Guide: Advanced Morphisms](../../guide/06-advanced-morphisms.md) - Intuitive explanation and examples
 - [Porting Guide: Paramorphism Implementation](../../PORTING-GUIDE.md#paramorphism-implementation) - How to implement in other languages
 - [Typeclass Instances](typeclass-instances.md) - Relationship to `Foldable` and `Comonad`

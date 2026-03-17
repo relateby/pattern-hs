@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 -- | Unit tests for Pattern.Core module.
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -19,12 +22,27 @@ import Data.Semigroup (sconcat, stimes)
 import qualified Data.Set as Set
 import Test.Hspec
 import Control.Comonad (extract, extend, duplicate)
-import Pattern.Core (Pattern(..), pattern, point, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt, indicesAt, para, unfold)
+import Pattern.Core (Pattern(..), ScopeQuery(..), pattern, point, fromList, toTuple, size, depth, values, anyValue, allValues, filterPatterns, findPattern, findAllPatterns, matches, contains, depthAt, sizeAt, indicesAt, trivialScope, toScopeDict, para, paraWithScope, unfold)
 import qualified Pattern.Core as PC
+import qualified Spec.Pattern.Properties as Props
 
 -- Custom type for testing
 data Person = Person { name :: String, age :: Maybe Int }
   deriving (Eq, Show)
+
+newtype FlatScope v = FlatScope [Pattern v]
+
+instance PC.ScopeQuery FlatScope v where
+  type ScopeId FlatScope v = Int
+
+  containers _ _ = []
+  siblings _ _ = []
+  byIdentity (FlatScope ps) i
+    | i < 0 = Nothing
+    | otherwise = case drop i ps of
+        p:_ -> Just p
+        [] -> Nothing
+  allElements (FlatScope ps) = ps
 
 spec :: Spec
 spec = do
@@ -4399,6 +4417,93 @@ spec = do
           extract (elements result !! 1) `shouldBe` ([1] :: [Int])  -- "b": [1]
           extract (elements (elements result !! 0) !! 0) `shouldBe` ([0, 0] :: [Int])  -- "x": [0, 0]
     
+    describe "Unified scope queries (038-scope-unification)" $ do
+
+      describe "TrivialScope compatibility (US1)" $ do
+
+        it "T007: containers and siblings return [] across subtree-only scope" $ do
+          let leaf = point "leaf"
+          let branch = pattern "branch" [leaf]
+          let root = pattern "root" [branch, point "sibling"]
+          let scope = trivialScope root
+
+          containers scope root `shouldBe` []
+          containers scope leaf `shouldBe` []
+          siblings scope root `shouldBe` []
+          siblings scope leaf `shouldBe` []
+
+        it "T008: paraWithScope preserves child-result order and para compatibility" $ do
+          let left = pattern "left" [point "leaf"]
+          let right = point "right"
+          let root = pattern "root" [left, right]
+          let scope = trivialScope root
+
+          paraWithScope scope (\_ pat rs -> (value pat, map fst rs)) root
+            `shouldBe` ("root", ["left", "right"])
+
+          paraWithScope scope (\_ pat rs -> value pat : concat rs) root
+            `shouldBe` para (\pat rs -> value pat : concat rs) root
+
+        it "T009: paraWithScope (trivialScope p) is observationally equivalent to para" $
+          Props.quickProperty $ \p ->
+            let scope = trivialScope (p :: Pattern Int)
+                algebra pat rs = value pat + sum rs
+            in paraWithScope scope (\_ pat rs -> algebra pat rs) p == para algebra p
+
+      describe "Custom provider extensibility (US2)" $ do
+
+        it "T013: paraWithScope works with a custom scope provider" $ do
+          let root = pattern 10 [point 5, point 3]
+          let scope = FlatScope [root, point 5, point 3]
+          let result = paraWithScope scope (\q pat rs -> length (allElements q) + value pat + sum rs) root
+
+          result `shouldBe` (27 :: Int)
+          fmap value (byIdentity scope 1) `shouldBe` Just 5
+
+      describe "ScopeDict equivalence (US3)" $ do
+
+        it "T018: toScopeDict preserves subtree scope answers" $ do
+          let root = pattern "root" [pattern "left" [point "leaf"], point "right"]
+          let scope = trivialScope root
+          let dict = toScopeDict scope
+          let ids = [0 .. length (allElements scope) - 1]
+
+          allElements dict `shouldBe` allElements scope
+          map (byIdentity dict) ids `shouldBe` map (byIdentity scope) ids
+          containers dict root `shouldBe` containers scope root
+          siblings dict root `shouldBe` siblings scope root
+
+        it "T019: toScopeDict preserves subtree scope behavior for representative patterns" $
+          Props.quickProperty $ \p ->
+            let scope = trivialScope (p :: Pattern Int)
+                dict = toScopeDict scope
+                elems = allElements scope
+                ids = [0 .. length elems - 1]
+                sameLocalAnswers e = containers dict e == containers scope e
+                  && siblings dict e == siblings scope e
+            in allElements dict == elems
+              && map (byIdentity dict) ids == map (byIdentity scope) ids
+              && all sameLocalAnswers elems
+
+        it "T021: reified scope values can be passed to higher-order helpers unchanged" $ do
+          let root = pattern "root" [pattern "left" [point "leaf"], point "right"]
+          let scope = trivialScope root
+          let dict = toScopeDict scope
+          let directSummary =
+                ( length (allElements scope)
+                , length (containers scope root)
+                , length (siblings scope root)
+                , fmap value (byIdentity scope (0 :: Int))
+                )
+          let dictSummary =
+                ( length (allElements dict)
+                , length (containers dict root)
+                , length (siblings dict root)
+                , fmap value (byIdentity dict (0 :: Int))
+                )
+
+          dictSummary `shouldBe` directSummary
+
     describe "Paramorphism (User Story 1)" $ do
       
       describe "Basic paramorphism operations" $ do
