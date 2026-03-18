@@ -11,6 +11,7 @@ import qualified Spec.Pattern.Graph.TransformSpec as TransformSpec
 import qualified Spec.Pattern.PatternGraphProperties as PatternGraphProperties
 import qualified Spec.Pattern.PatternGraphSpec as PatternGraphSpec
 import qualified Spec.Pattern.Properties as Properties
+import qualified Spec.Pattern.RepresentationMapSpec as RepresentationMapSpec
 import qualified Spec.Pattern.ReconcileSpec as ReconcileSpec
 import qualified Spec.Pattern.ReconcileProperties as ReconcileProperties
 
@@ -29,6 +30,7 @@ testSpec = do
     PatternGraphSpec.spec
     PatternGraphProperties.spec
     Properties.spec
+    RepresentationMapSpec.spec
     ReconcileSpec.spec
     ReconcileProperties.spec
 

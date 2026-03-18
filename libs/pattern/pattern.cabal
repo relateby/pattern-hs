@@ -23,6 +23,7 @@ library
     exposed-modules:
         Pattern
         Pattern.Core
+        Pattern.RepresentationMap
         Pattern.Graph
         Pattern.Graph.GraphClassifier
         Pattern.Graph.GraphQuery
@@ -59,6 +60,7 @@ test-suite pattern-test
         Spec.Pattern.PatternGraphProperties
         Spec.Pattern.PatternGraphSpec
         Spec.Pattern.Properties
+        Spec.Pattern.RepresentationMapSpec
         Spec.Pattern.ReconcileSpec
         Spec.Pattern.ReconcileProperties
 
