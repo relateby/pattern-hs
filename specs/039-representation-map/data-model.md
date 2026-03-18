@@ -31,23 +31,23 @@ A named, invertible, composable isomorphism between two kinds of shape. The roun
 
 ```
 RepresentationMap v
-  name        :: String               -- e.g. "DiagnosticMap"
-  domain      :: PatternKind v        -- source kind
-  codomain    :: PatternKind v        -- target kind
-  forward     :: ∀q. ScopeQuery q v   -- domain → codomain transform
-                => q v -> Pattern v -> Pattern v
-  inverse     :: ∀q. ScopeQuery q v   -- codomain → domain transform
-                => q v -> Pattern v -> Pattern v
-  roundTrip   :: ∀q. ScopeQuery q v   -- isomorphism witness
-                => q v -> Pattern v -> Bool
+  repMapName        :: String               -- e.g. "DiagnosticMap"
+  repMapDomain      :: PatternKind v        -- source kind
+  repMapCodomain    :: PatternKind v        -- target kind
+  repMapForward     :: ∀q. ScopeQuery q v   -- domain → codomain transform
+                    => q v -> Pattern v -> Pattern v
+  repMapInverse     :: ∀q. ScopeQuery q v   -- codomain → domain transform
+                    => q v -> Pattern v -> Pattern v
+  repMapRoundTrip   :: ∀q. ScopeQuery q v   -- isomorphism witness
+                    => q v -> Pattern v -> Bool
 ```
 
-**Invariant**: For all `p` satisfying `kindPred (domain m) q p`:
-1. `kindPred (codomain m) q (forward m q p) == True`
-2. `roundTrip m q p == True`
-3. `roundTrip m q p` implies `(inverse m q . forward m q) p == p` structurally
+**Invariant**: For all `p` satisfying `kindPred (repMapDomain m) q p`:
+1. `kindPred (repMapCodomain m) q (repMapForward m q p) == True`
+2. `repMapRoundTrip m q p == True`
+3. `repMapRoundTrip m q p` implies `(repMapInverse m q . repMapForward m q) p == p` structurally
 
-**Categorical interpretation**: A `RepresentationMap v` is a named isomorphism in the category of `PatternKind`s. `forward` and `inverse` are the two morphism components. `roundTrip` witnesses the identity law `inverse ∘ forward = id` on the domain subobject.
+**Categorical interpretation**: A `RepresentationMap v` is a named isomorphism in the category of `PatternKind`s. `repMapForward` and `repMapInverse` are the two morphism components. `repMapRoundTrip` witnesses the identity law `repMapInverse ∘ repMapForward = id` on the domain subobject.
 
 ---
 
@@ -68,13 +68,13 @@ kind checks and round-trip tests rather than stored as inline prose on the
 compose :: RepresentationMap v -> RepresentationMap v -> Either String (RepresentationMap v)
 ```
 
-**Precondition**: `kindName (codomain m1) == kindName (domain m2)`
+**Precondition**: `kindName (repMapCodomain m1) == kindName (repMapDomain m2)`
 **Failure**: `Left` with message identifying the mismatch if precondition not met
-**Result**: A map from `domain m1` to `codomain m2` with:
-- `name = name m1 <> " >>> " <> name m2`
-- `forward q = forward m2 q . forward m1 q`
-- `inverse q = inverse m1 q . inverse m2 q`
-- `roundTrip q p = roundTrip m1 q p && roundTrip m2 q (forward m1 q p)`
+**Result**: A map from `repMapDomain m1` to `repMapCodomain m2` with:
+- `repMapName = repMapName m1 <> " >>> " <> repMapName m2`
+- `repMapForward q = repMapForward m2 q . repMapForward m1 q`
+- `repMapInverse q = repMapInverse m1 q . repMapInverse m2 q`
+- `repMapRoundTrip q p = repMapRoundTrip m1 q p && repMapRoundTrip m2 q (repMapForward m1 q p)`
 
 **Categorical interpretation**: `compose` is morphism composition in the category of `PatternKind`s. The `Either` wraps a partial function — composition is only defined when codomain matches domain.
 
@@ -130,4 +130,4 @@ tests/Spec/Pattern/RepresentationMapSpec.hs
 
 `RepresentationMap` has no mutable state. The types are pure values. Composition produces a new value; it does not modify the inputs.
 
-The only "state" is the validation result of `roundTrip`, which is a pure predicate over a domain-kind pattern.
+The only "state" is the validation result of `repMapRoundTrip`, which is a pure predicate over a domain-kind pattern.

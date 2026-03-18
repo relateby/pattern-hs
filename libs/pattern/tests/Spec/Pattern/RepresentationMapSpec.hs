@@ -13,7 +13,7 @@ import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe, shouldConta
 import Subject.Core (Subject(..), Symbol(..))
 import qualified Subject.Core as Subj
 import Subject.Value (Value(..))
-import Test.QuickCheck (Property, property)
+import Test.QuickCheck (property)
 import qualified Test.QuickCheck as QC
 
 newtype VisibleScope v = VisibleScope [Pattern v]
@@ -85,41 +85,44 @@ aliasedWrappedPatternKind = PatternKind
 
 wrapLeafMap :: RepresentationMap String
 wrapLeafMap = RepresentationMap
-  { name = "wrapLeaf"
-  , domain = leafPatternKind
-  , codomain = wrappedPatternKind
-  , forward = \_ p -> Pattern "wrapped" [p]
-  , inverse = \_ p ->
+  { repMapName = "wrapLeaf"
+  , repMapDomain = leafPatternKind
+  , repMapCodomain = wrappedPatternKind
+  , repMapForward = \_ p -> Pattern "wrapped" [p]
+  , repMapInverse = \_ p ->
       case p of
         Pattern "wrapped" [child] -> child
         _ -> p
-  , roundTrip = \q p -> (inverse wrapLeafMap q . forward wrapLeafMap q) p == p
+  , repMapRoundTrip =
+      \q p -> (repMapInverse wrapLeafMap q . repMapForward wrapLeafMap q) p == p
   }
 
 boxWrappedMap :: RepresentationMap String
 boxWrappedMap = RepresentationMap
-  { name = "boxWrapped"
-  , domain = wrappedPatternKind
-  , codomain = boxedPatternKind
-  , forward = \_ p -> Pattern "boxed" [p]
-  , inverse = \_ p ->
+  { repMapName = "boxWrapped"
+  , repMapDomain = wrappedPatternKind
+  , repMapCodomain = boxedPatternKind
+  , repMapForward = \_ p -> Pattern "boxed" [p]
+  , repMapInverse = \_ p ->
       case p of
         Pattern "boxed" [child] -> child
         _ -> p
-  , roundTrip = \q p -> (inverse boxWrappedMap q . forward boxWrappedMap q) p == p
+  , repMapRoundTrip =
+      \q p -> (repMapInverse boxWrappedMap q . repMapForward boxWrappedMap q) p == p
   }
 
 mismatchedBoxMap :: RepresentationMap String
 mismatchedBoxMap = RepresentationMap
-  { name = "mismatchedBox"
-  , domain = aliasedWrappedPatternKind
-  , codomain = boxedPatternKind
-  , forward = \_ p -> Pattern "boxed" [p]
-  , inverse = \_ p ->
+  { repMapName = "mismatchedBox"
+  , repMapDomain = aliasedWrappedPatternKind
+  , repMapCodomain = boxedPatternKind
+  , repMapForward = \_ p -> Pattern "boxed" [p]
+  , repMapInverse = \_ p ->
       case p of
         Pattern "boxed" [child] -> child
         _ -> p
-  , roundTrip = \q p -> (inverse mismatchedBoxMap q . forward mismatchedBoxMap q) p == p
+  , repMapRoundTrip =
+      \q p -> (repMapInverse mismatchedBoxMap q . repMapForward mismatchedBoxMap q) p == p
   }
 
 subjectWith :: String -> [String] -> [(String, Value)] -> Subject
@@ -170,11 +173,9 @@ validDiagnosticPattern pat =
   case pat of
     Pattern locationSubject [diagnosticPat] ->
       hasLabel "Location" locationSubject
-        && case diagnosticPat of
-          Pattern diagnosticSubject remediationPats ->
-            hasLabel "Diagnostic" diagnosticSubject
-              && all isAtomicRemediation remediationPats
-          _ -> False
+        && let Pattern diagnosticSubject remediationPats = diagnosticPat
+           in hasLabel "Diagnostic" diagnosticSubject
+                && all isAtomicRemediation remediationPats
     _ -> False
   where
     isAtomicRemediation (Pattern remediationSubject remediationElements) =
@@ -260,18 +261,6 @@ canonicalDiagnosticGraph =
 subjectSymbolText :: Subject -> String
 subjectSymbolText = (\(Symbol s) -> s) . Subj.identity
 
-graphNodeFromSubject :: Int -> Subject -> Pattern Subject
-graphNodeFromSubject depth subj =
-  Pattern
-    subj
-      { properties =
-          Map.insert "_depth" (VInteger (fromIntegral depth))
-            (Map.insert "_arity" (VInteger (fromIntegral arity)) (properties subj))
-      }
-    []
-  where
-    arity = 0
-
 graphNodeFromPattern :: Int -> Pattern Subject -> Pattern Subject
 graphNodeFromPattern depth pat =
   Pattern updatedSubject []
@@ -351,15 +340,16 @@ diagnosticInverse _ graph =
 
 diagnosticMap :: RepresentationMap Subject
 diagnosticMap = RepresentationMap
-  { name = "diagnosticMap"
-  , domain = diagnosticPatternKind
-  , codomain = diagnosticGraphKind
+  { repMapName = "diagnosticMap"
+  , repMapDomain = diagnosticPatternKind
+  , repMapCodomain = diagnosticGraphKind
     -- The current prototype documents its encoding choices here rather than
     -- storing prose on the map value itself: `_arity` preserves direct element
     -- count and `_depth` preserves nesting depth in graph-form nodes.
-  , forward = diagnosticForward
-  , inverse = diagnosticInverse
-  , roundTrip = \q p -> (inverse diagnosticMap q . forward diagnosticMap q) p == p
+  , repMapForward = diagnosticForward
+  , repMapInverse = diagnosticInverse
+  , repMapRoundTrip =
+      \q p -> (repMapInverse diagnosticMap q . repMapForward diagnosticMap q) p == p
   }
 
 genDiagnosticPattern :: QC.Gen (Pattern Subject)
@@ -379,12 +369,12 @@ genDiagnosticPattern = do
 
 identityLikeMap :: RepresentationMap Subject
 identityLikeMap = RepresentationMap
-  { name = "diagnosticGraphIdentity"
-  , domain = diagnosticGraphKind
-  , codomain = diagnosticGraphKind
-  , forward = \_ p -> p
-  , inverse = \_ p -> p
-  , roundTrip = \_ _ -> True
+  { repMapName = "diagnosticGraphIdentity"
+  , repMapDomain = diagnosticGraphKind
+  , repMapCodomain = diagnosticGraphKind
+  , repMapForward = \_ p -> p
+  , repMapInverse = \_ p -> p
+  , repMapRoundTrip = \_ _ -> True
   }
 
 spec :: Spec
@@ -436,27 +426,33 @@ spec =
           checkKind leafPatternKind (trivialScope example) example `shouldBe` True
           case compose wrapLeafMap boxWrappedMap of
             Left err -> expectationFailure err
-            Right composedMap -> name composedMap `shouldBe` "wrapLeaf >>> boxWrapped"
+            Right composedMap -> repMapName composedMap `shouldBe` "wrapLeaf >>> boxWrapped"
 
-        it "forward produces a pattern accepted by the codomain kind" $ do
-          let domainPattern = kindExample (domain wrapLeafMap)
+        it "repMapForward produces a pattern accepted by the codomain kind" $ do
+          let domainPattern = kindExample (repMapDomain wrapLeafMap)
               scope = trivialScope domainPattern
 
-          checkKind (codomain wrapLeafMap) scope (forward wrapLeafMap scope domainPattern)
+          checkKind
+            (repMapCodomain wrapLeafMap)
+            scope
+            (repMapForward wrapLeafMap scope domainPattern)
             `shouldBe` True
 
-        it "inverse produces a pattern accepted by the domain kind" $ do
-          let codomainPattern = kindExample (codomain wrapLeafMap)
+        it "repMapInverse produces a pattern accepted by the domain kind" $ do
+          let codomainPattern = kindExample (repMapCodomain wrapLeafMap)
               scope = trivialScope codomainPattern
 
-          checkKind (domain wrapLeafMap) scope (inverse wrapLeafMap scope codomainPattern)
+          checkKind
+            (repMapDomain wrapLeafMap)
+            scope
+            (repMapInverse wrapLeafMap scope codomainPattern)
             `shouldBe` True
 
       describe "compose" $ do
         it "returns a composed map with the expected joined name" $ do
           case compose wrapLeafMap boxWrappedMap of
             Left err -> expectationFailure err
-            Right composedMap -> name composedMap `shouldBe` "wrapLeaf >>> boxWrapped"
+            Right composedMap -> repMapName composedMap `shouldBe` "wrapLeaf >>> boxWrapped"
 
         it "returns Left with both kind names when map kinds are incompatible" $ do
           case compose wrapLeafMap mismatchedBoxMap of
@@ -465,7 +461,7 @@ spec =
               err `shouldContain` "AliasedWrapped"
             Right _ -> expectationFailure "Expected incompatible kinds to fail composition"
 
-        it "applies forward then inverse in the documented composition order" $ do
+        it "applies repMapForward then repMapInverse in the documented composition order" $ do
           case compose wrapLeafMap boxWrappedMap of
             Left err -> expectationFailure err
             Right composedMap -> do
@@ -474,39 +470,45 @@ spec =
                   leafScope = trivialScope leafPattern
                   boxedScope = trivialScope boxedPattern
 
-              forward composedMap leafScope leafPattern
-                `shouldBe` forward boxWrappedMap leafScope (forward wrapLeafMap leafScope leafPattern)
+              repMapForward composedMap leafScope leafPattern
+                `shouldBe` repMapForward boxWrappedMap leafScope (repMapForward wrapLeafMap leafScope leafPattern)
 
-              inverse composedMap boxedScope boxedPattern
-                `shouldBe` inverse wrapLeafMap boxedScope (inverse boxWrappedMap boxedScope boxedPattern)
+              repMapInverse composedMap boxedScope boxedPattern
+                `shouldBe` repMapInverse wrapLeafMap boxedScope (repMapInverse boxWrappedMap boxedScope boxedPattern)
 
       describe "diagnosticMap" $ do
-        it "forward maps the canonical diagnostic pattern into the graph kind" $ do
+        it "repMapForward maps the canonical diagnostic pattern into the graph kind" $ do
           let scope = trivialScope canonicalDiagnosticPattern
 
-          checkKind diagnosticGraphKind scope (forward diagnosticMap scope canonicalDiagnosticPattern)
+          checkKind
+            diagnosticGraphKind
+            scope
+            (repMapForward diagnosticMap scope canonicalDiagnosticPattern)
             `shouldBe` True
 
-        it "inverse maps the canonical diagnostic graph into the pattern kind" $ do
+        it "repMapInverse maps the canonical diagnostic graph into the pattern kind" $ do
           let scope = topLevelGraphScope canonicalDiagnosticGraph
 
-          checkKind diagnosticPatternKind scope (inverse diagnosticMap scope canonicalDiagnosticGraph)
+          checkKind
+            diagnosticPatternKind
+            scope
+            (repMapInverse diagnosticMap scope canonicalDiagnosticGraph)
             `shouldBe` True
 
         it "round-trips the canonical diagnostic example" $ do
           let scope = trivialScope canonicalDiagnosticPattern
 
-          (inverse diagnosticMap scope . forward diagnosticMap scope) canonicalDiagnosticPattern
+          (repMapInverse diagnosticMap scope . repMapForward diagnosticMap scope) canonicalDiagnosticPattern
             `shouldBe` canonicalDiagnosticPattern
 
         it "preserves generated diagnostic patterns under round-trip" $
           property $
             QC.forAll genDiagnosticPattern $ \pat ->
-              roundTrip diagnosticMap (trivialScope pat) pat
+              repMapRoundTrip diagnosticMap (trivialScope pat) pat
 
         it "composes with an identity-like graph map and preserves canonical round-trip" $ do
           case compose diagnosticMap identityLikeMap of
             Left err -> expectationFailure err
             Right composedMap ->
-              roundTrip composedMap (trivialScope canonicalDiagnosticPattern) canonicalDiagnosticPattern
+              repMapRoundTrip composedMap (trivialScope canonicalDiagnosticPattern) canonicalDiagnosticPattern
                 `shouldBe` True

@@ -18,12 +18,12 @@ checkKind :: ScopeQuery q v => PatternKind v -> q v -> Pattern v -> Bool
 
 ```haskell
 data RepresentationMap v = RepresentationMap
-  { name        :: String
-  , domain      :: PatternKind v
-  , codomain    :: PatternKind v
-  , forward     :: forall q. ScopeQuery q v => q v -> Pattern v -> Pattern v
-  , inverse     :: forall q. ScopeQuery q v => q v -> Pattern v -> Pattern v
-  , roundTrip   :: forall q. ScopeQuery q v => q v -> Pattern v -> Bool
+  { repMapName        :: String
+  , repMapDomain      :: PatternKind v
+  , repMapCodomain    :: PatternKind v
+  , repMapForward     :: forall q. ScopeQuery q v => q v -> Pattern v -> Pattern v
+  , repMapInverse     :: forall q. ScopeQuery q v => q v -> Pattern v -> Pattern v
+  , repMapRoundTrip   :: forall q. ScopeQuery q v => q v -> Pattern v -> Bool
   }
 
 compose :: RepresentationMap v -> RepresentationMap v -> Either String (RepresentationMap v)
@@ -60,13 +60,13 @@ import Pattern.RepresentationMap (RepresentationMap(..))
 -- Nested → flat (forward) and flat → nested (inverse)
 myMap :: RepresentationMap Subject
 myMap = RepresentationMap
-  { name        = "LocationFlatMap"
-  , domain      = nestedLocationKind
-  , codomain    = flatLocationKind
-  , forward     = \q p -> flattenWith "_depth" q p
-  , inverse     = \q p -> nestFromDepth "_depth" q p
-  , roundTrip   = \q p ->
-      let result = (inverse myMap q . forward myMap q) p
+  { repMapName        = "LocationFlatMap"
+  , repMapDomain      = nestedLocationKind
+  , repMapCodomain    = flatLocationKind
+  , repMapForward     = \q p -> flattenWith "_depth" q p
+  , repMapInverse     = \q p -> nestFromDepth "_depth" q p
+  , repMapRoundTrip   = \q p ->
+      let result = (repMapInverse myMap q . repMapForward myMap q) p
       in  result == p
   }
 ```
@@ -93,7 +93,7 @@ import Pattern.RepresentationMap (compose)
 case compose mapAtoB mapBtoC of
   Left err     -> putStrLn $ "Incompatible: " <> err
   Right mapAtoC -> -- use the composed map
-    let result = forward mapAtoC (trivialScope p) p
+    let result = repMapForward mapAtoC (trivialScope p) p
 ```
 
 ---
@@ -107,7 +107,7 @@ prop_roundTrip :: RepresentationMap Subject -> Gen (Pattern Subject) -> Property
 prop_roundTrip m genDomainPattern =
   forAll genDomainPattern $ \p ->
     let scope = trivialScope p
-    in  checkKind (domain m) scope p && roundTrip m scope p
+    in  checkKind (repMapDomain m) scope p && repMapRoundTrip m scope p
 ```
 
 ---
@@ -116,6 +116,6 @@ prop_roundTrip m genDomainPattern =
 
 - `RankNTypes` is required for `forall q.` in record fields
 - `kindPred` is polymorphic: structural predicates ignore the scope argument; use `containers`/`allElements`/`byIdentity` for scope-relative checks
-- `roundTrip` implementation typically just checks `(inverse q . forward q) p == p`; requires `Eq v`
+- `repMapRoundTrip` implementation typically just checks `(repMapInverse q . repMapForward q) p == p`; requires `Eq v`
 - `compose` returns `Either String` — check the `Left` case when connecting maps from different domains
 - Documentation about encoding choices belongs next to the map definition for now; attaching inline prose to the map value itself is deferred until the project has a more declarative, checkable design for map claims
