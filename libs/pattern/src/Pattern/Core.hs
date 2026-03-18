@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -32,6 +33,9 @@ module Pattern.Core
   , depthAt
   , sizeAt
   , indicesAt
+    -- * Shape Kinds
+  , PatternKind(..)
+  , checkKind
     -- * Paramorphism Functions
   , ScopeQuery(..)
   , TrivialScope
@@ -1186,6 +1190,38 @@ class ScopeQuery q v where
 
   -- | Enumerate every element in scope.
   allElements :: q v -> [Pattern v]
+
+-- | A named, scope-aware description of a family of pattern shapes.
+--
+-- A 'PatternKind' acts like a subobject classifier for 'Pattern': it names a
+-- recognizable subtype via a predicate rather than by introducing a new data
+-- type. The canonical example witnesses that the kind is inhabited.
+--
+-- Invariant:
+--
+-- * For any valid scope @q@, @kindPred k q (kindExample k) == True@.
+data PatternKind v = PatternKind
+  { kindName :: String
+    -- ^ Unique human-readable name for the kind.
+    -- Used for diagnostics and runtime compatibility checks during map composition.
+  , kindPred :: forall q. ScopeQuery q v => q v -> Pattern v -> Bool
+    -- ^ Membership predicate for the kind.
+    -- Structural kinds may ignore the scope argument; scope-relative kinds can
+    -- inspect 'containers', 'siblings', 'byIdentity', or 'allElements'.
+  , kindExample :: Pattern v
+    -- ^ Canonical example inhabiting the kind.
+    -- Useful for smoke tests, documentation, and generator seeds.
+  }
+
+-- | Check whether a pattern belongs to a named kind within a scope.
+--
+-- This is the direct convenience wrapper over 'kindPred'.
+--
+-- Categorical note: 'kindPred' is the characteristic morphism for the
+-- subobject named by the 'PatternKind'; 'checkKind' applies that morphism at a
+-- concrete scope and pattern.
+checkKind :: ScopeQuery q v => PatternKind v -> q v -> Pattern v -> Bool
+checkKind k q p = kindPred k q p
 
 -- | The subtree-only scope used by 'para'.
 --

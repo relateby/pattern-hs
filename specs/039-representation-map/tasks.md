@@ -18,11 +18,11 @@
 
 **Purpose**: Scaffold new module files and wire them into the build before any user story implementation begins.
 
-- [ ] T001 Add `{-# LANGUAGE RankNTypes #-}` to `libs/pattern/src/Pattern/Core.hs` (required for `forall q.` in PatternKind fields)
-- [ ] T002 Create `libs/pattern/src/Pattern/RepresentationMap.hs` with module declaration, imports, and empty export list (scaffold only — no types yet)
-- [ ] T003 Add `Pattern.RepresentationMap` to `exposed-modules` in `libs/pattern/pattern.cabal`
-- [ ] T004 Add `import Pattern.RepresentationMap` and re-export stub to `libs/pattern/src/Pattern.hs`
-- [ ] T005 Create `libs/pattern/tests/Spec/Pattern/RepresentationMapSpec.hs` with module declaration and empty HSpec `spec :: Spec` (confirms test runner wires up)
+- [X] T001 Add `{-# LANGUAGE RankNTypes #-}` to `libs/pattern/src/Pattern/Core.hs` (required for `forall q.` in PatternKind fields)
+- [X] T002 Create `libs/pattern/src/Pattern/RepresentationMap.hs` with module declaration, imports, and empty export list (scaffold only — no types yet)
+- [X] T003 Add `Pattern.RepresentationMap` to `exposed-modules` in `libs/pattern/pattern.cabal`
+- [X] T004 Add `import Pattern.RepresentationMap` and re-export stub to `libs/pattern/src/Pattern.hs`
+- [X] T005 Create `libs/pattern/tests/Spec/Pattern/RepresentationMapSpec.hs` with module declaration and empty HSpec `spec :: Spec` (confirms test runner wires up)
 
 **Checkpoint**: `cabal build` and `cabal test` pass with empty new files in place.
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: US1–US4 implementation cannot begin until this phase is complete and building cleanly.
 
-- [ ] T006 In `Pattern/RepresentationMap.hs`, add import of `Pattern.Core` (Pattern, ScopeQuery, PatternKind placeholder) — confirms module graph is valid before adding types
-- [ ] T007 In `RepresentationMapSpec.hs`, add import of `Pattern.Core` (Pattern, trivialScope, TrivialScope) — confirms test file can reach existing infrastructure
+- [X] T006 In `Pattern/RepresentationMap.hs`, add import of `Pattern.Core` (Pattern, ScopeQuery, PatternKind placeholder) — confirms module graph is valid before adding types
+- [X] T007 In `RepresentationMapSpec.hs`, add import of `Pattern.Core` (Pattern, trivialScope, TrivialScope) — confirms test file can reach existing infrastructure
 
 **Checkpoint**: `cabal build` passes cleanly with new files importing from existing modules.
 
@@ -51,18 +51,18 @@
 
 > **Write these tests FIRST — they must FAIL before implementation begins**
 
-- [ ] T008 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-001 — `kindPred k (trivialScope (kindExample k)) (kindExample k)` is `True` for any `PatternKind` (canonical example satisfies its own kind)
-- [ ] T009 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-002 — `kindPred` returns `False` for a pattern that does not match the kind's structural constraint
-- [ ] T010 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-003 — a scope-relative predicate using `allElements` correctly identifies a pattern that is only visible through the scope
-- [ ] T011 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-004 — a structural predicate returns the same result regardless of the scope argument supplied
+- [X] T008 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-001 — `kindPred k (trivialScope (kindExample k)) (kindExample k)` is `True` for any `PatternKind` (canonical example satisfies its own kind)
+- [X] T009 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-002 — `kindPred` returns `False` for a pattern that does not match the kind's structural constraint
+- [X] T010 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-003 — a scope-relative predicate using `allElements` correctly identifies a pattern that is only visible through the scope
+- [X] T011 [P] [US1] In `RepresentationMapSpec.hs`: write T-US1-004 — a structural predicate returns the same result regardless of the scope argument supplied
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Add `PatternKind v` data type to `libs/pattern/src/Pattern/Core.hs` with fields `kindName :: String`, `kindPred :: forall q. ScopeQuery q v => q v -> Pattern v -> Bool`, `kindExample :: Pattern v` — requires `RankNTypes` (added in T001)
-- [ ] T013 [US1] Add `checkKind :: ScopeQuery q v => PatternKind v -> q v -> Pattern v -> Bool` to `libs/pattern/src/Pattern/Core.hs` — convenience wrapper over `kindPred`
-- [ ] T014 [US1] Add `PatternKind(..)` and `checkKind` to the export list of `libs/pattern/src/Pattern/Core.hs`
-- [ ] T015 [US1] Add `PatternKind(..)` and `checkKind` to re-exports in `libs/pattern/src/Pattern.hs`
-- [ ] T016 [US1] Update `Pattern/RepresentationMap.hs` import of `Pattern.Core` to include `PatternKind`, `kindName` (needed by `compose`)
+- [X] T012 [US1] Add `PatternKind v` data type to `libs/pattern/src/Pattern/Core.hs` with fields `kindName :: String`, `kindPred :: forall q. ScopeQuery q v => q v -> Pattern v -> Bool`, `kindExample :: Pattern v` — requires `RankNTypes` (added in T001)
+- [X] T013 [US1] Add `checkKind :: ScopeQuery q v => PatternKind v -> q v -> Pattern v -> Bool` to `libs/pattern/src/Pattern/Core.hs` — convenience wrapper over `kindPred`
+- [X] T014 [US1] Add `PatternKind(..)` and `checkKind` to the export list of `libs/pattern/src/Pattern/Core.hs`
+- [X] T015 [US1] Add `PatternKind(..)` and `checkKind` to re-exports in `libs/pattern/src/Pattern.hs`
+- [X] T016 [US1] Update `Pattern/RepresentationMap.hs` import of `Pattern.Core` to include `PatternKind`, `kindName` (needed by `compose`)
 
 **Checkpoint**: T008–T011 all pass. `PatternKind` is exported and usable from `Pattern.Core`. `cabal test` passes with no regressions.
 
@@ -80,36 +80,34 @@ US2 and US4 share this phase because `compose` is defined in the same new module
 
 **Independent Test (US2)**: Construct a minimal `RepresentationMap` between two `PatternKind`s with identity-like `forward`/`inverse`. Verify `forward q p` satisfies `kindPred (codomain m)` (T-US2-001).
 
-**Independent Test (US4)**: Compose two maps. Verify the combined `name`, `conventions`, and `forward` behaviour (T-US4-001). Verify `Left` on kind mismatch (T-US4-003).
+**Independent Test (US4)**: Compose two maps. Verify the combined `name` and `forward` behaviour (T-US4-001). Verify `Left` on kind mismatch (T-US4-003).
 
 ### Tests for User Story 2
 
 > **Write these tests FIRST — they must FAIL before implementation begins**
 
-- [ ] T017 [P] [US2] In `RepresentationMapSpec.hs`: write T-US2-001 — `kindPred (codomain m) q (forward m q p)` is `True` for a domain-kind pattern `p`
-- [ ] T018 [P] [US2] In `RepresentationMapSpec.hs`: write T-US2-002 — `kindPred (domain m) q (inverse m q p)` is `True` for a codomain-kind pattern `p`
-- [ ] T019 [P] [US2] In `RepresentationMapSpec.hs`: write T-US2-003 — `conventions m` is accessible and matches declared list
+- [X] T017 [P] [US2] In `RepresentationMapSpec.hs`: write T-US2-001 — `kindPred (codomain m) q (forward m q p)` is `True` for a domain-kind pattern `p`
+- [X] T018 [P] [US2] In `RepresentationMapSpec.hs`: write T-US2-002 — `kindPred (domain m) q (inverse m q p)` is `True` for a codomain-kind pattern `p`
 
 ### Tests for User Story 4
 
-- [ ] T020 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-001 — `compose m1 m2` with compatible kinds returns `Right`; combined `name` contains " >>> "
-- [ ] T021 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-002 — composed `conventions` equals `conventions m1 <> conventions m2`
-- [ ] T022 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-003 — `compose m1 m2` returns `Left` when `kindName (codomain m1) /= kindName (domain m2)`; error message contains both kind names
-- [ ] T023 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-004 — composed `forward` applies `m1.forward` then `m2.forward`; composed `inverse` applies `m2.inverse` then `m1.inverse`
+- [X] T020 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-001 — `compose m1 m2` with compatible kinds returns `Right`; combined `name` contains " >>> "
+- [X] T022 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-003 — `compose m1 m2` returns `Left` when `kindName (codomain m1) /= kindName (domain m2)`; error message contains both kind names
+- [X] T023 [P] [US4] In `RepresentationMapSpec.hs`: write T-US4-004 — composed `forward` applies `m1.forward` then `m2.forward`; composed `inverse` applies `m2.inverse` then `m1.inverse`
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Add `RepresentationMap v` data type to `libs/pattern/src/Pattern/RepresentationMap.hs` with all seven fields (`name`, `domain`, `codomain`, `conventions`, `forward`, `inverse`, `roundTrip`) — add `{-# LANGUAGE RankNTypes #-}` pragma to this module
-- [ ] T025 [US2] Add `RepresentationMap(..)` to the export list of `libs/pattern/src/Pattern/RepresentationMap.hs`
-- [ ] T026 [US2] Add `RepresentationMap(..)` to re-exports in `libs/pattern/src/Pattern.hs`
+- [X] T024 [US2] Add `RepresentationMap v` data type to `libs/pattern/src/Pattern/RepresentationMap.hs` with fields `name`, `domain`, `codomain`, `forward`, `inverse`, `roundTrip` — add `{-# LANGUAGE RankNTypes #-}` pragma to this module
+- [X] T025 [US2] Add `RepresentationMap(..)` to the export list of `libs/pattern/src/Pattern/RepresentationMap.hs`
+- [X] T026 [US2] Add `RepresentationMap(..)` to re-exports in `libs/pattern/src/Pattern.hs`
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Implement `compose :: RepresentationMap v -> RepresentationMap v -> Either String (RepresentationMap v)` in `libs/pattern/src/Pattern/RepresentationMap.hs` — runtime kind-compat check via `kindName`; combined name/conventions/forward/inverse/roundTrip as specified in contract
-- [ ] T028 [US4] Add `compose` to the export list of `libs/pattern/src/Pattern/RepresentationMap.hs`
-- [ ] T029 [US4] Add `compose` to re-exports in `libs/pattern/src/Pattern.hs`
+- [X] T027 [US4] Implement `compose :: RepresentationMap v -> RepresentationMap v -> Either String (RepresentationMap v)` in `libs/pattern/src/Pattern/RepresentationMap.hs` — runtime kind-compat check via `kindName`; combined name/forward/inverse/roundTrip as specified in contract
+- [X] T028 [US4] Add `compose` to the export list of `libs/pattern/src/Pattern/RepresentationMap.hs`
+- [X] T029 [US4] Add `compose` to re-exports in `libs/pattern/src/Pattern.hs`
 
-**Checkpoint**: T017–T023 all pass. `RepresentationMap` and `compose` are exported. `cabal test` passes with no regressions.
+**Checkpoint**: The User Story 2 and User Story 4 tests all pass. `RepresentationMap` and `compose` are exported. `cabal test` passes with no regressions.
 
 **Commit**: `"representation-map: RepresentationMap + compose"`
 
@@ -123,26 +121,25 @@ US2 and US4 share this phase because `compose` is defined in the same new module
 
 ### Tests for User Story 3 (unit + property — write tests first, then forward, then inverse)
 
-- [ ] T030 [US3] In `RepresentationMapSpec.hs`: define `diagnosticPatternKind :: PatternKind Subject` — predicate checks for `"Location"` label containing a `"Diagnostic"` label; canonical example is a minimal nested pattern
-- [ ] T031 [US3] In `RepresentationMapSpec.hs`: define `diagnosticGraphKind :: PatternKind Subject` — predicate checks for flat atomic patterns with `"Location"`/`"Diagnostic"`/`"Remediation"` labels plus `_arity` and `_depth` properties
-- [ ] T032 [US3] In `RepresentationMapSpec.hs`: write T-US3-001 — `checkKind diagnosticGraphKind q (forward diagnosticMap q canonicalDiagnosticPattern)` is `True`
-- [ ] T033 [US3] In `RepresentationMapSpec.hs`: write T-US3-002 — `checkKind diagnosticPatternKind q (inverse diagnosticMap q canonicalDiagnosticGraph)` is `True`
-- [ ] T034 [US3] In `RepresentationMapSpec.hs`: write T-US3-003 — `(inverse diagnosticMap q . forward diagnosticMap q) canonicalDiagnosticPattern == canonicalDiagnosticPattern` (round-trip on canonical example)
+- [X] T030 [US3] In `RepresentationMapSpec.hs`: define `diagnosticPatternKind :: PatternKind Subject` — predicate checks for `"Location"` label containing a `"Diagnostic"` label; canonical example is a minimal nested pattern
+- [X] T031 [US3] In `RepresentationMapSpec.hs`: define `diagnosticGraphKind :: PatternKind Subject` — predicate checks for flat atomic patterns with `"Location"`/`"Diagnostic"`/`"Remediation"` labels plus `_arity` and `_depth` properties
+- [X] T032 [US3] In `RepresentationMapSpec.hs`: write T-US3-001 — `checkKind diagnosticGraphKind q (forward diagnosticMap q canonicalDiagnosticPattern)` is `True`
+- [X] T033 [US3] In `RepresentationMapSpec.hs`: write T-US3-002 — `checkKind diagnosticPatternKind q (inverse diagnosticMap q canonicalDiagnosticGraph)` is `True`
+- [X] T034 [US3] In `RepresentationMapSpec.hs`: write T-US3-003 — `(inverse diagnosticMap q . forward diagnosticMap q) canonicalDiagnosticPattern == canonicalDiagnosticPattern` (round-trip on canonical example)
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] In `RepresentationMapSpec.hs`: implement `diagnosticForward :: ScopeQuery q Subject => q Subject -> Pattern Subject -> Pattern Subject` — traverse nested structure with `paraWithScope`; emit flat atomic patterns with `_arity`/`_depth` properties; emit `AT` and `HAS_REMEDIATION` relationship patterns
-- [ ] T036 [US3] In `RepresentationMapSpec.hs`: implement `diagnosticInverse :: ScopeQuery q Subject => q Subject -> Pattern Subject -> Pattern Subject` — use `allElements` and `containers` on scope to find Diagnostic/Location/Remediation patterns; reconstruct nesting order from `_depth`; emit nested `Pattern` structure
-- [ ] T037 [US3] In `RepresentationMapSpec.hs`: assemble `diagnosticMap :: RepresentationMap Subject` using `diagnosticPatternKind`, `diagnosticGraphKind`, `diagnosticForward`, `diagnosticInverse`, and an inline `roundTrip` check; conventions: `["_arity encodes element count", "_depth encodes nesting depth"]`
+- [X] T035 [US3] In `RepresentationMapSpec.hs`: implement `diagnosticForward :: ScopeQuery q Subject => q Subject -> Pattern Subject -> Pattern Subject` — traverse nested structure with `paraWithScope`; emit flat atomic patterns with `_arity`/`_depth` properties; emit `AT` and `HAS_REMEDIATION` relationship patterns
+- [X] T036 [US3] In `RepresentationMapSpec.hs`: implement `diagnosticInverse :: ScopeQuery q Subject => q Subject -> Pattern Subject -> Pattern Subject` — use `allElements` and `containers` on scope to find Diagnostic/Location/Remediation patterns; preserve the graph's existing remediation encounter order while stripping graph metadata; emit nested `Pattern` structure
+- [X] T037 [US3] In `RepresentationMapSpec.hs`: assemble `diagnosticMap :: RepresentationMap Subject` using `diagnosticPatternKind`, `diagnosticGraphKind`, `diagnosticForward`, `diagnosticInverse`, and an inline `roundTrip` check; document `_arity` and `_depth` beside the implementation
 
 ### Property tests for User Story 3
 
-- [ ] T038 [US3] In `RepresentationMapSpec.hs`: add `Arbitrary` instance or generator for `DiagnosticPattern`-satisfying `Pattern Subject` values (Location containing Diagnostic containing N Remediations, N ∈ [0..3])
-- [ ] T039 [US3] In `RepresentationMapSpec.hs`: write QuickCheck property `prop_diagnosticRoundTrip` — `forAll` generated DiagnosticPattern inputs, `roundTrip diagnosticMap (trivialScope p) p` holds; use `property` from `Test.QuickCheck`
-- [ ] T040 [US3] In `RepresentationMapSpec.hs`: write T-US3-004 — `diagnosticMap` conventions list contains `"_arity"` and `"_depth"` substrings
-- [ ] T041 [US3] In `RepresentationMapSpec.hs`: write composition smoke test — `compose diagnosticMap identityLikeMap` returns `Right`; composed round-trip holds for canonical example (covers SC-004)
+- [X] T038 [US3] In `RepresentationMapSpec.hs`: add `Arbitrary` instance or generator for `DiagnosticPattern`-satisfying `Pattern Subject` values (Location containing Diagnostic containing N Remediations, N ∈ [0..3])
+- [X] T039 [US3] In `RepresentationMapSpec.hs`: write QuickCheck property `prop_diagnosticRoundTrip` — `forAll` generated DiagnosticPattern inputs, `roundTrip diagnosticMap (trivialScope p) p` holds; use `property` from `Test.QuickCheck`
+- [X] T041 [US3] In `RepresentationMapSpec.hs`: write composition smoke test — `compose diagnosticMap identityLikeMap` returns `Right`; composed round-trip holds for canonical example (covers SC-004)
 
-**Checkpoint**: All T030–T041 pass. QuickCheck `prop_diagnosticRoundTrip` reports 100 tests passed. `cabal test` passes with no regressions.
+**Checkpoint**: The User Story 3 unit and property tests all pass. QuickCheck `prop_diagnosticRoundTrip` reports 100 tests passed. `cabal test` passes with no regressions.
 
 **Commit**: `"representation-map: diagnosticMap prototype and round-trip tests"`
 
@@ -152,10 +149,11 @@ US2 and US4 share this phase because `compose` is defined in the same new module
 
 **Purpose**: Regression validation, documentation completeness, and export hygiene.
 
-- [ ] T042 [P] Run full `pattern-hs` test suite (`cabal test`); confirm zero regressions — all pre-existing tests pass without modification
-- [ ] T043 [P] Add Haddock documentation to `PatternKind` fields in `libs/pattern/src/Pattern/Core.hs` — include categorical interpretation (subobject classifier) and invariant (`kindPred q (kindExample k) == True`)
-- [ ] T044 [P] Add Haddock documentation to `RepresentationMap` fields and `compose` in `libs/pattern/src/Pattern/RepresentationMap.hs` — include categorical interpretation (named isomorphism, morphism composition), invariants, and cross-language correspondence table (Haskell→Rust)
-- [ ] T045 Verify `Pattern.hs` re-exports: `PatternKind`, `checkKind`, `RepresentationMap`, `compose` are all reachable from a single `import Pattern` — write a one-line smoke test confirming import in `RepresentationMapSpec.hs`
+- [X] T042 [P] Run full `pattern-hs` test suite (`cabal test`); confirm zero regressions — all pre-existing tests pass without modification
+- [X] T043 [P] Add Haddock documentation to `PatternKind` fields in `libs/pattern/src/Pattern/Core.hs` — include categorical interpretation (subobject classifier) and invariant (`kindPred q (kindExample k) == True`)
+- [X] T044 [P] Add Haddock documentation to `RepresentationMap` fields and `compose` in `libs/pattern/src/Pattern/RepresentationMap.hs` — include categorical interpretation (named isomorphism, morphism composition), invariants, and note that declarative map claims are deferred
+- [X] T045 Verify `Pattern.hs` re-exports: `PatternKind`, `checkKind`, `RepresentationMap`, `compose` are all reachable from a single `import Pattern` — write a one-line smoke test confirming import in `RepresentationMapSpec.hs`
+- [X] T046 [P] Record the decision in `specs/039-representation-map/`: `RepresentationMap.conventions` is removed; concrete encoding choices remain documented beside implementations until a declarative, verifiable claims model exists
 
 **Commit**: `"representation-map: documentation and export verification"`
 

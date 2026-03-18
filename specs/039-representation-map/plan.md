@@ -5,7 +5,7 @@
 
 ## Summary
 
-Introduce `PatternKind` (named, scope-aware shape predicates) in `Pattern.Core` and `RepresentationMap` (named invertible isomorphisms between shape kinds) in a new `Pattern.RepresentationMap` module. Add a concrete `diagnosticMap` instance in the test suite with QuickCheck round-trip property tests. All existing APIs are unchanged.
+Introduce `PatternKind` (named, scope-aware shape predicates) in `Pattern.Core` and `RepresentationMap` (named invertible isomorphisms between shape kinds) in a new `Pattern.RepresentationMap` module. Add a concrete `diagnosticMap` test/example in the test suite with QuickCheck round-trip property tests. All existing APIs are unchanged.
 
 ## Technical Context
 
@@ -28,7 +28,7 @@ Introduce `PatternKind` (named, scope-aware shape predicates) in `Pattern.Core` 
 | I. Code Quality | ✅ PASS | New types and functions will have explicit documentation with categorical interpretation |
 | II. Testing Standards | ✅ PASS | `PatternKind` and `RepresentationMap` will have unit tests; round-trip is a QuickCheck property; compose failure case is unit-tested |
 | III. Conceptual Consistency | ✅ PASS | `PatternKind` is a subobject classifier; `RepresentationMap` is a named isomorphism; `compose` is morphism composition — all documented with categorical interpretation |
-| IV. Mathematical Clarity | ✅ PASS | `roundTrip` is the formal isomorphism witness; identity law stated in contract; conventions make the inverse explicit |
+| IV. Mathematical Clarity | ✅ PASS | `roundTrip` is the formal isomorphism witness; identity law stated in contract; concrete encoding choices remain documented beside implementations |
 | V. Multi-Language Reference Alignment | ✅ PASS | Rust correspondence documented in proposal: typeclass→trait, `*Dict`→struct, `forall q`→`Box<dyn ScopeQuery<V>>` |
 | Version Control Standards | ✅ PASS | Intermediate commits per step: after PatternKind, after RepresentationMap, after diagnosticMap |
 
@@ -106,7 +106,7 @@ libs/pattern/tests/
 **Tests**:
 - T005: `compose` with compatible kinds produces map from domain-of-first to codomain-of-second
 - T006: `compose` combined `name` uses " >>> " separator
-- T007: `compose` combined `conventions` is union of both
+- T007: `compose` preserves the documented composition order and combined round-trip behavior
 - T008: `compose` returns `Left` when `kindName (codomain m1) /= kindName (domain m2)` — error message names both kinds
 - T009: composed `forward` applies m1 then m2
 - T010: composed `inverse` applies m2-inverse then m1-inverse
@@ -123,9 +123,9 @@ libs/pattern/tests/
 - `DiagnosticPattern`: `Location` pattern directly containing a `Diagnostic` pattern, which directly contains zero or more `Remediation` patterns
 - `DiagnosticGraph`: flat atomic patterns with labels `Location`, `Diagnostic`, `Remediation` connected by `AT`/`HAS_REMEDIATION` relationship patterns; each non-relationship pattern has `_arity` (Int) and `_depth` (Int) properties
 
-**Conventions** (the structural decisions that make inversion possible):
+**Encoding choices** (the structural decisions that make inversion possible):
 - `"_arity encodes element count of the corresponding nested pattern node"`
-- `"_depth encodes nesting depth, enabling reconstruction of order"`
+- `"_depth encodes nesting depth for graph-form nodes and validation"`
 
 **Forward transform** (DiagnosticPattern → DiagnosticGraph):
 - Traverse the nested structure with `paraWithScope` and `TrivialScope`
@@ -138,7 +138,7 @@ libs/pattern/tests/
 - Find all `Diagnostic` patterns via `allElements` on scope
 - Find their `Location` containers via `containers`
 - Find their `Remediation` children via `allElements` filtered by `HAS_REMEDIATION`
-- Reconstruct nesting order from `_depth` property
+- Preserve the graph's existing remediation encounter order while stripping graph metadata
 - Emit nested `Pattern` structure
 
 **Tests**:
@@ -147,7 +147,7 @@ libs/pattern/tests/
 - T013: round-trip on canonical example: `(inverse . forward) canonicalDiagnostic == canonicalDiagnostic`
 - T014: QuickCheck property — `forAll` generated `DiagnosticPattern`s, `roundTrip` holds
 - T015: QuickCheck property — after `compose diagnosticMap identityMap`, round-trip still holds (composition preserves correctness)
-- T016: `diagnosticMap` conventions list is non-empty and contains `"_arity"` and `"_depth"`
+- T016: `diagnosticMap` documents `_arity` and `_depth` usage beside the implementation and passes round-trip validation
 
 **Checkpoint commit**: `"representation-map: diagnosticMap prototype and round-trip tests"`
 

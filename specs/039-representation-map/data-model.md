@@ -34,7 +34,6 @@ RepresentationMap v
   name        :: String               -- e.g. "DiagnosticMap"
   domain      :: PatternKind v        -- source kind
   codomain    :: PatternKind v        -- target kind
-  conventions :: [String]             -- named structural decisions enabling invertibility
   forward     :: ∀q. ScopeQuery q v   -- domain → codomain transform
                 => q v -> Pattern v -> Pattern v
   inverse     :: ∀q. ScopeQuery q v   -- codomain → domain transform
@@ -54,14 +53,12 @@ RepresentationMap v
 
 ### `Convention`
 
-A named structural decision that the forward transform encodes into the codomain and the inverse relies on to reconstruct the domain.
+A future design area, not part of the current runtime data model.
 
-```
-Convention = String     -- e.g. "_arity encodes element count"
-                        --      "_depth encodes nesting depth"
-```
-
-Conventions are part of a map's identity. Two maps with identical `forward` functions but different encoding decisions are different maps with different inverses.
+Encoding choices such as `_arity` or `_depth` may still matter to a concrete map,
+but they are currently documented beside the implementation and exercised through
+kind checks and round-trip tests rather than stored as inline prose on the
+`RepresentationMap` value.
 
 ---
 
@@ -75,16 +72,15 @@ compose :: RepresentationMap v -> RepresentationMap v -> Either String (Represen
 **Failure**: `Left` with message identifying the mismatch if precondition not met
 **Result**: A map from `domain m1` to `codomain m2` with:
 - `name = name m1 <> " >>> " <> name m2`
-- `conventions = conventions m1 <> conventions m2`
 - `forward q = forward m2 q . forward m1 q`
 - `inverse q = inverse m1 q . inverse m2 q`
-- `roundTrip q p = roundTrip m1 q p && roundTrip m2 q p`
+- `roundTrip q p = roundTrip m1 q p && roundTrip m2 q (forward m1 q p)`
 
-**Categorical interpretation**: `compose` is morphism composition in the category of `PatternKind`s. The `Either` wraps a partial function — composition is only defined when codomain matches domain. The convention union records the chain of structural decisions.
+**Categorical interpretation**: `compose` is morphism composition in the category of `PatternKind`s. The `Either` wraps a partial function — composition is only defined when codomain matches domain.
 
 ---
 
-## Concrete Kinds for `diagnosticMap`
+## Concrete Kinds for the `diagnosticMap` Test Example
 
 ### `DiagnosticPattern`
 

@@ -21,7 +21,6 @@ data RepresentationMap v = RepresentationMap
   { name        :: String
   , domain      :: PatternKind v
   , codomain    :: PatternKind v
-  , conventions :: [String]
   , forward     :: forall q. ScopeQuery q v => q v -> Pattern v -> Pattern v
   , inverse     :: forall q. ScopeQuery q v => q v -> Pattern v -> Pattern v
   , roundTrip   :: forall q. ScopeQuery q v => q v -> Pattern v -> Bool
@@ -64,7 +63,6 @@ myMap = RepresentationMap
   { name        = "LocationFlatMap"
   , domain      = nestedLocationKind
   , codomain    = flatLocationKind
-  , conventions = ["_depth encodes nesting level"]
   , forward     = \q p -> flattenWith "_depth" q p
   , inverse     = \q p -> nestFromDepth "_depth" q p
   , roundTrip   = \q p ->
@@ -105,12 +103,11 @@ case compose mapAtoB mapBtoC of
 ```haskell
 import Test.QuickCheck
 
-prop_roundTrip :: RepresentationMap Subject -> Property
-prop_roundTrip m =
-  forAll (arbitrary `suchThat` checkKind (domain m) trivScope) $ \p ->
-    let trivScope = trivialScope p
-    in  roundTrip m trivScope p
-  where trivScope p = trivialScope p  -- note: scope is per-pattern here
+prop_roundTrip :: RepresentationMap Subject -> Gen (Pattern Subject) -> Property
+prop_roundTrip m genDomainPattern =
+  forAll genDomainPattern $ \p ->
+    let scope = trivialScope p
+    in  checkKind (domain m) scope p && roundTrip m scope p
 ```
 
 ---
@@ -121,3 +118,4 @@ prop_roundTrip m =
 - `kindPred` is polymorphic: structural predicates ignore the scope argument; use `containers`/`allElements`/`byIdentity` for scope-relative checks
 - `roundTrip` implementation typically just checks `(inverse q . forward q) p == p`; requires `Eq v`
 - `compose` returns `Either String` — check the `Left` case when connecting maps from different domains
+- Documentation about encoding choices belongs next to the map definition for now; attaching inline prose to the map value itself is deferred until the project has a more declarative, checkable design for map claims

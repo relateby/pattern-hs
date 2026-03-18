@@ -70,6 +70,8 @@
 module Pattern
   ( -- * Core Pattern Type and Operations
     module Pattern.Core
+    -- * Representation Maps
+  , module Pattern.RepresentationMap
     -- * Graph Operations and GraphView
   , module Pattern.Graph
     -- * Portable Graph Query Interface
@@ -89,6 +91,7 @@ module Pattern
   ) where
 
 import Pattern.Core
+import Pattern.RepresentationMap
 import Pattern.Graph
 import Pattern.Graph.GraphQuery
 import Pattern.Graph.Transform

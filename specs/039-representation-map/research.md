@@ -5,9 +5,9 @@
 
 ---
 
-## Decision 1: `Text` vs `String` for names and conventions
+## Decision 1: `Text` vs `String` for names
 
-**Decision**: Use `String` throughout (`kindName`, `name`, `conventions`).
+**Decision**: Use `String` throughout (`kindName`, `name`).
 
 **Rationale**: The project has no `text` package dependency in `pattern.cabal`. The `Subject` type uses `String` for labels and property keys. Introducing `Text` would add a new dependency for cosmetic benefit.
 
@@ -81,6 +81,14 @@
 **Decision**: Deferred. The current `scopeDictFromGraphView` (in `Pattern.Graph.Transform`) already provides a `ScopeDict (Id v) v` from a `GraphView`, which is sufficient for any transform needing graph-wide scope. Making `GraphQuery` directly implement `ScopeQuery` is a design improvement that belongs in a follow-on focused on the `GraphScope` gap.
 
 **Rationale**: Zero existing call sites need to change. The `diagnosticMap` uses `TrivialScope` or a graph-backed `ScopeDict`. No urgency.
+
+---
+
+## Decision 9: `RepresentationMap.conventions`
+
+**Decision**: Remove `conventions` from `RepresentationMap`.
+
+**Rationale**: In the current prototype, the field stores structured inline documentation rather than executable semantics. Concrete encoding choices such as `_arity` and `_depth` still matter, but they are better captured today in Haddocks, examples, and round-trip tests than as opaque text attached to the value. A future iteration may introduce declarative, machine-checkable claims once there is enough experience with multiple concrete maps to generalize responsibly.
 
 ---
 
