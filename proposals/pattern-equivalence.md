@@ -1,5 +1,11 @@
 # Proposal: Pattern Equivalence for pattern-hs
 
+> **Pre-RFC stub** — This document contains motivating examples but lacks a full design.
+> It should be developed into a complete RFC before implementation. The core problem
+> (resolving ambiguity between gram path notation and pattern notation for the same
+> `Pattern Subject`) is distinct from RFC-010 (Pattern Reconciliation), which handles
+> identity deduplication after parsing.
+
 ## Summary
 
 The gram notation is a flexible representation of composable data structures that are

@@ -1,5 +1,7 @@
 # Proposal: Pattern Reconciliation for pattern-hs
 
+> **Superseded by [RFC-010: Pattern Reconciliation](design/RFC-010-pattern-reconciliation.md)**
+
 ## Summary
 
 Add a `reconcile` operation to `Pattern.Core` that normalizes patterns by resolving duplicate identities and completing partial references. This transforms a potentially inconsistent `Pattern Subject` (from parsing, streaming, or merging) into a coherent one where each identity appears exactly once with fully resolved content.

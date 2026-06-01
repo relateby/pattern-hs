@@ -1,5 +1,10 @@
 # Gram Extended Semantics: Pattern and Path Notation
 
+> **Superseded by [RFC-003: Gram Notation Semantics](RFC-003-gram-notation-semantics.md)**
+> 
+> This document is retained for historical reference. RFC-003 merges this document with
+> `SEMANTICS.md` into a single authoritative reference for gram notation semantics.
+
 **Status**: ✅ Implemented  
 **Implementation**: Gram serialization and parsing support both pattern and path notation  
 **Reference**: See `docs/reference/semantics/gram-semantics.md` for current specification

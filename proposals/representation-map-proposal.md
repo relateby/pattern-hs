@@ -1,5 +1,12 @@
 # Proposal: RepresentationMap for pattern-hs
 
+> **Superseded by [RFC-006: Scope Unification](design/RFC-006-scope-unification.md) and
+> [RFC-007: RepresentationMap](design/RFC-007-representation-map.md)**
+> 
+> This document is split: the scope unification section (ScopeQuery, ScopeDict,
+> paraWithScope, interface convention) became RFC-006; the RepresentationMap section
+> (PatternKind, RepresentationMap, conventions, composability) became RFC-007.
+
 **Status:** Design — forward-looking, not yet a specification  
 **Date:** 2026-03-17  
 **Depends on:** GraphTransform proposal, pattern-equivalence proposal  

@@ -1,7 +1,19 @@
+# Inducing Categories from Patterns (Historical Notes)
+
+> **Superseded by [RFC-002: Pattern as Container and Graph Substrate](RFC-002-pattern-container-substrate.md)**
+> 
+> This document is retained for historical reference. The category-theoretic perspective
+> (CategoryLens, morphism equivalence, value magma) is incorporated into RFC-002.
+> The Q&A fragment at the start of this document was an authoring artifact and is
+> addressed in RFC-002's "Alternatives" section.
+
 **Status**: 📝 Design Only  
 **Implementation**: Not currently planned. This document explores category-theoretic foundations.
 
-If so, are composed patterns with the same start and end leaf  equivalent, or congruent?
+*Note: The following was a Q&A discussion about morphism equivalence that was accidentally
+included at the top of this file:*
+
+If so, are composed patterns with the same start and end leaf equivalent, or congruent?
 
 **Compositions via CategoryLens:**
 

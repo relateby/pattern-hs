@@ -1,5 +1,10 @@
 # Motivating Scenarios: Graph Pipelines
 
+> **Superseded by [RFC-008: GraphTransform](design/RFC-008-graph-transform.md)**
+> 
+> The three motivating scenarios and the unified pipeline model from this document
+> are incorporated into RFC-008.
+
 **Purpose**: Grounding examples for the graph transformation feature proposal and
 related design decisions. These scenarios were developed to identify common requirements
 across realistic graph construction and transformation workloads.
