@@ -1,5 +1,7 @@
 # Proposal: GraphQuery — A Portable, Composable Graph Query Interface
 
+> **Superseded by [RFC-005: GraphQuery](design/RFC-005-graph-query.md)**
+
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Depends on**: GraphClassifier proposal  

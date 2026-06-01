@@ -1,5 +1,8 @@
 # Proposal: GraphTransform — GraphView, Construction, Transformation, and Context-Aware Mapping
 
+> **Superseded by [RFC-008: GraphTransform](design/RFC-008-graph-transform.md)**
+> (consolidates this document with `pipeline-scenarios.md`)
+
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Depends on**: GraphClassifier proposal, GraphQuery proposal  

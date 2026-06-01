@@ -1,5 +1,10 @@
 # Gram Pattern Semantics
 
+> **Superseded by [RFC-003: Gram Notation Semantics](RFC-003-gram-notation-semantics.md)**
+> 
+> This document is retained for historical reference. RFC-003 merges this document with
+> `EXTENDED-SEMANTICS.md`, removes duplication, and reorganises into the standard RFC format.
+
 **Status**: ✅ Implemented  
 **Implementation**: Gram serialization and parsing  
 **Reference**: See `docs/reference/semantics/gram-semantics.md` for current specification
