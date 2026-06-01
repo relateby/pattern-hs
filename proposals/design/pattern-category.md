@@ -4,8 +4,9 @@
 > 
 > This document is retained for historical reference. The category-theoretic perspective
 > (CategoryLens, morphism equivalence, value magma) is incorporated into RFC-002.
-> The Q&A fragment at the start of this document was an authoring artifact and is
-> addressed in RFC-002's "Alternatives" section.
+> The Q&A fragment at the start of this document was an authoring artifact; the
+> underlying question (morphism equivalence under different equivalence relations)
+> is discussed in RFC-002's "Category-Theoretic Perspective" section.
 
 **Status**: 📝 Design Only  
 **Implementation**: Not currently planned. This document explores category-theoretic foundations.

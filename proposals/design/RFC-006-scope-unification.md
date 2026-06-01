@@ -239,7 +239,7 @@ convention going forward.
 
 ### Implementation Sequence
 
-1. Confirm `findInSubtree` and `subtreeElements` exist in `Pattern.Core`
+1. Confirm `subtreeElementAt` and `subtreeElements` exist in `Pattern.Core`
 2. Add `ScopeQuery`, `TrivialScope`, `ScopeDict`, `toScopeDict` to `Pattern.Core`
 3. Add `paraWithScope`; redefine `para` in terms of it; run existing `para` test suite
 4. Add `scopeDictFromGraphView` to `Pattern.Graph.Transform`; run existing `paraGraph` tests

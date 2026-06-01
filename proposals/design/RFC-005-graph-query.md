@@ -133,7 +133,7 @@ fromPatternGraph pg = GraphQuery
   , queryRelationships    = Map.elems (pgRelationships pg)
   , queryIncidentRels     = \n -> filter (touches n) (Map.elems (pgRelationships pg))
   , querySource           = \r -> listToMaybe (elements r)
-  , queryTarget           = \r -> listToMaybe (tail (elements r))
+  , queryTarget           = \r -> listToMaybe (drop 1 (elements r))
   , queryDegree           = \n -> length (filter (touches n) (Map.elems (pgRelationships pg)))
   , queryNodeById         = \i -> Map.lookup i (pgNodes pg)
   , queryRelationshipById = \i -> Map.lookup i (pgRelationships pg)
@@ -142,7 +142,8 @@ fromPatternGraph pg = GraphQuery
       ++ filter (elem p . elements) (Map.elems (pgWalks pg))
       ++ filter (elem p . elements) (Map.elems (pgAnnotations pg))
   }
-  where touches n r = querySource q r == Just n || queryTarget q r == Just n
+  where touches n r = listToMaybe (elements r) == Just n
+                   || listToMaybe (drop 1 (elements r)) == Just n
 ```
 
 `fromPatternGraph` does not go through `GraphLens`. It reads from typed maps with O(log n)

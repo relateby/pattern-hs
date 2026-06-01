@@ -10,9 +10,15 @@ Design, Open Questions, Alternatives.
 
 | RFC | Title | Status | Key Modules |
 |-----|-------|--------|-------------|
-| [RFC-001](RFC-001-strata-and-aspects.md) | Strata and Aspects | draft | `Pattern.Stratum`, `Pattern.Aspect` |
 | [RFC-002](RFC-002-pattern-container-substrate.md) | Pattern as Container and Graph Substrate | accepted | `Pattern.Core`, `Pattern.Graph.GraphLens` |
 | [RFC-003](RFC-003-gram-notation-semantics.md) | Gram Notation Semantics | accepted | `Gram.Core`, `Gram.Parser` |
+| [RFC-010](RFC-010-pattern-reconciliation.md) | Pattern Reconciliation | accepted | `Pattern.Reconcile`, `Subject.Core` |
+
+### Active Design (Draft — In Progress)
+
+| RFC | Title | Status | Key Modules |
+|-----|-------|--------|-------------|
+| [RFC-001](RFC-001-strata-and-aspects.md) | Strata and Aspects | draft | `Pattern.Stratum`, `Pattern.Aspect` |
 
 ### Graph Interface Layer (Draft — Design)
 
@@ -24,7 +30,6 @@ Design, Open Questions, Alternatives.
 | [RFC-007](RFC-007-representation-map.md) | RepresentationMap — Invertible Shape Isomorphisms | draft | RFC-006, RFC-008 |
 | [RFC-008](RFC-008-graph-transform.md) | GraphTransform — Construction, Transformation, Pipeline | draft | RFC-004, RFC-005 |
 | [RFC-009](RFC-009-graph-mutation.md) | GraphMutation — Coherent In-Memory Graph Mutations | draft | RFC-004, RFC-005, RFC-008 |
-| [RFC-010](RFC-010-pattern-reconciliation.md) | Pattern Reconciliation | draft | — |
 
 ## Implementation Order
 
@@ -34,13 +39,15 @@ The graph interface RFCs form a dependency chain:
 RFC-004 (GraphClassifier)
   └── RFC-005 (GraphQuery)
         ├── RFC-006 (ScopeQuery)  ──→  RFC-007 (RepresentationMap)
-        ├── RFC-008 (GraphTransform)
-        │     └── RFC-009 (GraphMutation)
-        └── RFC-010 (Pattern Reconciliation) [independent]
+        └── RFC-008 (GraphTransform)
+              └── RFC-009 (GraphMutation)
 ```
 
 RFC-007 (RepresentationMap) additionally depends on RFC-008 (GraphTransform) being
 settled first, since it builds on `paraWithScope` and the GraphTransform primitives.
+
+RFC-010 (Pattern Reconciliation) is accepted and implemented independently of the
+graph interface chain.
 
 ## Superseded Documents
 

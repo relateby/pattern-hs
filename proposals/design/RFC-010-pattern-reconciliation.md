@@ -1,6 +1,6 @@
 # RFC-010: Pattern Reconciliation
 
-**Status:** draft
+**Status:** accepted
 **Date:** 2026-01-15
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
@@ -9,7 +9,7 @@
 
 ## Summary
 
-Add a `reconcile` operation to `Pattern.Reconcile` that normalizes `Pattern Subject`
+`Pattern.Reconcile` provides a `reconcile` operation that normalizes `Pattern Subject`
 values by resolving duplicate identities and completing partial references. This
 transforms a potentially inconsistent pattern (from parsing, streaming, or merging) into
 a coherent one where each identity appears exactly once with fully resolved content.
@@ -36,17 +36,18 @@ This situation arises naturally when:
 3. **Merging patterns** — combining patterns from different sources
 4. **References** — an atomic pattern may reference a fuller definition elsewhere
 
-Currently there is no mechanism to detect duplicate identities, resolve which definition
-is authoritative, or complete partial references.
+Without reconciliation, there is no mechanism to detect duplicate identities, resolve
+which definition is authoritative, or complete partial references.
 
 ## Design
 
 ### Module Placement
 
-`Pattern.Reconcile` — a new module. Rationale: `Pattern.Core` is generic over any value
-type `v`; reconciliation is specific to `Pattern Subject` (requires identity). Keeping
-them separate allows reconciliation to depend on both `Pattern.Core` and `Subject.Core`
-without pulling Subject-specific logic into the generic core.
+`Pattern.Reconcile` — a separate module from `Pattern.Core`. Rationale: `Pattern.Core`
+is generic over any value type `v`; reconciliation is specific to `Pattern Subject`
+(requires identity). Keeping them separate allows reconciliation to depend on both
+`Pattern.Core` and `Subject.Core` without pulling Subject-specific logic into the
+generic core.
 
 ### Core Types
 
