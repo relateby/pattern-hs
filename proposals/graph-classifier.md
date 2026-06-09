@@ -1,5 +1,7 @@
 # Proposal: GraphClassifier — A Unified, Extensible Graph View for pattern-hs
 
+> **Superseded by [RFC-004: GraphClassifier](design/RFC-004-graph-classifier.md)**
+
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Relates to**: Feature 23 (GraphLens), Feature 33 (PatternGraph)  

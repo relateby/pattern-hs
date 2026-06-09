@@ -1,5 +1,7 @@
 # Proposal: Scope Unification — `ScopeQuery` and `paraWithScope`
 
+> **Superseded by [RFC-006: Scope Unification](design/RFC-006-scope-unification.md)**
+
 **Status:** Design — ready for Haskell prototype  
 **Date:** 2026-03-17  
 **Depends on:** GraphQuery proposal (design only; `GraphQuery` record must be in scope)  

@@ -1,5 +1,11 @@
 # Patterns as Graph Views: A Categorical Framework
 
+> **Superseded by [RFC-002: Pattern as Container and Graph Substrate](RFC-002-pattern-container-substrate.md)**
+> 
+> This document is retained for historical reference. RFC-002 consolidates the content
+> here with `pattern-category.md`, removes stale "⏳ Planned" markers, and reorganises
+> into the standard RFC format.
+
 **Status**: ✅ Implemented  
 **Implementation**: Core Pattern type and typeclass instances are implemented. Graph Lens (Feature 23) is implemented. Some planned features (Zipper, Pattern Morphisms) are deferred.
 

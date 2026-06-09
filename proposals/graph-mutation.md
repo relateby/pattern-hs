@@ -1,5 +1,7 @@
 # Proposal: GraphMutation — Coherent In-Memory Graph Mutations
 
+> **Superseded by [RFC-009: GraphMutation](design/RFC-009-graph-mutation.md)**
+
 **Status**: 📝 Design Only  
 **Date**: 2026-02-19  
 **Depends on**: GraphClassifier proposal, GraphQuery proposal, GraphTransform proposal  
