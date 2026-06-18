@@ -1,6 +1,12 @@
 # Proposal: GraphValue Instances for Common Types and Subject Conversion
 
-**Status**: 📝 Design Only  
+> **Pre-RFC stub** — This document contains a design sketch but is not yet a numbered RFC.
+> It should be developed into a complete RFC before implementation. It covers an independent
+> feature (simple graphs over `String` and other trivial types, plus canonical conversion
+> to/from `Pattern Subject`) that is out of scope for the current RFC-004 → RFC-010 graph
+> interface chain.
+
+**Status**: Pre-RFC stub (design sketch)  
 **Date**: 2026-02-20  
 **Relates to**: Feature 34 (GraphClassifier), Feature 33 (PatternGraph), gram serialization  
 **Peer projects**: pattern-lisp (s-expression storage, canonical conversion to/from Subject and Gram)

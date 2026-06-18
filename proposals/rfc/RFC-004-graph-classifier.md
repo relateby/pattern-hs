@@ -4,7 +4,7 @@
 **Date:** 2026-02-19
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** [`proposals/graph-classifier.md`](../graph-classifier.md)
+**Supersedes:** `proposals/graph-classifier.md`, `proposals/pattern-graph.md` (the latter migrated into Appendix A)
 **Followed by:** RFC-005 (GraphQuery) → RFC-008 (GraphTransform) → RFC-009 (GraphMutation)
 **Related modules:** `Pattern.Graph.GraphLens`, `Pattern.PatternGraph`, `Pattern.Graph.GraphClassifier`
 
@@ -211,3 +211,97 @@ describes the target structure; transformation paths into it belong in a separat
 | Rust | `()` | Compiler: `GOther(())` arm required |
 | TypeScript | `null` / `undefined` | Compiler-checked with care |
 | Java | `Void` (as null) | Conventional only |
+
+## Appendix A: PatternGraph Container Design
+
+> Migrated from the former `proposals/pattern-graph.md` (Design Only, 2026-02-18). This
+> appendix records the original design of the `PatternGraph` materialized container, which
+> RFC-004 builds on and modifies. Where the two disagree, **the RFC-004 body above is
+> authoritative** — specifically: `PatternClass` is replaced by `GraphClass extra`,
+> `Unrecognized` becomes `GOther extra` (a bucket, never a rejection), `classify` moves out
+> of `GraphValue` into `canonicalClassifier`, and `MergeResult` is dropped. The container
+> design, merge semantics, and recursive-decomposition behavior below remain the basis for
+> `PatternGraph`.
+
+### A.1 Purpose
+
+`PatternGraph` is a concrete, opinionated graph representation backed by `Pattern v`, for the
+common use case of working with atomic nodes, relationships, walks, and annotations parsed
+from gram notation. It complements `GraphLens` (the interpretive view over arbitrary
+`Pattern` structures) by providing a concrete *owning* container for the round-trip workflow:
+
+```
+gram file → parse → PatternGraph → query/modify → serialize → gram file
+```
+
+For this workflow a concrete owning data structure with clear semantics is more ergonomic
+than constructing and managing a lens.
+
+### A.2 Type
+
+`PatternGraph` is generic over its value type, like `Pattern` itself:
+
+```haskell
+data PatternGraph v = PatternGraph
+  { pgNodes         :: Map (Id v) (Pattern v)
+  , pgRelationships :: Map (Id v) (Pattern v)
+  , pgWalks         :: Map (Id v) (Pattern v)
+  , pgAnnotations   :: Map (Id v) (Pattern v)
+  }
+```
+
+`Subject` is the primary intended `v`, where `Id Subject = Symbol`. (Per the RFC-004 body,
+the container also gains a `pgOther` collection and accepts a `GraphClassifier` at
+construction rather than relying on a `classify` method on `GraphValue`.)
+
+### A.3 Smart Construction via `merge`
+
+The primary operation for adding data is `merge`, named after Cypher's `MERGE` clause:
+
+```haskell
+merge :: GraphValue v => Pattern v -> PatternGraph v -> PatternGraph v
+```
+
+`merge` classifies the incoming `Pattern v`, dispatches it to the appropriate collection, and
+reconciles any existing entry at the same identity using the `ReconciliationPolicy` machinery
+from `Pattern.Reconcile`. It also decomposes recursively: merging a walk merges its
+constituent relationships, and merging a relationship merges its endpoint nodes. The graph is
+always internally consistent. Constructing a graph from parsed patterns is then a fold:
+
+```haskell
+fromPatterns :: GraphValue v => [Pattern v] -> PatternGraph v
+fromPatterns = foldr merge empty
+```
+
+### A.4 Annotations and Walks
+
+- **Annotations** (`@@id:Label @key("value")`) are stored as first-class entries in
+  `pgAnnotations` with their own identity, labels, and properties. Their single inner element
+  is also recursively merged into its appropriate collection. This preserves the
+  entity-component-system character of annotations: multiple independent systems can annotate
+  the same node without colliding in the node's own `Subject`.
+- **Walks** are stored whole in `pgWalks` *and* recursively merged into their component
+  relationships and nodes — independently addressable by identity while their components stay
+  accessible through `pgNodes` and `pgRelationships`.
+
+### A.5 Relationship to GraphLens
+
+`PatternGraph` and `GraphLens` are complementary, not competing. A `PatternGraph` can always
+be converted to a `GraphLens` by constructing a scope pattern from its contents and providing
+the atomic predicate, giving access to the richer graph algorithms built on `GraphLens`.
+`PatternGraph` is the concrete, owning, modifiable container; `GraphLens` is the interpretive,
+read-only view. (RFC-004 unifies both under the shared `GraphClassifier` contract.)
+
+### A.6 Original Open Questions (historical)
+
+These were the open questions in the original proposal; RFC-004's body resolves several of
+them (e.g. `GOther` replaces the `Unrecognized`/`Either` dilemma, and `classify` is separated
+from `GraphValue`):
+
+1. Should `merge` be total (result plus warnings) or partial (`Either` on unrecognized input)?
+   — *Resolved by RFC-004: every pattern lands in a bucket; `GOther` replaces rejection.*
+2. Should `PatternGraph` expose a `Monoid` instance via `overlay` to complement element-wise
+   `merge`, aligning with the `algebraic-graphs` style? — *Still open.*
+3. Should `classify` be separated from the identity scheme so discrimination logic can be
+   overridden independently? — *Resolved by RFC-004: classification moves into the
+   injectable `GraphClassifier` value.*
