@@ -4,7 +4,7 @@
 **Date:** 2026-03-17
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** [`proposals/representation-map-proposal.md`](../representation-map-proposal.md)
+**Supersedes:** `proposals/representation-map-proposal.md` (removed; content consolidated here)
 **Depends on:** RFC-006 (ScopeQuery / paraWithScope), RFC-008 (GraphTransform, for `GraphTransform` primitives)
 **Followed by:** Rust port (`pattern-rs`) → CLI surface (`pato canonicalize`)
 **Related modules:** `Pattern.Core`, `Pattern.RepresentationMap`, `Pattern.Graph.Transform`

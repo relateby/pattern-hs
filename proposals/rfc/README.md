@@ -4,6 +4,13 @@ This directory contains the authoritative design documents for pattern-hs, organ
 as numbered RFCs. Each RFC follows a standard format: Status, Summary, Motivation,
 Design, Open Questions, Alternatives.
 
+## How this directory is organized
+
+- **`rfc/RFC-NNN-*.md`** — authoritative, numbered design documents. **Start here.**
+- **`proposals/research/`** — supporting notes that are not RFCs: implementation
+  references, CLI plans, and exploratory designs. Optional context, not load-bearing spec.
+- **`proposals/` (top level)** — pre-RFC stubs: motivating sketches awaiting a full RFC.
+
 ## RFC Index
 
 ### Foundation (Accepted — Implemented)
@@ -18,7 +25,7 @@ Design, Open Questions, Alternatives.
 
 | RFC | Title | Status | Key Modules |
 |-----|-------|--------|-------------|
-| [RFC-001](RFC-001-strata-and-aspects.md) | Strata and Aspects | draft | `Pattern.Stratum`, `Pattern.Aspect` |
+| [RFC-001](RFC-001-frames-and-spans.md) | Frames and Spans | draft | `Pattern.Core`, `Pattern.RepresentationMap` |
 
 ### Graph Interface Layer (Draft — Design)
 
@@ -51,43 +58,39 @@ graph interface chain.
 
 ## Superseded Documents
 
-The following documents in this directory have been superseded by RFCs and are retained
-for historical reference only:
+The following standalone proposals were folded into RFCs and have been **removed**. Their
+provenance is recorded in each RFC's **Supersedes:** header:
 
-| File | Superseded by |
-|------|---------------|
-| [DESIGN.md](DESIGN.md) | RFC-002 |
-| [SEMANTICS.md](SEMANTICS.md) | RFC-003 |
-| [EXTENDED-SEMANTICS.md](EXTENDED-SEMANTICS.md) | RFC-003 |
-| [pattern-category.md](pattern-category.md) | RFC-002 |
+| Superseding RFC | Absorbed documents |
+|-----------------|--------------------|
+| RFC-002 | `DESIGN.md` (deferred sketches → RFC-002 Appendix B), `pattern-category.md` (categorical detail → RFC-002 Appendix A) |
+| RFC-003 | `SEMANTICS.md`, `EXTENDED-SEMANTICS.md` |
+| RFC-004 | `proposals/graph-classifier.md`, `proposals/pattern-graph.md` (PatternGraph design → RFC-004 Appendix A) |
+| RFC-005 | `proposals/graph-query.md` |
+| RFC-006 | `proposals/scope-unification-proposal.md` |
+| RFC-007 | `proposals/representation-map-proposal.md` |
+| RFC-008 | `proposals/graph-transform.md`, `proposals/pipeline-scenarios.md` |
+| RFC-009 | `proposals/graph-mutation.md` |
+| RFC-010 | `proposals/pattern-reconciliation.md` |
 
-The following documents in `proposals/` (parent directory) are similarly superseded:
+## Research & Supporting Notes
 
-| File | Superseded by |
-|------|---------------|
-| `proposals/graph-classifier.md` | RFC-004 |
-| `proposals/graph-query.md` | RFC-005 |
-| `proposals/scope-unification-proposal.md` | RFC-006 |
-| `proposals/representation-map-proposal.md` | RFC-006 + RFC-007 |
-| `proposals/graph-transform.md` | RFC-008 |
-| `proposals/pipeline-scenarios.md` | RFC-008 |
-| `proposals/graph-mutation.md` | RFC-009 |
-| `proposals/pattern-reconciliation.md` | RFC-010 |
-
-## Non-RFC Documents
-
-The following documents in this directory serve specific purposes and are not RFCs:
+Non-RFC documents live in [`proposals/research/`](../research/). They are reference material,
+not authoritative specifications:
 
 | File | Purpose |
 |------|---------|
-| [pattern-basic-aspects-review.md](pattern-basic-aspects-review.md) | Implementation reference: `length`, `size`, `depth` query functions |
-| [graph-lens.md](graph-lens.md) | Implementation notes for the `GraphLens` feature |
-| [gram-hs-cli-improvements.md](gram-hs-cli-improvements.md) | CLI tool improvement proposals |
-| [gram-hs-cli-plan.md](gram-hs-cli-plan.md) | CLI tool implementation plan |
-| [pattern-matching-dsl-design.md](pattern-matching-dsl-design.md) | Pattern matching DSL exploration |
+| [pattern-basic-aspects-review.md](../research/pattern-basic-aspects-review.md) | Implementation reference: `length`, `size`, `depth` query functions |
+| [graph-lens.md](../research/graph-lens.md) | Implementation notes for the `GraphLens` feature |
+| [gram-hs-cli-improvements.md](../research/gram-hs-cli-improvements.md) | CLI tool improvement proposals |
+| [gram-hs-cli-plan.md](../research/gram-hs-cli-plan.md) | CLI tool implementation plan |
+| [pattern-matching-dsl-design.md](../research/pattern-matching-dsl-design.md) | Pattern matching DSL exploration |
 
-The following document in `proposals/` is a pre-RFC stub pending full design:
+## Pre-RFC Stubs
+
+Motivating sketches in `proposals/` awaiting development into full RFCs:
 
 | File | Status |
 |------|--------|
-| `proposals/pattern-equivalence.md` | Pre-RFC: motivating examples only; needs full design |
+| [pattern-equivalence.md](../pattern-equivalence.md) | Gram path vs. pattern notation equivalence; motivating examples only |
+| [graph-value-instances.md](../graph-value-instances.md) | Simple graphs over `String` + canonical `Subject` conversion; design sketch |

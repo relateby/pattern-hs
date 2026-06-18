@@ -3,7 +3,7 @@
 **Feature Branch**: `033-pattern-graph`  
 **Created**: 2026-02-18  
 **Status**: Draft  
-**Input**: User description: "PatternGraph data structure backed by Pattern v as described in proposals/pattern-graph.md"
+**Input**: User description: "PatternGraph data structure backed by Pattern v as described in proposals/pattern-graph.md" (now consolidated into [proposals/rfc/RFC-004-graph-classifier.md](../../proposals/rfc/RFC-004-graph-classifier.md), Appendix A)
 
 ## User Scenarios & Testing *(mandatory)*
 

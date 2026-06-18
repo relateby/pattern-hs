@@ -4,7 +4,7 @@
 **Date:** 2026-02-19
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** [`proposals/graph-query.md`](../graph-query.md)
+**Supersedes:** `proposals/graph-query.md` (removed; content consolidated here)
 **Depends on:** RFC-004 (GraphClassifier)
 **Followed by:** RFC-008 (GraphTransform) → RFC-009 (GraphMutation)
 **Related modules:** `Pattern.Graph.GraphQuery`, `Pattern.Graph.Algorithms`, `Pattern.PatternGraph`

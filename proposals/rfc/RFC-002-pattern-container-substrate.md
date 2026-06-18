@@ -4,7 +4,7 @@
 **Date:** 2025-11-01
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** [`proposals/rfc/DESIGN.md`](DESIGN.md), [`proposals/rfc/pattern-category.md`](pattern-category.md)
+**Supersedes:** `proposals/rfc/DESIGN.md` (deferred sketches migrated into Appendix B), `proposals/rfc/pattern-category.md` (categorical detail migrated into Appendix A)
 **Related modules:** `Pattern.Core`, `Pattern.Graph.GraphLens`, `Pattern.PatternGraph`
 
 ## Summary
@@ -266,3 +266,209 @@ is acceptable.
 **Forcing interpretation at construction** — building a `Graph` type with committed
 semantics at the constructor site was rejected in favor of the substrate posture.
 Post-hoc interpretation via views is more flexible without being more complex.
+
+## Appendix A: Categorical Foundations
+
+> Migrated from the former `proposals/rfc/pattern-category.md`. The body's
+> "Category-Theoretic Perspective" summarizes this material; the detail below — the value
+> magma ladder, the layered `CategoryLens` implementation, a worked morphism-equivalence
+> example, and downstream applications — is preserved here for reference. None of it is
+> implemented; the signatures are illustrative.
+
+### A.1 The Value Magma
+
+For composition to be well-defined, values need a binary operation `(⊕) :: v -> v -> v`.
+This forms a **magma** (a set with a binary operation). Depending on the domain, the
+operation may carry additional structure:
+
+- **Associative** → Semigroup
+- **With identity** → Monoid
+- **With inverses** → Group
+
+The magma operation is domain-dependent: different interpretations of patterns may use
+different value-composition strategies.
+
+### A.2 Layered Implementation: lens, validity, equivalence
+
+The categorical interpretation separates into three layers, each adding capability over
+the one below.
+
+**Base layer — `CategoryLens`** (minimal structure: what counts as objects and how values
+compose):
+
+```haskell
+type ValueCompose v   = v -> v -> v
+type ObjectPredicate v = Pattern v -> Bool
+
+data CategoryLens v = CategoryLens
+  { valueOp  :: ValueCompose v
+  , isObject :: ObjectPredicate v
+  }
+
+composeWith :: CategoryLens v -> Pattern v -> Pattern v -> Pattern v
+composeWith lens = compose (valueOp lens)
+```
+
+**Derived layer — compositional validity** (codomain of the first matches domain of the
+second; derivable from the lens):
+
+```haskell
+validComposition :: Eq v => CategoryLens v -> Pattern v -> Pattern v -> Bool
+validComposition lens p1 p2 =
+  let objs1 = filter (isObject lens) (leaves p1)
+      objs2 = filter (isObject lens) (leaves p2)
+  in not (null objs1) && not (null objs2)
+     && last objs1 == head objs2   -- codomain matches domain
+```
+
+**Higher layer — morphism equivalence** (the body lists the three levels; the structural
+and endpoint relations are):
+
+```haskell
+structuralEquiv :: Eq v => CategoryLens v -> Pattern v -> Pattern v -> Bool
+structuralEquiv _ p1 p2 = leaves p1 == leaves p2          -- same full leaf sequence
+
+endpointEquiv :: Eq v => CategoryLens v -> Pattern v -> Pattern v -> Bool
+endpointEquiv _ p1 p2 =
+  let l1 = leaves p1; l2 = leaves p2
+  in not (null l1) && not (null l2)
+     && (head l1, last l1) == (head l2, last l2)           -- hom-set membership
+```
+
+**Complete structure** — for domains needing explicit reasoning, combine the layers:
+
+```haskell
+data CategoryStructure v = CategoryStructure
+  { lens             :: CategoryLens v
+  , morphismEquiv    :: Pattern v -> Pattern v -> Bool
+  , validComposition :: Maybe (Pattern v -> Pattern v -> Bool)
+    -- Nothing → use the validity derived from the lens; Just → custom
+  }
+```
+
+### A.3 Worked Example: Two Categories from the Same Patterns
+
+Two compositions with the same endpoints but different intermediate objects are *distinct*
+under structural equivalence yet *congruent* under endpoint equivalence:
+
+```haskell
+-- both go from b to z
+Pattern "comp1" [Pattern "a" [b, c], Pattern "x" [c, z]]  -- leaves: b,c,c,z
+Pattern "comp2" [Pattern "p" [b, y], Pattern "q" [y, z]]  -- leaves: b,y,y,z
+
+endpointEquiv   lens comp1 comp2  -- True:  both map b → z
+structuralEquiv lens comp1 comp2  -- False: different intermediate paths
+```
+
+The choice of equivalence relation selects the categorical interpretation: a *free*
+category (every distinct path is a distinct morphism, via `structuralEquiv`), a *quotient*
+category (paths equated by a relation), or bare *hom-set membership* (only source and
+target matter, via `endpointEquiv`). The same patterns therefore support many categories
+by varying the lens, validity rule, or equivalence relation.
+
+### A.4 Applications
+
+**Crossfold** — an environment for disciplined structural composition where Pattern is the
+transport layer, different lenses impose different categorical structures, and the
+value/structure distinction enables flexible knowledge representation.
+
+**Schema-as-Category** — graph schemas are small and stable enough to materialize as actual
+categories: objects are node labels, morphisms are relationship types, and compositions are
+multi-hop patterns. The Pattern structure naturally represents these schema-level relationships.
+
+## Appendix B: Deferred Design Sketches
+
+> Migrated from the former `proposals/rfc/DESIGN.md`. These flesh out the Open Questions
+> above with the original concrete sketches. None are implemented; the signatures are
+> illustrative and the names are provisional.
+
+### B.1 Navigation Functions (Open Question 1)
+
+```haskell
+source        :: Pattern v -> Pattern v   -- source node of a relationship
+target        :: Pattern v -> Pattern v   -- target node of a relationship
+nodes         :: Pattern v -> [Pattern v] -- all nodes in a pattern
+relationships :: Pattern v -> [Pattern v] -- all relationships in a pattern
+```
+
+### B.2 GraphView Functors and Standard Views (Open Question 4)
+
+The original formulation modeled each interpretation as a functor `Pat → Graph_k` via a
+`GraphView` typeclass. RFC-002's body instead adopts the value-oriented `CategoryLens`; the
+typeclass sketch is retained here as the alternative formulation behind the "standard view
+instances" open question.
+
+```haskell
+class GraphView view where
+  type Direction view :: *
+  interpretNode :: view -> Pattern v -> Bool
+  interpretRel  :: view -> Pattern v -> Bool
+  direction     :: view -> Pattern v -> Direction view
+  canChain      :: view -> Pattern v -> Pattern v -> Bool
+  toGraph       :: view -> Pattern v -> Graph (Direction view) v
+
+data DirectedView   = DirectedView
+data UndirectedView = UndirectedView
+
+instance GraphView DirectedView where
+  type Direction DirectedView = Ordered
+  direction _ r   = Directed (elements r !! 0) (elements r !! 1)
+  canChain  _ a b = target a == source b
+
+instance GraphView UndirectedView where
+  type Direction UndirectedView = Unordered
+  direction _ r   = Undirected (Set.fromList (elements r))
+  canChain  _ a b = not (Set.null (Set.intersection (nodes a) (nodes b)))
+```
+
+### B.3 Zipper for Focus — `parents` / `ancestors` (Open Question 2)
+
+```haskell
+data Zipper v = Zipper { focus :: Pattern v, context :: Context v }
+
+data Context v = Context
+  { parent :: v
+  , left   :: [Pattern v]
+  , right  :: [Pattern v]
+  , above  :: Maybe (Context v)
+  }
+
+-- DOM-like upward chain of parent values, immediate parent → root
+parents :: Zipper v -> [v]
+parents (Zipper _ ctx) =
+  parent ctx : maybe [] (\up -> parents (Zipper (Pattern (parent ctx) []) up)) (above ctx)
+
+-- Upward chain of parent Patterns (full structures), immediate parent → root
+ancestors :: Zipper v -> [Pattern v]
+ancestors (Zipper f ctx) =
+  let parentPattern = Pattern (parent ctx) (left ctx ++ [f] ++ right ctx)
+  in parentPattern : maybe [] (\up -> ancestors (Zipper parentPattern up)) (above ctx)
+```
+
+Naming note: `parents` (DOM-familiar, returns values) vs. `ancestors` (tree-theoretic,
+returns full Patterns) — both walk the `above` chain. This belongs in a Zipper rather than
+the Comonad instance because it requires explicit parent-context storage.
+
+### B.4 Pattern Morphisms (Open Question 3)
+
+```haskell
+type PatternMorphism v w = Pattern v -> Pattern w
+
+homomorphism :: (v -> w) -> PatternMorphism v w   -- structure-preserving map
+homomorphism = fmap
+
+forget :: PatternMorphism v ()                     -- forgetful morphism
+forget = forgetValues
+```
+
+### B.5 Analogical Matching via Forgetful Functors
+
+Building on the forgetful-functor hierarchy in the body, analogical reasoning matches
+patterns that are isomorphic *after* forgetting values:
+
+```haskell
+analogicalMatch :: (GraphView v1, GraphView v2)
+                => v1 -> v2 -> Pattern a -> Pattern b -> Bool
+analogicalMatch view1 view2 p1 p2 =
+  toGraph view1 (forget p1) `isIsomorphic` toGraph view2 (forget p2)
+```
