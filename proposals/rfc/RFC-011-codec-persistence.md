@@ -191,27 +191,44 @@ convention and becomes the direct image of RFC-001's principle 2.
 
 Logical schema — column names and relationships are the contract; physical types are
 transport-specific (`array<…>` is `text[]` in Postgres, `LIST` in DuckDB/Arrow; `json` is
-`jsonb` or a columnar struct):
+`jsonb` or a columnar struct). Subject identity is **frame-scoped** (the same identity may
+recur across Frames), so `frame_row`'s key is composite `(frame_id, id)` — which is what
+forces endpoint FKs to carry a frame id:
 
 ```
 -- frame-table : within-module structure, self-contained, faithful
 frame(frame_id, root_id)
 frame_row(frame_id, id, labels array<text>, properties json, elements array<id>)
-                                          -- ordered FK array = elements; refs stay in-frame
+  PRIMARY KEY (frame_id, id)              -- identity is frame-scoped
+                                          -- elements: ordered, refs stay in-frame; an array, so
+                                          -- NOT FK-enforceable — dangling element refs are DanglingRef
 
 -- span-table : the Span's Subject + its (0..1) Bundle's Subject, denormalized
 span(span_id, subject_id, labels array<text>, properties json, frame_a, frame_b,
      bundle_id?, bundle_labels array<text>?, bundle_properties json?)
-                                          -- Span Subject: subject_id/labels/properties
+  PRIMARY KEY (span_id)
+  UNIQUE (span_id, frame_a), UNIQUE (span_id, frame_b)   -- enable the through-span FKs below
                                           -- Bundle Subject (if any): bundle_* ; bundle_id is an
                                           -- attribute, NOT an FK (there is no bundle table)
 
 -- bundle_pair : the Bundle's pair-elements — one row per inter-frame relationship (the edge table)
-bundle_pair(span_id, src_ref, tgt_ref, pair_subject_id?, labels array<text>, properties json)
+bundle_pair(span_id, src_frame, src_ref, tgt_frame, tgt_ref, pair_subject_id?,
+            labels array<text>, properties json)
+  FOREIGN KEY (span_id)            REFERENCES span(span_id)              -- cascade-on-delete
+  FOREIGN KEY (span_id, src_frame) REFERENCES span(span_id, frame_a)    -- src_frame = the span's frame_a
+  FOREIGN KEY (span_id, tgt_frame) REFERENCES span(span_id, frame_b)    -- tgt_frame = the span's frame_b
+  FOREIGN KEY (src_frame, src_ref) REFERENCES frame_row(frame_id, id)   -- src endpoint exists in that frame
+  FOREIGN KEY (tgt_frame, tgt_ref) REFERENCES frame_row(frame_id, id)   -- tgt endpoint exists in that frame
                                           -- keyed by span_id (span:bundle is 1:0..1, so span_id
-                                          -- functionally determines the bundle), cascade-on-delete;
-                                          -- src_ref ∈ frame_a, tgt_ref ∈ frame_b : real FKs
+                                          -- functionally determines the bundle)
 ```
+
+The endpoint frame ids (`src_frame`/`tgt_frame`) are duplicated from the span deliberately:
+under frame-scoped identity they are required for *any* endpoint FK, and the through-span
+FKs additionally make the externality invariant declarative — a pair-element may only connect
+`frame_a` content to `frame_b` content, enforced by the database rather than by application
+code. (A global surrogate key on `frame_row` would avoid the duplication but reduce the
+endpoint FKs to "exists somewhere," losing frame-pair correctness; see Alternatives.)
 
 **Decisions baked in (settled in design review):**
 
@@ -352,11 +369,12 @@ saveVia (patternToGraph appDomain) graphCodec scope p  -- arbitrary pattern into
 `decode` is **total** — it returns `Either DecodeError`, never throws — and classifies
 failures via `DecodeError`: `KindViolation` (stored data does not satisfy `targetKind`,
 e.g. schema drift), `MissingConvention` (an ambiguous shape under a lossy map lacks its
-discriminator), `MalformedValue` (an unparseable cell), and `DanglingRef` (an `elements` or
-`bundle_pair` endpoint FK references an absent row — the integrity hazard that array-of-FK and
-the edge table cannot have the database enforce in every transport). `persist` is atomic at
-the single-unit granularity; multi-statement transactional and bulk writes are deferred
-(Open Question 2).
+discriminator), `MalformedValue` (an unparseable cell), and `DanglingRef` (a reference to an
+absent row). `bundle_pair` endpoints are FK-enforced where the transport supports composite
+FKs, so `DanglingRef` there is a backstop for transports that do not; the `frame_row.elements`
+array is *not* FK-enforceable in standard SQL, so dangling element refs are decode-time
+`DanglingRef` checks regardless of transport. `persist` is atomic at the single-unit
+granularity; multi-statement transactional and bulk writes are deferred (Open Question 2).
 
 ### The seed-then-own use case
 
@@ -450,6 +468,15 @@ it duplicates shape logic across backends (relational-into-a-graph-store would b
 codec instead of `relationalToGraph >>> graphCodec`), cannot reuse the subsumption embeddings,
 and hides *where* loss is introduced. Thin codecs + `RepresentationMap` chains keep loss
 declared and tested in one place (RFC-007).
+
+**Global surrogate key on `frame_row` (instead of frame-scoped `(frame_id, id)`).** Would let
+`bundle_pair` endpoints be single-column FKs with no `src_frame`/`tgt_frame` duplication.
+Rejected as the default: Subject identity is frame-scoped (the same identity may recur across
+Frames), so a global key requires minting surrogate ids and an identity-resolution layer, and
+— more importantly — it reduces endpoint FKs to "exists somewhere," forfeiting FK-level
+enforcement of the externality invariant (an endpoint must live in the span's `frame_a`/`frame_b`).
+Carrying the two frame columns is cheap and makes that invariant declarative. A global key
+remains available to a transport that prefers it, at that cost.
 
 **Shared Bundles persisted by reference (`bundle_id` grouping).** Tempting for storage dedup
 and faithful to RFC-001's in-memory sharing. Rejected as the *default* at scale: a shared
