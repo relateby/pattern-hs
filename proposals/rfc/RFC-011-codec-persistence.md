@@ -186,8 +186,8 @@ convention and becomes the direct image of RFC-001's principle 2.
 | Frame element (Pattern / Portal) | a row: Subject columns + ordered child-FK array |
 | Self-containment (Reading 1) | element FKs reference **only same-frame rows** |
 | Span (relates two Frames) + its Bundle | one `span` row (Span/Bundle Subjects on the row) |
-| Bundle pair-element (cross-Frame edge) | one `span_pair` row: `(span_id, src_ref, tgt_ref, …)` |
-| Externality (edges live in the Span) | edges live in `span_pair`, never in `frame_row` |
+| Bundle pair-element (cross-Frame edge) | one `bundle_pair` row: `(span_id, src_ref, tgt_ref, …)` |
+| Externality (edges live in the Span) | edges live in `bundle_pair`, never in `frame_row` |
 
 Logical schema — column names and relationships are the contract; physical types are
 transport-specific (`array<…>` is `text[]` in Postgres, `LIST` in DuckDB/Arrow; `json` is
@@ -199,26 +199,38 @@ frame(frame_id, root_id)
 frame_row(frame_id, id, labels array<text>, properties json, elements array<id>)
                                           -- ordered FK array = elements; refs stay in-frame
 
--- span-table : cross-module correspondences, externalized (the edge table)
-span(span_id, subject_id, labels array<text>, properties json,
-     frame_a, frame_b, bundle_id?)        -- Span/Bundle Subjects live on this row
-span_pair(span_id, src_ref, tgt_ref, pair_subject_id?, labels array<text>, properties json)
-                                          -- keyed by span_id, cascade-on-delete;
+-- span-table : the Span's Subject + its (0..1) Bundle's Subject, denormalized
+span(span_id, subject_id, labels array<text>, properties json, frame_a, frame_b,
+     bundle_id?, bundle_labels array<text>?, bundle_properties json?)
+                                          -- Span Subject: subject_id/labels/properties
+                                          -- Bundle Subject (if any): bundle_* ; bundle_id is an
+                                          -- attribute, NOT an FK (there is no bundle table)
+
+-- bundle_pair : the Bundle's pair-elements — one row per inter-frame relationship (the edge table)
+bundle_pair(span_id, src_ref, tgt_ref, pair_subject_id?, labels array<text>, properties json)
+                                          -- keyed by span_id (span:bundle is 1:0..1, so span_id
+                                          -- functionally determines the bundle), cascade-on-delete;
                                           -- src_ref ∈ frame_a, tgt_ref ∈ frame_b : real FKs
 ```
 
 **Decisions baked in (settled in design review):**
 
+- **Span : Bundle is 1:(0..1)**, fixed by RFC-001 (the Bundle is the Span's optional third
+  element). Multiple correspondence-sets between the same two Frames are expressed as multiple
+  *Spans*, not multiple Bundles. The 1:N lives one level down — **Bundle : pair-elements** —
+  and that is the `bundle_pair` table (many rows per span).
 - **Span and Bundle identities live on the `span` row**, not as separate entities — flatter
-  to query.
+  to query, and valid precisely because span:bundle is 1:(0..1). There is **no `bundle` table**:
+  the Bundle's Subject is the `bundle_*` columns, its pair-elements are the `bundle_pair` rows.
 - **Pair-elements are keyed by `span_id` and materialized per span**, not shared by
   `bundle_id`. This makes each span self-contained — Frame self-containment applied to the
   edge table — so `ON DELETE CASCADE` works, endpoint FKs are declarable (a bound span has
   a single valid frame pair), and concurrent writers do not contend on shared edge rows.
-- **`bundle_id` is retained as a non-enforced grouping attribute** (a column, not an FK),
-  so the in-memory *shared* Bundle form (RFC-001 allows Bundle sharing) can be reconstituted
-  on read when two spans carry identical pairs under the same id — without the database ever
-  depending on it.
+- **`bundle_id` is a non-enforced attribute** (a column, not an FK — it points at no table),
+  retained so the in-memory *shared* Bundle form (RFC-001 allows Bundle sharing) can be
+  reconstituted on read when two spans carry identical pairs under the same id — without the
+  database ever depending on it. A third (`bundle`) table would be needed only to reintroduce
+  the rejected shared-bundle semantics; see Alternatives.
 - **Escape hatch** for a genuinely large, shared correspondence: promote the Bundle to a
   first-class stored entity (it is a `Pattern Subject`, so it gets its own `frame_row`s)
   with an explicit, managed lifecycle. Opt-in, eyes-open sharing — not the implicit default
@@ -235,7 +247,7 @@ byReference = RepresentationMap
   , domain      = anyPattern
   , codomain    = frameSpanRefKind
   , conventions = [ "Frames stored once; Spans reference Frames by identity"
-                  , "cross-Frame edges externalized as span_pair rows (RFC-001 principle 2)" ]
+                  , "cross-Frame edges externalized as bundle_pair rows (RFC-001 principle 2)" ]
   , forward     = toByReference
   , inverse     = resolveByReference
   , roundTrip   = byReferenceRoundTrip       -- strict on anyPattern with identified subjects
@@ -341,7 +353,7 @@ saveVia (patternToGraph appDomain) graphCodec scope p  -- arbitrary pattern into
 failures via `DecodeError`: `KindViolation` (stored data does not satisfy `targetKind`,
 e.g. schema drift), `MissingConvention` (an ambiguous shape under a lossy map lacks its
 discriminator), `MalformedValue` (an unparseable cell), and `DanglingRef` (an `elements` or
-`span_pair` endpoint FK references an absent row — the integrity hazard that array-of-FK and
+`bundle_pair` endpoint FK references an absent row — the integrity hazard that array-of-FK and
 the edge table cannot have the database enforce in every transport). `persist` is atomic at
 the single-unit granularity; multi-statement transactional and bulk writes are deferred
 (Open Question 2).
@@ -375,8 +387,8 @@ Observable, regardless of file/package layout:
 2. Seeding a multi-Frame pattern (e.g. an `aie-matrix` NPC + map + calendar config) via
    `saveVia byReference frameSpanCodec`, then `loadVia`, yields a `Pattern` structurally
    equal to the original — including cross-Frame correspondences, which appear as
-   `span_pair` rows and never inside any frame.
-3. Deleting a `span` row removes exactly its `span_pair` rows (cascade) and no `frame_row`s.
+   `bundle_pair` rows and never inside any frame.
+3. Deleting a `span` row removes exactly its `bundle_pair` rows (cascade) and no `frame_row`s.
 4. `decode` of a row set with a dangling endpoint FK returns `Left (DanglingRef …)`, never
    throws.
 
@@ -413,7 +425,7 @@ is the first port — the immediate need in `aie-matrix`.
 3. **Identity and upsert.** `StoreKey` vs. `Subject.identity`. When the store owns identity
    (post-seed), how does decode reconcile store keys with pattern identities? Likely a
    per-codec identity strategy, coordinated with RFC-010 reconciliation.
-4. **Shared-Bundle reconstruction.** On read, should identical `span_pair` sets under one
+4. **Shared-Bundle reconstruction.** On read, should identical `bundle_pair` sets under one
    `bundle_id` be reconstituted as a shared in-memory Bundle automatically, or only on
    explicit request? Default leans explicit, to keep the read path simple.
 5. **Representation registry.** A catalog of `(model × strategy) → (map chain, codec)` so
