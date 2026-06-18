@@ -1,0 +1,3 @@
+interface:
+  display_name: "RFC Creator"
+  short_description: "Draft repository RFCs from the local template"
