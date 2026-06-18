@@ -4,7 +4,7 @@
 **Date:** 2025-11-01
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** [`proposals/design/SEMANTICS.md`](SEMANTICS.md), [`proposals/design/EXTENDED-SEMANTICS.md`](EXTENDED-SEMANTICS.md)
+**Supersedes:** [`proposals/rfc/SEMANTICS.md`](SEMANTICS.md), [`proposals/rfc/EXTENDED-SEMANTICS.md`](EXTENDED-SEMANTICS.md)
 **Related modules:** `Gram.Core`, `Gram.Parser`, `Gram.Serializer`
 
 ## Summary

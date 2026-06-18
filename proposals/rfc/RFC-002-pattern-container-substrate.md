@@ -4,7 +4,7 @@
 **Date:** 2025-11-01
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** [`proposals/design/DESIGN.md`](DESIGN.md), [`proposals/design/pattern-category.md`](pattern-category.md)
+**Supersedes:** [`proposals/rfc/DESIGN.md`](DESIGN.md), [`proposals/rfc/pattern-category.md`](pattern-category.md)
 **Related modules:** `Pattern.Core`, `Pattern.Graph.GraphLens`, `Pattern.PatternGraph`
 
 ## Summary
