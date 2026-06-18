@@ -38,6 +38,12 @@ Design, Open Questions, Alternatives.
 | [RFC-008](RFC-008-graph-transform.md) | GraphTransform — Construction, Transformation, Pipeline | draft | RFC-004, RFC-005 |
 | [RFC-009](RFC-009-graph-mutation.md) | GraphMutation — Coherent In-Memory Graph Mutations | draft | RFC-004, RFC-005, RFC-008 |
 
+### Persistence Layer (Draft — Design)
+
+| RFC | Title | Status | Depends on |
+|-----|-------|--------|------------|
+| [RFC-011](RFC-011-codec-persistence.md) | Codec — Pluggable Persistence Adapters | draft | RFC-001, RFC-007, RFC-004 |
+
 ## Implementation Order
 
 The graph interface RFCs form a dependency chain:
@@ -45,10 +51,13 @@ The graph interface RFCs form a dependency chain:
 ```
 RFC-004 (GraphClassifier)
   └── RFC-005 (GraphQuery)
-        ├── RFC-006 (ScopeQuery)  ──→  RFC-007 (RepresentationMap)
+        ├── RFC-006 (ScopeQuery)  ──→  RFC-007 (RepresentationMap)  ──→  RFC-011 (Codec)
         └── RFC-008 (GraphTransform)
               └── RFC-009 (GraphMutation)
 ```
+
+RFC-011 (Codec) builds on RFC-007: a `RepresentationMap` normalizes shape within
+Pattern-space, then a `Codec` crosses the boundary into an external store.
 
 RFC-007 (RepresentationMap) additionally depends on RFC-008 (GraphTransform) being
 settled first, since it builds on `paraWithScope` and the GraphTransform primitives.
