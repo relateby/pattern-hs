@@ -290,9 +290,10 @@ endpoint FKs to "exists somewhere," losing frame-pair correctness; see Alternati
   a single valid frame pair), and concurrent writers do not contend on shared edge rows.
 - **`bundle_id` is a non-enforced attribute** (a column, not an FK — it points at no table),
   retained so the in-memory *shared* Bundle form (RFC-001 allows Bundle sharing) can be
-  reconstituted on read when two spans carry identical pairs under the same id — without the
-  database ever depending on it. A third (`bundle`) table would be needed only to reintroduce
-  the rejected shared-bundle semantics; see Alternatives.
+  reconstituted on read *on explicit request* when two spans carry identical pairs under the
+  same id — not automatically, and without the database ever depending on it (Open Question 4).
+  A third (`bundle`) table would be needed only to reintroduce the rejected shared-bundle
+  semantics; see Alternatives.
 - **Escape hatch** for a genuinely large, shared correspondence: promote the Bundle to a
   first-class stored entity (it is a `Pattern Subject`, so it gets its own `frame_row`s)
   with an explicit, managed lifecycle. Opt-in, eyes-open sharing — not the implicit default
@@ -543,9 +544,11 @@ is the first port — the immediate need in `aie-matrix`.
    (parsing, RFC-010, Frame boundaries, persistence) that RFC-011 depends on; it warrants its
    own RFC (or an RFC-010 extension) and should be settled before RFC-011 implementation.
    Downstream (`aie-matrix`) is already hitting it.
-4. **Shared-Bundle reconstruction.** On read, should identical `bundle_pair` sets under one
-   `bundle_id` be reconstituted as a shared in-memory Bundle automatically, or only on
-   explicit request? Default leans explicit, to keep the read path simple.
+4. **Shared-Bundle reconstruction. — Resolved: explicit.** On read, decode produces the
+   materialized (per-span) Bundle as stored; identical `bundle_pair` sets under one `bundle_id`
+   are *not* automatically coalesced into a shared in-memory Bundle. Reconstituting sharing is
+   a deliberate, opt-in operation the caller requests — keeping the read path simple,
+   predictable, and free of implicit cross-span coupling.
 5. **Representation registry.** A catalog of `(model × strategy) → (map chain, codec)` so
    callers pick by desired qualities. **Deferred:** park until at least two embeddings exist;
    until then, representations are assembled explicitly at call sites.
@@ -583,8 +586,8 @@ and faithful to RFC-001's in-memory sharing. Rejected as the *default* at scale:
 Bundle has no single owning Span, so `ON DELETE CASCADE` cannot apply (forcing app-level
 refcount/GC), endpoint foreign keys become undeclarable (no single valid frame pair), and
 concurrent writers contend on shared edge rows. Storage materializes per span; sharing is
-preserved as an in-memory/read-time reconstruction (`bundle_id` as a non-enforced attribute)
-and an explicit promote-to-entity escape hatch.
+preserved as an *opt-in* read-time reconstruction (`bundle_id` as a non-enforced attribute;
+Open Question 4) and an explicit promote-to-entity escape hatch.
 
 **An existing Haskell persistence library as the whole answer** (`persistent`, `beam`,
 `esqueleto`, `hasql`). Rejected as a *replacement* for these devices: they map *records* to
