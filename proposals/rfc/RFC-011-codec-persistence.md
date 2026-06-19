@@ -179,6 +179,12 @@ class Monad m => Store b m where
   retrieve :: StoreQuery b -> m b
 ```
 
+`Store` is deliberately minimal — single-unit `persist`/`retrieve`. **Batching and
+transactionality are a layer above**, not methods here: bulk seeding and multi-statement
+atomic writes (`persistMany`, `withTransaction`) are orchestration over a `Store`, transport-
+specific and orthogonal to the codec's shape concern. Keeping them out of the interface keeps
+the boundary thin and every backend's `Store` instance trivial (Open Question 2).
+
 End-to-end save/load are thin compositions of a `RepresentationMap` chain (shape), a
 `Codec` (bytes), and a `Store` (transport). Use `idMap` when the source is already of the
 codec's `targetKind`:
@@ -420,7 +426,8 @@ absent row). `bundle_pair` endpoints are FK-enforced where the transport support
 FKs, so `DanglingRef` there is a backstop for transports that do not; the `frame_row.elements`
 array is *not* FK-enforceable in standard SQL, so dangling element refs are decode-time
 `DanglingRef` checks regardless of transport. `persist` is atomic at the single-unit
-granularity; multi-statement transactional and bulk writes are deferred (Open Question 2).
+granularity; multi-statement transactional and bulk writes are a layer above `Store`
+(Open Question 2, resolved).
 
 ### The seed-then-own use case
 
@@ -493,9 +500,11 @@ is the first port — the immediate need in `aie-matrix`.
      catalog → Frame-of-Frames) — the faithful regime, not `relationalToGraph`. It is a
      relational **source adapter** and belongs in its own future RFC ("RDBMS ⇄ Frame/Span");
      RFC-011 makes no faithful-RDBMS claim (see § two distinct "relational" stories).
-2. **Batching / transactionality.** `persist` is one-unit-at-a-time. Bulk seeding and
-   transactional multi-statement writes need a batch surface (`persistMany`,
-   `withTransaction`). `Store`, or a layer above?
+2. **Batching / transactionality. — Resolved: a layer above.** `persist` stays
+   one-unit-at-a-time; `Store` does not grow a batch/transaction surface. Bulk seeding and
+   multi-statement atomic writes (`persistMany`, `withTransaction`) are orchestration *over* a
+   `Store` — transport-specific and orthogonal to encoding — so they live above the boundary,
+   keeping `Store` instances trivial and the scope tidy (see § Transport is a separate concern).
 3. **Identity and upsert.** `StoreKey` vs. `Subject.identity`. When the store owns identity
    (post-seed), how does decode reconcile store keys with pattern identities? Likely a
    per-codec identity strategy, coordinated with RFC-010 reconciliation.
