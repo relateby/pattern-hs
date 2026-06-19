@@ -186,6 +186,14 @@ atomic writes (`persistMany`, `withTransaction`) are orchestration over a `Store
 specific and orthogonal to the codec's shape concern. Keeping them out of the interface keeps
 the boundary thin and every backend's `Store` instance trivial (Open Question 2).
 
+Conceptually a `Store` is the **persistent analog of an RFC-001 Frame**: a handle over a
+persisted collection, with operations over it and simple add/remove of contained elements.
+The signature above is the in-RAM baseline — `retrieve` materializes a whole `b`. Past RAM,
+where a result or even a single element exceeds memory, retrieval **streams** instead of
+materializing (the scale extension; the durability baseline materializes, the streaming `Store`
+does not). Random-access **cursor** navigation — which aligns with Zippers — is a later
+addition; near term, streaming only (Open Question 7).
+
 End-to-end save/load are thin compositions of a `RepresentationMap` chain (shape), a
 `Codec` (bytes), and a `Store` (transport). Use `idMap` when the source is already of the
 codec's `targetKind`:
@@ -561,8 +569,18 @@ is the first port — the immediate need in `aie-matrix`.
    immature to automate. The codecs and kinds are hand-written first; only after exercising
    several of them — and seeing what genuinely recurs — is there expertise to generate from.
    Revisit once the hand-written versions are stable.
-7. **Streaming / partial load.** Large stores will not fit one `Pattern` in memory. A
-   streaming codec variant, or a `Store`-level cursor + fold?
+7. **Streaming vs. cursors. — Resolved: streaming now, cursors (Zippers) later.** *(The
+   earlier wording was awkward.)* The concern is that a store holds Patterns too large for
+   memory — a query result, or even a single element, may exceed RAM — not that "one Pattern
+   won't fit." A `Store` is the persistent analog of an RFC-001 Frame: a handle over a
+   persisted collection, exposing operations over it plus simple add/remove of contained
+   elements (see § Transport is a separate concern). Because results and elements can exceed
+   RAM, the near-term answer is **streaming** retrieval — incremental, never materializing the
+   whole value — which is the simpler model and pairs with the scale motivation (durability
+   baseline materializes in RAM; the streaming `Store` is the past-RAM extension). Random-access
+   **cursors** are deferred: they align closely with **Zippers** (a focus + surrounding context
+   over an immutable Pattern), so the cursor surface should follow the in-memory Zipper rather
+   than be invented here. Near term: streaming.
 
 ## Alternatives
 
