@@ -204,15 +204,37 @@ codec's `targetKind`:
 ```haskell
 saveVia :: (Store b m, ScopeQuery q v)
         => RepresentationMap v -> Codec b v -> q v -> Pattern v -> m StoreKey
-saveVia rmap codec scope = persist . encode codec . forward rmap scope
+saveVia rmap codec scope = persist . encode codec . repMapForward rmap scope
 
 loadVia :: (Store b m, ScopeQuery q v)
         => Codec b v -> RepresentationMap v -> q v -> StoreQuery b
         -> m (Either DecodeError (Pattern v))
 loadVia codec rmap scope q = do
   b <- retrieve q
-  pure $ inverse rmap scope <$> decode codec b
+  pure (decode codec b >>= reconstruct rmap scope)
+  -- reconstruct = the load-path (partial) inverse: total for faithful maps;
+  -- Left (MissingConvention ...) where a lossy map's inverse needs an absent
+  -- discriminator. Binding through Either keeps that failure in the error channel
+  -- (a plain `repMapInverse <$> ...` would lose it). See "Dependency on RFC-007" below.
 ```
+
+### Dependency on RFC-007's `RepresentationMap`
+
+The map examples below use the field names of the *implemented* `Pattern.RepresentationMap`
+(`repMapName`, `repMapDomain`, `repMapCodomain`, `repMapForward`, `repMapInverse`,
+`repMapRoundTrip`). RFC-011 relies on two additions that RFC-007's draft anticipates but the
+current implementation does not yet carry — RFC-007 alignment work this RFC depends on:
+
+1. **`repMapConventions :: [Text]`** — the declared encoding decisions (the discriminator
+   rules) are central here; they are a lossy map's identity. The implemented type has no such
+   field. Until it is added, conventions are carried out-of-band (documentation / `repMapName`);
+   the literals below show `repMapConventions` as the proposed field.
+2. **A fallible reconstruction on the load path.** `repMapInverse` is total
+   (`… -> Pattern v -> Pattern v`), so it cannot signal that a lossy map's inverse hit an absent
+   discriminator. The persistence load path therefore needs a *partial* inverse,
+   `reconstruct :: RepresentationMap v -> q v -> Pattern v -> Either DecodeError (Pattern v)`,
+   surfacing `Left (MissingConvention …)` when a required tag is missing and succeeding
+   trivially for faithful maps. `loadVia` binds through it (above).
 
 ### The faithful regime: the Frame/Span two-table encoding
 
@@ -319,14 +341,14 @@ endpoint FKs to "exists somewhere," losing frame-pair correctness; see Alternati
 ```haskell
 byReference :: RepresentationMap Subject      -- by-value Pattern  ↔  Frame/Span by-reference
 byReference = RepresentationMap
-  { name        = "by-value ↔ by-reference (Frame/Span)"
-  , domain      = anyPattern
-  , codomain    = frameSpanRefKind
-  , conventions = [ "Frames stored once; Spans reference Frames by identity"
-                  , "cross-Frame edges externalized as bundle_pair rows (RFC-001 principle 2)" ]
-  , forward     = toByReference
-  , inverse     = resolveByReference
-  , roundTrip   = byReferenceRoundTrip       -- strict on anyPattern with identified subjects
+  { repMapName        = "by-value ↔ by-reference (Frame/Span)"
+  , repMapDomain      = anyPattern
+  , repMapCodomain    = frameSpanRefKind
+  , repMapConventions = [ "Frames stored once; Spans reference Frames by identity"
+                        , "cross-Frame edges externalized as bundle_pair rows (RFC-001 principle 2)" ]
+  , repMapForward     = toByReference
+  , repMapInverse     = resolveByReference
+  , repMapRoundTrip   = byReferenceRoundTrip  -- strict on anyPattern with identified subjects
   }
 ```
 
@@ -352,15 +374,15 @@ in an earlier draft:
 ```haskell
 relationalToGraph :: RepresentationMap Subject   -- relational data ↪ property-graph
 relationalToGraph = RepresentationMap
-  { name        = "relational ↪ property-graph"
-  , domain      = relationalKind
-  , codomain    = graphKind
-  , conventions = [ "each table T -> nodes labeled T; columns -> node properties"
-                  , "foreign-key column -> relationship to the referenced node"
-                  , "M:N junction table -> relationship type; non-key columns -> rel properties" ]
-  , forward     = embedRelationalAsGraph
-  , inverse     = projectGraphAsRelational           -- partial: on the relational sub-kind
-  , roundTrip   = relationalRoundTrip
+  { repMapName        = "relational ↪ property-graph"
+  , repMapDomain      = relationalKind
+  , repMapCodomain    = graphKind
+  , repMapConventions = [ "each table T -> nodes labeled T; columns -> node properties"
+                        , "foreign-key column -> relationship to the referenced node"
+                        , "M:N junction table -> relationship type; non-key columns -> rel properties" ]
+  , repMapForward     = embedRelationalAsGraph
+  , repMapInverse     = projectGraphAsRelational      -- partial: on the relational sub-kind
+  , repMapRoundTrip   = relationalRoundTrip
   }
 ```
 
@@ -380,15 +402,15 @@ minimizes the tags:
 ```haskell
 patternToGraph :: PatternKind Subject -> RepresentationMap Subject
 patternToGraph appDomain = RepresentationMap
-  { name        = "Pattern ↠ native property-graph"
-  , domain      = appDomain
-  , codomain    = graphKind
-  , conventions = [ "binary pattern -> relationship; tag _pk=binary only where it collides with a native relationship"
-                  , "annotation -> self-loop; tag _pk=annotation only where it collides with a self-reference"
-                  , "rich Value (VMap/VArray/VRange/VMeasurement/VTaggedString) -> decomposed sub-nodes or property_json" ]
-  , forward     = projectPatternAsGraph appDomain
-  , inverse     = liftGraphAsPattern appDomain
-  , roundTrip   = graphRoundTripOn appDomain          -- strict on appDomain; tags restore invertibility
+  { repMapName        = "Pattern ↠ native property-graph"
+  , repMapDomain      = appDomain
+  , repMapCodomain    = graphKind
+  , repMapConventions = [ "binary pattern -> relationship; tag _pk=binary only where it collides with a native relationship"
+                        , "annotation -> self-loop; tag _pk=annotation only where it collides with a self-reference"
+                        , "rich Value (VMap/VArray/VRange/VMeasurement/VTaggedString) -> decomposed sub-nodes or property_json" ]
+  , repMapForward     = projectPatternAsGraph appDomain
+  , repMapInverse     = liftGraphAsPattern appDomain
+  , repMapRoundTrip   = graphRoundTripOn appDomain     -- strict on appDomain; tags restore invertibility
   }
 ```
 
@@ -433,11 +455,11 @@ saveVia (patternToGraph appDomain) graphCodec scope p  -- arbitrary pattern into
 
 ### Failure modes
 
-`decode` is **total** — it returns `Either DecodeError`, never throws — and classifies
-failures via `DecodeError`: `KindViolation` (stored data does not satisfy `targetKind`,
-e.g. schema drift), `MissingConvention` (an ambiguous shape under a lossy map lacks its
-discriminator), `MalformedValue` (an unparseable cell), and `DanglingRef` (a reference to an
-absent row). `bundle_pair` endpoints are FK-enforced where the transport supports composite
+The load path is **total** — `decode` and `reconstruct` both return `Either DecodeError` and
+never throw — classifying failures via `DecodeError`: `KindViolation` (stored data does not
+satisfy `targetKind`, e.g. schema drift) and `MalformedValue` (an unparseable cell) arise in
+`decode`; `MissingConvention` (a lossy map's inverse lacks the discriminator needed to invert)
+arises in `reconstruct`; `DanglingRef` (a reference to an absent row) in either. `bundle_pair` endpoints are FK-enforced where the transport supports composite
 FKs, so `DanglingRef` there is a backstop for transports that do not; the `frame_row.elements`
 array is *not* FK-enforceable in standard SQL, so dangling element refs are decode-time
 `DanglingRef` checks regardless of transport. `persist` is atomic at the single-unit
