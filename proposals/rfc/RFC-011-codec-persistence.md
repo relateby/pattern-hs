@@ -343,6 +343,14 @@ relationalToGraph = RepresentationMap
   }
 ```
 
+Note what *neither* story is: **faithful round-trip of an arbitrary RDBMS.** `relationalToGraph`
+is query-interop — it views relational data *as* a graph and makes no claim to reconstruct the
+source database. Faithfully ingesting an RDBMS and getting the same RDBMS back is a third,
+distinct concern (it requires capturing the schema/catalog — PKs, FKs, types, constraints — as
+data, whose natural faithful encoding is the Frame/Span model: table → Frame, foreign key →
+Span, catalog → Frame-of-Frames). That is a relational **source adapter**, separate from
+"persist Pattern into a store," and out of scope for this RFC (Open Question 1).
+
 The genuinely **lossy** projection — an arbitrary pattern onto the *native* graph store
 vocabulary — is also a map, with discriminators emitted only on target shapes whose preimage
 is non-singleton (derivable from `domain`); restricting `domain` to an application's schema
@@ -375,9 +383,9 @@ the canonical form held in Frame/Span storage, round-trip is simply not claimed.
 - `anyPattern` — the document model (≈ lattice top).
 - `relationalKind` — the native relational model. Its predicate is non-trivial because
   relationality is largely about *references* (foreign keys), which are scope-relative rather
-  than locally structural; see Open Questions. If no clean predicate exists, `relationalKind`
-  is defined operationally as the `domain` of `relationalToGraph` — the three-axes story holds
-  either way, since the embedding, not a standalone predicate, is what interop needs.
+  than locally structural. `relationalKind` is therefore defined operationally as the `domain`
+  of `relationalToGraph` — the three-axes story holds either way, since the embedding, not a
+  standalone predicate, is what interop needs (Open Question 1, resolved).
 
 ### Reference Codecs (thin, one `targetKind` each)
 
@@ -471,10 +479,20 @@ is the first port — the immediate need in `aie-matrix`.
 
 ## Open Questions
 
-1. **`relationalKind` expressibility.** Is the native relational model expressible as a
-   `PatternKind` predicate, given foreign keys are scope-relative rather than locally
-   structural? If a clean predicate is impractical, does relational interop need a weaker
-   classification than graph/document, or to be specified only by its embedding map?
+1. **`relationalKind` expressibility, and faithful RDBMS ingestion. — Resolved.** Two
+   concerns were conflated here, and separating them resolves both:
+   - **Predicate sub-question (closed):** the query-interop path (`relationalToGraph`) needs
+     no standalone `relationalKind` *predicate*. `relationalKind` is defined operationally as
+     the embedding's `domain` — recognizing relational-shaped patterns is the embedding's
+     concern, not a separate classifier (see § Target kinds). Foreign keys being scope-relative
+     is precisely why a local structural predicate is the wrong tool.
+   - **Faithful RDBMS round-trip (out of scope):** ingesting an arbitrary RDBMS *as* Pattern
+     and reconstructing the same RDBMS is a different problem from "persist Pattern into a
+     store." It requires capturing the schema/catalog (PKs, FKs, types, constraints) as data,
+     and its natural faithful encoding is the Frame/Span model (table → Frame, FK → Span,
+     catalog → Frame-of-Frames) — the faithful regime, not `relationalToGraph`. It is a
+     relational **source adapter** and belongs in its own future RFC ("RDBMS ⇄ Frame/Span");
+     RFC-011 makes no faithful-RDBMS claim (see § two distinct "relational" stories).
 2. **Batching / transactionality.** `persist` is one-unit-at-a-time. Bulk seeding and
    transactional multi-statement writes need a batch surface (`persistMany`,
    `withTransaction`). `Store`, or a layer above?
