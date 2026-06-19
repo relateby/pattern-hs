@@ -549,9 +549,12 @@ is the first port — the immediate need in `aie-matrix`.
    are *not* automatically coalesced into a shared in-memory Bundle. Reconstituting sharing is
    a deliberate, opt-in operation the caller requests — keeping the read path simple,
    predictable, and free of implicit cross-span coupling.
-5. **Representation registry.** A catalog of `(model × strategy) → (map chain, codec)` so
-   callers pick by desired qualities. **Deferred:** park until at least two embeddings exist;
-   until then, representations are assembled explicitly at call sites.
+5. **Representation registry. — Resolved: deferred (deliberate).** A catalog of
+   `(model × strategy) → (map chain, codec)` letting callers pick a representation by desired
+   qualities is *not* part of this RFC. Until at least two real embeddings exist and the
+   composition ergonomics are understood, a registry would be premature abstraction over a
+   single example. Representations are assembled explicitly at call sites via `saveVia` /
+   `loadVia`; the registry is revisited once there is enough variety to generalize from.
 6. **Schema-driven generation.** How much of the kinds, table layout, and graph conventions
    can `Gram.Schema` generate vs. hand-write? Park until the hand-written versions are stable.
 7. **Streaming / partial load.** Large stores will not fit one `Pattern` in memory. A
