@@ -33,6 +33,44 @@ a real database. Pattern has in-memory operations and a canonical JSON encoding
 (`Gram.JSON`), but no first-class, fidelity-aware way to land a `Pattern v` in a store, in
 a chosen *representation*, and reconstruct it.
 
+### Why a database, not just a blob
+
+Pattern's operations are in-memory: the substrate is a value in RAM. For *durability alone*
+that needs nothing elaborate — serialize the whole `Pattern` to a blob (the `Gram.JSON`
+document encoding) and read it back. The document codec covers exactly this case and is the
+baseline; if everything fits in memory, you are done.
+
+The reason to design for *database* backends is **scale past RAM** — large ≈ more than fits
+in memory. When a Pattern is larger than memory you cannot load it whole, so durability stops
+being the problem and *partial, indexed, and streaming access* becomes the problem. That
+requires a real storage and query engine underneath: Frame/Span tables to fetch one Frame
+without materializing the whole graph-of-graphs, a native graph engine to traverse without
+loading, columnar scans over Subject components without reading every row. A blob can do none
+of these. So the document codec is the honest durability answer *up to* RAM, and the database
+backends earn their keep precisely *past* it (see Open Question 7 on streaming).
+
+### A storage engine, not an object mapper
+
+`Pattern Subject` and its operations are the data model and the query space — the conceptual
+layer. Codecs and Stores are a pluggable *storage* layer, chosen by which queries a workload
+runs, the way Postgres decouples its relational/SQL layer from a pluggable table-access method
+(and, beneath both, Codd's logical/physical data independence). A codec is a **physical
+encoding, not a semantic translation**: there is no second model to reconcile, and the store
+never tries to look like Pattern.
+
+This is the ANSI/SPARC three-schema split:
+
+- **external** — typed views / OO lenses over the model (per-consumer presentation)
+- **conceptual** — `Pattern Subject` + operations (the one model and query algebra)
+- **internal** — codecs + stores (pluggable physical engines)
+
+The two fidelity regimes are roles within the internal layer: faithful backends are
+interchangeable engines (any can hold the whole model; pick by query fit); the lossy
+native-graph backend is a query-optimized replica/index, with the logical truth held in a
+faithful engine. ORM/OGM, by contrast, collapse the external and internal schemas — objects
+*are* the persistence mapping — which is the source of their impedance mismatch (see
+Alternatives).
+
 ### Three axes, not "a codec per backend"
 
 A naïve design writes "the relational codec" and "the graph codec" as parallel siblings.
@@ -492,11 +530,17 @@ tables and do not model a recursive meta-structure or its shape strategy. They r
 candidates to *implement* a `Store` (and a backend `Codec`'s encode/decode against SQL) — they
 are a transport-layer choice, not a substitute for the kind/representation machinery.
 
-**An OGM-style rich object layer** — map `Pattern` to stateful domain objects with
-lazy-loading and an identity map, then persist the objects. Rejected for the reasons the wider
-ORM history and the Haskell ecosystem reject it: it reintroduces the impedance mismatch, adds a
-third source of truth, and centers a mutable object graph that `Pattern` is specifically better
-than. OO ergonomics belong in a *view/lens* over `Pattern`, not in the persistence path.
+**An ORM/OGM-style model translation** — map `Pattern` to/from a second first-class model
+(stateful domain objects with lazy-loading and an identity map, or the store's native model
+dressed up as objects) and reconcile the two. Rejected *at the premise*, not just the
+mechanics: ORM and OGM exist to make one model *look like* another — the store's `M` like the
+application's `O` — and the impedance mismatch is the standing cost of maintaining two models
+and a translation between them. This RFC has **one** model, `Pattern Subject` and its
+operations, and treats backends as pluggable storage engines beneath it (logical/physical
+independence), not as a model to reconcile; a codec is a physical encoding, not a translation.
+The secondary symptoms the Haskell ecosystem also rejects — a third source of truth, a mutable
+object graph `Pattern` is better than — follow from that premise. OO ergonomics, when wanted,
+are an external-schema view/lens over the one model (ANSI/SPARC), never the persistence path.
 
 **One canonical store only** (e.g. "everything is a document"). Simplest, and `documentCodec`
 already covers it as the default. Rejected as the *whole* answer because adoption needs native
