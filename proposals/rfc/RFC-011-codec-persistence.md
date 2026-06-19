@@ -191,8 +191,11 @@ persisted collection, with operations over it and simple add/remove of contained
 The signature above is the in-RAM baseline — `retrieve` materializes a whole `b`. Past RAM,
 where a result or even a single element exceeds memory, retrieval **streams** instead of
 materializing (the scale extension; the durability baseline materializes, the streaming `Store`
-does not). Random-access **cursor** navigation — which aligns with Zippers — is a later
-addition; near term, streaming only (Open Question 7).
+does not). Streaming changes the shape of both ends — a `retrieve` that yields incrementally
+and a `decode` that consumes incrementally — so the whole-`b` signature above is the baseline,
+not the final word; the streaming surface is settled when that step is built (Step 5).
+Random-access **cursor** navigation — which aligns with Zippers — is deferred beyond that;
+near term, streaming only (Open Question 7).
 
 End-to-end save/load are thin compositions of a `RepresentationMap` chain (shape), a
 `Codec` (bytes), and a `Store` (transport). Use `idMap` when the source is already of the
@@ -231,7 +234,9 @@ discipline** of Frames and Spans serialized directly:
   table*).
 
 "Every table is a label, every join table is a relationship" thus stops being an imposed
-convention and becomes the direct image of RFC-001's principle 2.
+convention and becomes the direct image of RFC-001's principle 2. ("Two-table" here means two
+*kinds* of table — node and edge — realized physically as `frame`/`frame_row` for the node
+side and `span`/`bundle_pair` for the edge side.)
 
 | RFC-001 (in-memory, by-value) | RFC-011 (by-reference storage) |
 |---|---|
@@ -410,8 +415,8 @@ documentCodec :: Codec Value Subject          -- document model ≈ Pattern (lat
 documentCodec = Codec "document" anyPattern patternToValue decodeJSON
   -- decodeJSON :: Value -> Either DecodeError (Pattern Subject), via patternFromValue
 
-frameSpanCodec :: Codec TwoTables Subject      -- the faithful Frame/Span tables (RDBMS / columnar)
-frameSpanCodec = Codec "frame-span" frameSpanRefKind toTwoTables fromTwoTables
+frameSpanCodec :: Codec FrameSpanTables Subject  -- the faithful Frame/Span tables (RDBMS / columnar)
+frameSpanCodec = Codec "frame-span" frameSpanRefKind toFrameSpanTables fromFrameSpanTables
 
 graphCodec :: Codec [GraphOp] Subject          -- native node/rel/property model
 graphCodec = Codec "neo4j" graphKind toGraphOps fromGraphResult
@@ -523,7 +528,18 @@ provide a real `Store [GraphOp] IO` against a Neo4j driver (outside the pure lib
 port directly; `Store` is implemented per language against native drivers. The document codec
 is the first port — the immediate need in `aie-matrix`.
 
+**Step 5 — Streaming retrieval (the past-RAM scale increment).** A streaming `retrieve`
+variant that yields incrementally and an incremental `decode`, for stores whose results or
+elements exceed memory; this step settles the streaming surface left open above. It is the
+scale increment the motivation calls for, sequenced after the core device lands; random-access
+cursors (Zippers) are a later, separate addition (Open Question 7).
+
 ## Open Questions
+
+All seven are dispositioned below. The only live *external* dependency is #3 (scoped identity
+namespaces), a prerequisite gating implementation; #5 and #6 are deliberate deferrals. RFC-011
+may be **accepted as a design** independently of #3, but its identity-dependent implementation
+(upsert, seed-then-own) is gated on that prerequisite landing first.
 
 1. **`relationalKind` expressibility, and faithful RDBMS ingestion. — Resolved.** Two
    concerns were conflated here, and separating them resolves both:
