@@ -469,11 +469,12 @@ Open Question 3).
 
 ### Relationship to Gram.Schema
 
-Long-term, the `PatternKind`s and the embedding `conventions` should be *generated* from the
+Long-term, the `PatternKind`s and the embedding `conventions` could be *generated* from the
 same schema that already drives `Gram.Schema`'s TypeScript/Rust type generation — one
 `label → type` declaration projecting into the typed view, the Frame/Span table layout, and
-the graph discriminator set. This RFC specifies the devices; schema-driven generation is a
-follow-on.
+the graph discriminator set. This RFC specifies the devices and hand-writes them; generation
+is **deliberately deferred** — the stack is too immature to automate before we have hand-written
+several codecs and kinds and learned what actually recurs (Open Question 6).
 
 ### Acceptance criteria
 
@@ -555,8 +556,11 @@ is the first port — the immediate need in `aie-matrix`.
    composition ergonomics are understood, a registry would be premature abstraction over a
    single example. Representations are assembled explicitly at call sites via `saveVia` /
    `loadVia`; the registry is revisited once there is enough variety to generalize from.
-6. **Schema-driven generation.** How much of the kinds, table layout, and graph conventions
-   can `Gram.Schema` generate vs. hand-write? Park until the hand-written versions are stable.
+6. **Schema-driven generation. — Resolved: deferred (deliberate).** Generating the kinds,
+   table layout, and graph conventions from `Gram.Schema` is premature: the whole stack is too
+   immature to automate. The codecs and kinds are hand-written first; only after exercising
+   several of them — and seeing what genuinely recurs — is there expertise to generate from.
+   Revisit once the hand-written versions are stable.
 7. **Streaming / partial load.** Large stores will not fit one `Pattern` in memory. A
    streaming codec variant, or a `Store`-level cursor + fold?
 
