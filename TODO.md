@@ -6,6 +6,76 @@
 
 ---
 
+## 🎯 Current Plan — RFC-driven (updated 2026-06-20)
+
+**Where we are.** The substrate, gram notation, the graph-interface chain
+(GraphClassifier → GraphQuery → ScopeQuery/`paraWithScope` → GraphTransform),
+reconciliation, and RepresentationMap are all implemented. The **persistence
+layer and the module layer (Frames/Spans) are not yet built**. Downstream
+(`aie-matrix`, the TypeScript port) is hitting three pains the design already
+anticipates: ad-hoc ID scope when combining multiple `.gram` files, hand-rolled
+Neo4j persistence, and ad-hoc Pattern→object mapping at runtime.
+
+### RFC implementation status
+
+| RFC | Title | Status | Code |
+|-----|-------|--------|------|
+| [002](proposals/rfc/RFC-002-pattern-container-substrate.md) | Pattern container/substrate | accepted | ✅ `Pattern.Core` |
+| [003](proposals/rfc/RFC-003-gram-notation-semantics.md) | Gram notation | accepted | ✅ `Gram.*` |
+| [004](proposals/rfc/RFC-004-graph-classifier.md) | GraphClassifier | draft | ✅ `Pattern.Graph.GraphClassifier`, `PatternGraph` |
+| [005](proposals/rfc/RFC-005-graph-query.md) | GraphQuery | draft | ✅ `Pattern.Graph.GraphQuery`, `Algorithms` |
+| [006](proposals/rfc/RFC-006-scope-unification.md) | Scope unification | draft | ✅ `ScopeQuery`/`paraWithScope`/`PatternKind` in `Pattern.Core` |
+| [008](proposals/rfc/RFC-008-graph-transform.md) | GraphTransform | draft | ✅ `Pattern.Graph.Transform` |
+| [010](proposals/rfc/RFC-010-pattern-reconciliation.md) | Reconciliation | accepted | ✅ `Pattern.Reconcile` (single-pattern dedup) |
+| [007](proposals/rfc/RFC-007-representation-map.md) | RepresentationMap | draft | ⚠️ implemented **minus** `repMapConventions` + fallible `reconstruct` |
+| [001](proposals/rfc/RFC-001-frames-and-spans.md) | **Frames and Spans** | draft | ❌ not implemented — no `Frame`/`Span` newtypes |
+| [009](proposals/rfc/RFC-009-graph-mutation.md) | GraphMutation | draft | ❌ not implemented |
+| [011](proposals/rfc/RFC-011-codec-persistence.md) | **Codec / persistence** | draft | ❌ not implemented (RFC merged #70) |
+
+### Recommended sequence
+
+The keystone is **RFC-001's Frame**: it is simultaneously the ID-namespace
+boundary (`(frame_id, id)`), the storage unit for faithful persistence, and the
+self-contained module a runtime service consumes. Three things wait on it.
+
+- [ ] **Step 1 — RFC-001 Frames & Spans + scoped identity (keystone).**
+  Implement `Frame`/`Span`/`Bundle` newtypes over `Pattern Subject` with their
+  within-module and cross-module operations. **Fold the scoped-identity-namespace
+  design (RFC-011 Open Question 3) into this work** — Frame *is* the namespace, so
+  formalize how per-file id-spaces are assigned/qualified at the Frame boundary.
+  This directly fixes the "combine N gram files without clashing" pain and unblocks
+  the useful half of persistence (upsert / seed-then-own).
+  - Speckit: `specify` → `plan` → `tasks` on a `proposal/RFC-001` branch.
+  - Decide: separate scoped-identity RFC vs. RFC-001/RFC-010 extension (lean: extend).
+
+- [ ] **Step 2 — RFC-011 Step 1 only: `documentCodec` + `Store` interface (parallel quick win).**
+  No prerequisites. Define `Codec`, `DecodeError`, `Store`, `saveVia`/`loadVia`;
+  implement `documentCodec` over `Gram.JSON`; Hedgehog round-trip against an
+  in-memory `Store` fake. Named in RFC-011 as the immediate `aie-matrix` need and
+  the first port. Pins the `Codec`/`Store` seam so downstream stops hand-rolling.
+
+- [ ] **Step 3 — RFC-007 alignment (small, mechanical).**
+  Add `repMapConventions :: [Text]` and a fallible
+  `reconstruct :: RepresentationMap v -> q v -> Pattern v -> Either DecodeError (Pattern v)`.
+  Last thing between the codec seam and RFC-011 Step 2.
+
+- [ ] **Step 4 — RFC-011 Step 2: faithful Frame/Span tables.**
+  Implementable once Step 1 lands. `frameKind`/`spanKind`/`frameSpanRefKind`,
+  `byReference` RepresentationMap, `frameSpanCodec`; verify against in-memory and
+  SQLite `Store`. This is the default-for-scale persistence path.
+
+**Explicitly deferred** (not on the critical path to the stated pains):
+RFC-009 GraphMutation; RFC-011 Step 3 (native-graph/Neo4j lossy codec + real
+driver) — should follow the faithful encoding, not precede it; RFC-011 streaming
+(Step 5) and ports (Step 4 in that RFC).
+
+**Guiding principle for the expressiveness-vs-utility tension:** don't make
+Pattern less expressive at runtime — give the *external schema* (OO/graph views)
+a first-class home as derived lenses (RFC-001 Frame + RFC-007 maps) so OO/graph
+is a projection on demand, never a second source of truth.
+
+---
+
 ## 📜 History & Completed Work
 
 ### Core Pattern Library (`libs/pattern`)
@@ -51,13 +121,32 @@ Completed comprehensive user guide documentation.
 - **Gram Notation Reference**: Added appendix documenting special cases (nodes, annotations, relationships, references)
 - **Use Cases**: Documented real-world applications including knowledge graphs, agentic systems, and design patterns
 
+### Graph Interface Layer & Reconciliation (Features 31–39, RFC-004 → RFC-007, RFC-010)
+The graph-interface chain and identity-aware normalization, built on the substrate.
+
+- **RFC-010 Pattern Reconciliation** (Feature 031): `Pattern.Reconcile` — identity-aware
+  normalization (`reconcile`, policies, merge strategies, conflict reporting). *Accepted.*
+- **RFC-004 GraphClassifier** (Features 033–034): `Pattern.Graph.GraphClassifier`,
+  `Pattern.PatternGraph` — unified graph view (`GNode`/`GRelationship`/`GWalk`/`GAnnotation`).
+- **RFC-005 GraphQuery** (Feature 035): `Pattern.Graph.GraphQuery`, `Pattern.Graph.Algorithms`
+  — portable query interface and graph algorithms.
+- **RFC-008 GraphTransform** (Feature 036–037): `Pattern.Graph.Transform` — construction,
+  transformation, pipeline; topological/shape sort.
+- **RFC-006 Scope Unification** (Feature 038): `ScopeQuery`, `paraWithScope`, `TrivialScope`,
+  `ScopeDict`, `PatternKind` in `Pattern.Core`. `para`/`paraGraph` derived from `paraWithScope`.
+- **RFC-007 RepresentationMap** (Feature 039): `Pattern.RepresentationMap` — named invertible
+  shape isomorphisms with `compose` and round-trip witness. *Note: lacks `repMapConventions`
+  and a fallible `reconstruct` — see Current Plan Step 3.*
+
 ---
 
 ## 🗺️ Roadmap
 
-**Status**: Foundation is complete. Remaining features are deferred until concrete use cases emerge. See `ROADMAP-ANALYSIS.md` for detailed analysis.
-
-**Current Focus**: Validation and refinement of existing foundation rather than adding new features.
+**Status**: Substrate + graph-interface layer complete. **Active work is the
+RFC-driven persistence/module sequence — see "🎯 Current Plan" at the top of this
+file.** The deferred items below (morphisms, zipper, matching DSL, gram gap
+analysis) remain parked until a concrete use case pulls them in; note the Zipper
+is now also relevant to RFC-011's deferred random-access cursor surface.
 
 ---
 
