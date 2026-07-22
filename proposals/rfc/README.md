@@ -43,6 +43,7 @@ Design, Open Questions, Alternatives.
 | RFC | Title | Status | Depends on |
 |-----|-------|--------|------------|
 | [RFC-011](RFC-011-codec-persistence.md) | Codec — Pluggable Persistence Adapters | draft | RFC-001, RFC-007, RFC-004 |
+| [RFC-012](RFC-012-scoped-identity.md) | Scoped Identity Namespaces | draft | RFC-001, RFC-003, RFC-010 |
 
 ## Implementation Order
 
@@ -54,10 +55,17 @@ RFC-004 (GraphClassifier)
         ├── RFC-006 (ScopeQuery)  ──→  RFC-007 (RepresentationMap)  ──→  RFC-011 (Codec)
         └── RFC-008 (GraphTransform)
               └── RFC-009 (GraphMutation)
+
+RFC-001 (Frames) ──→ RFC-012 (Scoped Identity) ──→ RFC-011 (Codec) implementation
 ```
 
 RFC-011 (Codec) builds on RFC-007: a `RepresentationMap` normalizes shape within
 Pattern-space, then a `Codec` crosses the boundary into an external store.
+
+RFC-012 (Scoped Identity) is a prerequisite for RFC-011's *implementation* (not its
+acceptance as a design): identity-keyed upsert, seed-then-own, and clash-free ingest
+cannot be built until scoped identity lands. RFC-012 in turn rests on RFC-001, since
+the Frame is the primitive that grounds an element's identity chain.
 
 RFC-007 (RepresentationMap) additionally depends on RFC-008 (GraphTransform) being
 settled first, since it builds on `paraWithScope` and the GraphTransform primitives.
