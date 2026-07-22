@@ -43,7 +43,7 @@ OWL's `owl:sameAs` lets anyone assert that two identifiers denote the same thing
 
 ### Identity is `(scope, local)`, grounded at a Frame
 
-Every element's resolved identity is a pair: a **scope** and a **local discriminator**. The scope is not free-floating — it is the resolved identity of the element's *nearest identified ancestor*, which makes identity a chain:
+Every element's resolved identity is a pair: a **scope** and a **local discriminator**. The scope is not free-floating — it is the resolved identity of the element's *nearest named ancestor*, which makes identity a chain:
 
 ```
 element  →  nearest named ancestor  →  … →  Frame
@@ -63,6 +63,8 @@ Because anonymous identity is scoped to the nearest *named* ancestor rather than
 ### The Frame grounds the chain — and is required for storage
 
 "Storage requires a Frame" and "promotion is anchored to a Frame" are the same statement. A relative chain of discriminators (`alice / 0 / 2`) means nothing until grounded against an absolute scope; the Frame is that ground. In memory and in text the chain may dangle — an element's identity is simply its position in the tree, and that is sufficient for structural navigation. To *persist* an element, or to *reference it from outside its own tree*, the chain must terminate at a Frame with a real scope id.
+
+Resolution is therefore a total function of the in-memory `Pattern` alone: an anonymous ancestor bears no id of its own, contributing only its position, so the *nearest named* ancestor is the sole identity-bearing anchor encountered on the way up — this is why "nearest named" and "nearest identified" name the same walk here, and only the former is used. Promotion (below) is a codec *realizing* this function's output as concrete ids at the Frame boundary; those minted ids are outputs, never inputs, and never feed back into resolution. A codec chooses its representation and is faithful iff round-tripping preserves the resolved identities — it does not get to redefine them. This is the general answer to "which codecs must this account for": all of them, by reference to the one resolution defined here, not by enumeration.
 
 This is already latent in RFC-011, which settled that **a `Store` is the persistent analog of an RFC-001 Frame.** If the Store *is* a Frame, then "you cannot store outside a Frame" is not a new constraint — it makes RFC-011's own metaphor load-bearing. Every durable store in the prior art requires such a container: a SQL row cannot exist outside a table (and a foreign key can only target a table's keyed rows); RDF triples are stored and addressed inside named graphs; Datomic datoms live in a database that assigns the permanent id; a Git blob is only *named* once it sits in a tree.
 
