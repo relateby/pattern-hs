@@ -146,7 +146,7 @@ This is the same positional/referential boundary surfacing in the reconciler: an
 
 Observable, regardless of file/package layout:
 
-1. Two files each containing `(alice)`, neither declaring a shared `namespace`, ingest to **two distinct** entities.
+1. Two files each containing `(alice)`, **both omitting the `namespace` header entirely**, ingest to **two distinct** entities (the store-assigned fallback default).
 2. Two files both declaring `namespace: "@org/x"` and both naming `alice` resolve `alice` to **one** entity.
 3. Ingesting a file that declares `namespace` twice adds **no new entities** the second time (idempotent re-ingest).
 4. A pattern containing two structurally identical anonymous elements reconciles to **two distinct** elements — never merged (RFC-003 distinctness preserved; the `Symbol ""` conflation is gone).
