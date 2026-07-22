@@ -6,12 +6,12 @@
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
 **Depends on:** RFC-001 (Frames are the scope-grounding primitive), RFC-003 (uses gram's leading header-record mechanism), RFC-010 (consumes resolved identity; owns post-hoc merge)
 **Followed by:** RFC-011 (Codec) implementation — this RFC is the prerequisite gating its identity-dependent paths (upsert, seed-then-own, clash-free ingest)
-**Related modules:** `Subject.Core`, `Pattern.Core`, `Pattern.Reconcile`, `Gram.Transform`, `Pattern.Frame` (RFC-001), `Pattern.Codec` (RFC-011)
+**Related modules:** `Subject.Core`, `Pattern.Core`, `Pattern.Reconcile`, `Gram.Parse` (header entry point `fromGramWithHeader`), `Gram.Transform`, `Pattern.Frame` (RFC-001), `Pattern.Codec` (RFC-011)
 **Research companion:** [proposals/research/identity-management-survey.md](../research/identity-management-survey.md) — cited prior-art survey (RDF, Datomic, Neo4j, UUIDv5, Matrix, SQL, Wikidata)
 
 ## Summary
 
-This RFC defines how a `Subject`'s bare local identity becomes a stable, clash-free identity when patterns are ingested into a shared store. Identity is **`(scope, local)`**: an element's resolved identity is its nearest identified ancestor plus a local discriminator, a chain that bottoms out at a **Frame** whose id *is* the scope. Named elements resolve to `(frame_scope, name)`; anonymous elements are **weak entities** identified by `(nearest named ancestor, ordinal)`, grounded through that ancestor to the Frame. A Frame's scope is declared by a reserved header key **`@namespace`** and, when absent, assigned by the store on first ingest. Truly anonymous elements remain permitted everywhere in text and in memory; they are constrained in exactly one place — they may not be the *target* of a by-identity reference (a cross-Frame Span endpoint or a stored foreign key) until promoted, and promotion is anchored to a Frame. The design draws its two load-bearing mechanisms from prior art that maps almost one-to-one onto the problem: RDF's document-scoped blank nodes and skolemization, and Datomic's per-transaction tempids resolved to durable ids at the boundary.
+This RFC defines how a `Subject`'s bare local identity becomes a stable, clash-free identity when patterns are ingested into a shared store. Identity is **`(scope, local)`**: an element's resolved identity is its nearest identified ancestor plus a local discriminator, a chain that bottoms out at a **Frame** whose id *is* the scope. Named elements resolve to `(frame_scope, name)`; anonymous elements are **weak entities** identified by `(nearest named ancestor, ordinal)`, grounded through that ancestor to the Frame. A Frame's scope is declared by a reserved header key **`namespace`** and, when absent, assigned by the store on first ingest. Truly anonymous elements remain permitted everywhere in text and in memory; they are constrained in exactly one place — they may not be the *target* of a by-identity reference (a cross-Frame Span endpoint or a stored foreign key) until promoted, and promotion is anchored to a Frame. The design draws its two load-bearing mechanisms from prior art that maps almost one-to-one onto the problem: RDF's document-scoped blank nodes and skolemization, and Datomic's per-transaction tempids resolved to durable ids at the boundary.
 
 ## Motivation
 
@@ -99,28 +99,28 @@ Framing makes an element *referenceable*; naming makes it *stably* referenceable
 
 Round-tripping and cross-file behavior rely on the following encoded conventions.
 
-**Scope declaration — the `@namespace` header key.** A `.gram` file declares its Frame's scope in the leading bare record (gram's document header, parsed today by `fromGramWithHeader` in `Gram.Transform`), using the reserved key `@namespace`:
+**Scope declaration — the `namespace` header key.** A `.gram` file declares its Frame's scope in the leading bare record (gram's document header, parsed today by `fromGramWithHeader` in `Gram.Parse`, which already returns the header as `Maybe (Map String Value)` separately from the pattern list), using the reserved key `namespace`:
 
 ```
-{@namespace: "@neo4j/census2020"}
+{namespace: "@neo4j/census2020"}
 (alice:Person {name: "Alice"})
 ...
 ```
 
-A file-level `@namespace` declares the scope authority for the file's **top-level Frame**; the common case is one file = one Frame. A file that holds multiple explicit Frames qualifies each as `authority / frame-name` — the same composite recursion one level up — so one-file-one-Frame is the default, not a hard limit.
+A file-level `namespace` declares the scope authority for the file's **top-level Frame**; the common case is one file = one Frame. A file that holds multiple explicit Frames qualifies each as `authority / frame-name` — the same composite recursion one level up — so one-file-one-Frame is the default, not a hard limit.
 
-`@namespace` is the **idempotency key**: with it declared, re-ingest (requirement 4) resolves to the same Frame every time, with no fragile recognition needed, and other files gain a stable handle to reference into this one (requirement 3). This is Datomic's `:db.unique/identity` upsert applied at the Frame level: a declared scope that already exists resolves to the existing Frame rather than minting a new one.
+`namespace` is the **idempotency key**: with it declared, re-ingest (requirement 4) resolves to the same Frame every time, with no fragile recognition needed, and other files gain a stable handle to reference into this one (requirement 3). This is Datomic's `:db.unique/identity` upsert applied at the Frame level: a declared scope that already exists resolves to the existing Frame rather than minting a new one.
 
-**`@namespace` value form — two-level, reach-marked.** The value is an opaque string following the GitHub/npm two-level convention `@org/sub`. URIs and reverse-DNS were considered and rejected as needlessly verbose (see Alternatives). The `@` sigil on the *value* carries the reach distinction directly in the notation:
+**`namespace` value form — two-level, reach-marked.** The value is an opaque string following the GitHub/npm two-level convention `@org/sub`. URIs and reverse-DNS were considered and rejected as needlessly verbose (see Alternatives). The `@` sigil on the *value* carries the reach distinction directly in the notation:
 
-- `@namespace: "census2020"` — a bare token: **store-local** scope (the store is the enclosing authority).
-- `@namespace: "@neo4j/census2020"` — an `@`-scoped token: **authority-qualified**, safe to share across stores.
+- `namespace: "census2020"` — a bare token: **store-local** scope (the store is the enclosing authority).
+- `namespace: "@neo4j/census2020"` — an `@`-scoped token: **authority-qualified**, safe to share across stores.
 
 Presence of the value's `@` marks a namespace as federation-safe; its absence marks a local convenience. Uniqueness discipline scales with reach, and the author can *see* which they've chosen.
 
-**Reserved header space — the `@` prefix.** Any `@`-prefixed key in the document header is system-reserved. `@namespace` joins `@kind` and `@variant` (from the schema-definition work) in this space. Reserving the whole prefix — rather than enumerating keys — means new system header keys can be added without a notation change and without ever colliding with author-supplied domain metadata.
+**Reserved header keys — an explicit registry.** `namespace` is a bare key, not a sigil-prefixed one, and it joins an existing convention: the peer `pattern-rs` project already reserves bare `kind` and `variant` in the document header for its schema-definition work (e.g. `{ kind: "schema", variant: "sample" }`). `namespace` extends that same registry. A sigil prefix (`@namespace`) is deliberately *not* used: in gram, `@` is a structural annotation operator — `@k(42) (n)` is equivalent to `[ {k: 42} | (n) ]` — so overloading it as a header-key prefix would collide with notation that already means something else. System keys are therefore distinguished by an explicit, documented set (`namespace`, `kind`, `variant`, …) rather than by prefix. The cost — a reserved key could in principle collide with author-chosen domain metadata of the same name — is the same one `pattern-rs` already accepts for `kind`/`variant`, and is bounded by keeping the registry small and documented.
 
-**Store-assigned fallback.** When `@namespace` is absent, the store creates a Frame with an assigned scope on first ingest (requirement 1 still holds — the assigned Frame isolates the file's ids). This is the safe default, but re-ingest idempotency then depends on the store recognizing the file by some other key (see Open Question 2). The friction-free path to idempotency is to declare `@namespace`.
+**Store-assigned fallback.** When `namespace` is absent, the store creates a Frame with an assigned scope on first ingest (requirement 1 still holds — the assigned Frame isolates the file's ids). This is the safe default, but re-ingest idempotency then depends on the store recognizing the file by some other key (see Open Question 2). The friction-free path to idempotency is to declare `namespace`.
 
 **Skolemization at promotion.** When an anonymous element is promoted (on entering a Frame for storage, or on becoming a Span endpoint), its positional path is resolved against the Frame scope into a stable id. This is RDF's spec-sanctioned skolemization ([Concepts §3.5](https://www.w3.org/TR/rdf11-concepts/)) performed deterministically at the Frame boundary. After promotion it is an ordinary Frame-scoped id; the hierarchy is used only at resolution time (Datomic's tempid→permanent-id move).
 
@@ -138,36 +138,46 @@ This is the same positional/referential boundary surfacing in the reconciler: an
 
 Observable, regardless of file/package layout:
 
-1. Two files each containing `(alice)`, neither declaring a shared `@namespace`, ingest to **two distinct** entities.
-2. Two files both declaring `@namespace: "@org/x"` and both naming `alice` resolve `alice` to **one** entity.
-3. Ingesting a file that declares `@namespace` twice adds **no new entities** the second time (idempotent re-ingest).
+1. Two files each containing `(alice)`, neither declaring a shared `namespace`, ingest to **two distinct** entities.
+2. Two files both declaring `namespace: "@org/x"` and both naming `alice` resolve `alice` to **one** entity.
+3. Ingesting a file that declares `namespace` twice adds **no new entities** the second time (idempotent re-ingest).
 4. A pattern containing two structurally identical anonymous elements reconciles to **two distinct** elements — never merged (RFC-003 distinctness preserved; the `Symbol ""` conflation is gone).
 5. A contained-only anonymous element round-trips through a Frame with a `(frame_scope, positional-path)` id; an anonymous element made a cross-Frame Span endpoint is **promoted or rejected**, never silently keyed on `Symbol ""`.
-6. A file with no `@namespace` still ingests (store-assigned Frame) and its ids clash with no other file's.
+6. A file with no `namespace` still ingests (store-assigned Frame) and its ids clash with no other file's.
+
+### Demo
+
+**Demo (~15 min, in-memory store, no database):** Reuses the RFC-011 in-memory `Store` fake — no persistence backend required. Each step exercises one acceptance criterion above.
+
+1. **Clash-free default (criterion 1).** Create `a.gram` and `b.gram`, each containing `(alice:Person)` and neither declaring `namespace`. Ingest both; assert the store holds **two distinct** `alice` entities.
+2. **Deliberate cross-file sameness (criterion 2).** Add `{namespace: "@org/x"}` to the leading header of both files and re-ingest into a fresh store; assert `alice` resolves to **one** entity.
+3. **Idempotent re-ingest (criterion 3).** Ingest `a.gram` (with its `namespace`) a second time; assert the entity count is **unchanged**.
+
+Each assertion is on observable store contents (entity identity and count), independent of file or package layout.
 
 ### Implementation Sequence
 
 Identity-keyed persistence upsert (RFC-011) must not be built until steps 1–3 land.
 
 1. **Identity model.** Introduce a resolved-identity representation distinguishing named (`(scope, name)`) from anonymous (positional, ungrounded), and the scope-chain resolution that grounds a chain at a Frame. Decide the anonymity representation (Open Question 3).
-2. **Header parsing.** Reserve the `@` header-key space in `Gram.Transform`; parse `@namespace` from the leading bare record; define the store-assigned fallback when absent.
+2. **Header parsing.** Add `namespace` to the reserved-key registry (alongside `pattern-rs`'s `kind`/`variant`) and interpret it from the leading bare record already surfaced by `fromGramWithHeader` (`Gram.Parse`); define the store-assigned fallback when absent.
 3. **Reconciliation fix.** Update `Pattern.Reconcile` so identity-keyed collection treats anonymous elements as value-distinct (never merged), removing the `Symbol ""` conflation.
 4. **Promotion / skolemization.** Implement deterministic skolemization of anonymous elements at the Frame boundary, producing Frame-grounded ids for elements that become reference targets.
 5. **Codec integration (RFC-011).** Wire resolved identity into the Frame/Span `(frame_id, id)` composite key and the identity-keyed upsert path; enable seed-then-own.
 
 ### Port
 
-The identity model, `@namespace` convention, and skolemization rules are notation- and store-agnostic and are intended to be ported to `pattern-rs` (and the TypeScript surface) alongside RFC-011, so that gram files carry the same scope semantics regardless of runtime.
+The identity model, `namespace` convention, and skolemization rules are notation- and store-agnostic and are intended to be ported to `pattern-rs` (and the TypeScript surface) alongside RFC-011, so that gram files carry the same scope semantics regardless of runtime.
 
 ## Open Questions
 
 1. **Ordinal fragility within a named parent.** Ordinal discriminators for anonymous siblings are stable across re-*parses* but not re-*orderings*: inserting an anonymous child at the front of a named parent shifts its siblings' ordinals, changing their promoted ids. The weak-entity scoping contains the blast radius to one named parent's direct anonymous children, but does not eliminate it within that parent. Options: accept it (framed-anonymous is documented as "fragile", and durable references should use named elements); derive the discriminator from content *plus* a de-duplicating counter (preserving RFC-003 distinctness while surviving reordering of *distinct* siblings); or treat any anonymous element that becomes a reference target as requiring promotion to a name. Leaning toward "accept + best-practice", but the content-plus-counter option deserves evaluation.
 
-2. **Recognition key for the store-assigned fallback.** When a file omits `@namespace`, what does the store use to recognize "I have seen this file before" so re-ingest is idempotent? Content hash (breaks when the file is edited — every id churns) and path (breaks when the file moves) are both imperfect; this is precisely the (1)-vs-(4) tension with no author declaration to resolve it. The pragmatic answer may be "no idempotency guarantee without `@namespace`" — the fallback isolates ids (satisfying requirement 1) but re-ingest without a declared scope creates a new Frame. Needs a decision.
+2. **Recognition key for the store-assigned fallback.** When a file omits `namespace`, what does the store use to recognize "I have seen this file before" so re-ingest is idempotent? Content hash (breaks when the file is edited — every id churns) and path (breaks when the file moves) are both imperfect; this is precisely the (1)-vs-(4) tension with no author declaration to resolve it. The pragmatic answer may be "no idempotency guarantee without `namespace`" — the fallback isolates ids (satisfying requirement 1) but re-ingest without a declared scope creates a new Frame. Needs a decision.
 
 3. **Representation of anonymity in the identity type.** Should anonymity be a first-class constructor (`data Identity = Named Symbol | Anonymous Position`) that changes `Subject.identity`'s type, or should `Subject.identity` stay `Symbol` with anonymity encoded and filtered out of identity-keyed operations? The former is cleaner and makes the "never merge anonymous" rule unrepresentable-to-violate; the latter is a smaller change to a type used throughout the codebase. Note that `Subject.identity` ships in accepted, *implemented* foundation (RFC-002, RFC-010): changing its type is a foundation-wide migration, and avoiding that migration is part of what motivates the encoded-and-filtered option — reviewers should weigh blast radius, not only cleanliness. This is the highest-impact API decision in the RFC.
 
-4. **Cross-file reference notation.** `@namespace` gives a file a stable handle, but this RFC does not define how one file *references into* another's namespace (the analog of RDF's `@base`/prefixed names, or an `@imports` header). Deliberate cross-file sameness (requirement 3) is served today by unique-key upsert at ingest; an explicit cross-file reference syntax is a plausible follow-on but is deferred until a concrete need appears. Named as future work, not resolved here.
+4. **Cross-file reference notation.** `namespace` gives a file a stable handle, but this RFC does not define how one file *references into* another's namespace (the analog of RDF's `@base`/prefixed names, or an `imports` header). Deliberate cross-file sameness (requirement 3) is served today by unique-key upsert at ingest; an explicit cross-file reference syntax is a plausible follow-on but is deferred until a concrete need appears. Named as future work, not resolved here.
 
 ## Alternatives
 
@@ -175,10 +185,10 @@ The identity model, `@namespace` convention, and skolemization rules are notatio
 
 **Content hash of the file as scope.** Maximally idempotent for *unchanged* files and maximally clash-free, but it fails the property we actually want: editing one property changes the file hash, so *every* element in the file is re-scoped and the store sees a wholesale delete-and-reinsert. Content-addressing is right for immutable values (Git, Unison) and wrong for mutable documents — the Perkeep lesson is that mutable entities need a stable anchor decoupled from content. Rejected.
 
-**Store-assigned scope only (no declaration).** Clean and clash-free, and it is our fallback — but *as the only mechanism* it destroys idempotency: re-ingesting a file mints a fresh scope and duplicates its contents. It only works paired with a recognition key, which pushes back to the content-hash or path problems. Rejected as a sole mechanism; retained as the fallback (D) behind declared `@namespace` (C).
+**Store-assigned scope only (no declaration).** Clean and clash-free, and it is our fallback — but *as the only mechanism* it destroys idempotency: re-ingesting a file mints a fresh scope and duplicates its contents. It only works paired with a recognition key, which pushes back to the content-hash or path problems. Rejected as a sole mechanism; retained as the fallback (D) behind declared `namespace` (C).
 
-**Global identifiers (RDF IRIs) everywhere.** Make every id globally unique by authority, as RDF requires. This *is* expressible in our model — everyone declares the same `@namespace` authority — but forcing it as the *only* option imposes exactly the authoring friction that left RDF blank nodes pervasive and its "name everything" guidance widely unfollowed. We keep bare local names bare and let scope attach at the boundary; global identity remains available as "shared declared scope" for those who want it. Rejected as a mandate, retained as a capability.
+**Global identifiers (RDF IRIs) everywhere.** Make every id globally unique by authority, as RDF requires. This *is* expressible in our model — everyone declares the same `namespace` authority — but forcing it as the *only* option imposes exactly the authoring friction that left RDF blank nodes pervasive and its "name everything" guidance widely unfollowed. We keep bare local names bare and let scope attach at the boundary; global identity remains available as "shared declared scope" for those who want it. Rejected as a mandate, retained as a capability.
 
 **Equivalence assertions (`owl:sameAs`) for cross-file identity.** Assert co-reference after the fact rather than keying on identity at ingest. Rejected for storage identity: unscoped, symmetric, transitive equivalence has documented failure modes (runaway closures, third-party identity capture) and conflates "discovered to be the same" with "declared the same." Deliberate sameness is unique-key upsert at ingest (requirement 3); *discovered* sameness is RFC-010 merge-with-redirect (Open Question 4). Neither is `sameAs`-in-storage.
 
-**URI or reverse-DNS `@namespace` values.** Both give authority-rooted global uniqueness, and both proved needlessly long in practice (the survey's XML/RDF experience). The GitHub/npm two-level `@org/sub` form supplies enough authority to be useful while staying short and human-writable, with the `@` sigil marking reach. Rejected in favor of the two-level convention.
+**URI or reverse-DNS `namespace` values.** Both give authority-rooted global uniqueness, and both proved needlessly long in practice (the survey's XML/RDF experience). The GitHub/npm two-level `@org/sub` form supplies enough authority to be useful while staying short and human-writable, with the `@` sigil marking reach. Rejected in favor of the two-level convention.
