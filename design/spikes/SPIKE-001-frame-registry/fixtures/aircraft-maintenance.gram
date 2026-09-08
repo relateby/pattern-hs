@@ -1,0 +1,11 @@
+[aircraft-17 |
+  [engine | fuel-system],
+  [fuel-system | fuel-pump],
+  [fuel-pump | diagnostic-procedure],
+  [diagnostic-procedure | engine]
+]
+
+[maintenance-17 |
+  inspect-engine,
+  inspect-fuel
+]
