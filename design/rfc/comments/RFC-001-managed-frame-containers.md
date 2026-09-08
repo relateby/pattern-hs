@@ -105,6 +105,9 @@ A new Frame starts with its identifying Subject and no members. Adding an extern
 `PatternLike Subject` recursively registers each definition and nested definition as an
 independently addressable Frame member. Duplicate local identities are reconciled by a
 selected policy; unresolved identity references and conflicting definitions are errors.
+Frame admission has no nested identity namespaces: every Definition at every input depth
+becomes a row in the same flat local registry, and only ordered local-address links express
+its containment relationships.
 
 Each registered `Member` is an internal row in the Frame registry. It is Pattern-like:
 it retains a `Subject` and an ordered sequence of elements, but its elements are local
@@ -157,6 +160,10 @@ An admission batch first collects all Definitions, then resolves References agai
 combined existing and incoming registry. This permits forward references and indirect
 cycles while rejecting unresolved local addresses.
 
+An anonymous Definition receives a generated LocalIdentity unique in the combined Frame
+registry before Reference resolution. The generated identity remains stable for that
+member's lifetime; anonymous source syntax cannot itself refer to that member by name.
+
 A Definition must not directly reference its own local identity. Direct self-reference
 does not add useful containment structure and is rejected at Frame admission. References
 among distinct members may form indirect cycles; those cycles are valid registry topology.
@@ -168,10 +175,12 @@ each local identity once and uses References for every further occurrence.
 
 Raw `Pattern Subject` does not preserve definition/reference provenance: an atomic
 `Pattern` may be a definition or the in-memory form of a Gram reference. It remains a
-convenient compatibility import format. Its importer uses the existing
+convenient compatibility import format. Its importer applies the existing
 `Pattern.Reconcile` convention that an atomic Pattern sharing an identity with a fuller
-definition is a reference, and documents any inference ambiguity. `PatternLike Subject`
-is the canonical admission format for Frame construction and updates.
+definition is a reference only when that produces one unambiguous interpretation. Any
+ambiguous raw import fails with an import-ambiguity error; it never silently selects an
+interpretation. `PatternLike Subject` is the canonical admission format for Frame
+construction and updates.
 
 A full Pattern in one Frame and an atomic Pattern in another Frame are not a
 Frame-internal reference; a Span pair records their relationship.
@@ -210,6 +219,11 @@ that check a changed Frame against all incident Span Bundles before returning th
 FrameSpace. A Frame remains independently useful outside a FrameSpace; it gains
 cross-Frame integrity only once it is registered in one.
 
+A Span is incident to a Frame when that Frame's identity equals the Span's left or right
+Frame identity. FrameSpace uses this definition to determine which Bundles must be
+validated after a Frame change; the data structure used to locate incident Spans is an
+implementation-level indexing decision.
+
 A Span canonically stores its left and right Frame identities, not Frame snapshots. It is
 admitted only when both identities resolve in its FrameSpace; Bundle pair validation then
 uses the current endpoint Frames. One Frame can therefore participate in many Spans
@@ -244,6 +258,9 @@ updateSpan  SpanIdentity
             (Span -> Either SpanError Span)
             -> FrameSpace
             -> Either FrameSpaceError FrameSpace
+rebindPair  SpanIdentity PairLocalIdentity (LocalIdentity, LocalIdentity)
+            -> FrameSpace
+            -> Either FrameSpaceError FrameSpace
 removeSpan  SpanIdentity -> FrameSpace -> Either FrameSpaceError FrameSpace
 ```
 
@@ -258,7 +275,8 @@ both endpoint Frames and all Bundle pair endpoints to resolve in their designate
 right Frame. `updateSpan` revalidates those constraints. `removeFrame` fails while an
 incident Span exists; `removeSpan` removes its relationship entries without changing its
 endpoint Frames. A `replaceFrame` convenience function may be defined as `updateFrame`
-with a constant replacement.
+with a constant replacement. `rebindPair` explicitly replaces one pair's ordered endpoint
+references after validating them in the Span's existing left and right Frames.
 
 This boundary does not provide cascades, automatic pair rewriting, observers,
 transactions, storage backends, or version histories. Those extensions may build on the
@@ -367,6 +385,13 @@ merge those members. That deliberate merge delegates content conflicts to the se
 `Pattern.Reconcile` policy. A caller can attach imported roots only after the resulting
 destination Frame passes local closure validation.
 
+Reconciliation, import/rebase, and attachment operate on distinct axes.
+`Replace` and `Additive` reconcile temporal versions of one Frame identity. `importSubgraph`
+copies content across Frame namespaces through an explicit address map while preserving the
+source Frame. `Attach` changes containment among content already in the destination
+namespace. Because its input references use only `LocalIdentity`, Attach cannot create a
+cross-Frame reference; cross-Frame relationships require a Span pair.
+
 Span-level pair reconciliation delegates pair-root Subject conflicts to the same policy,
 while retaining the pair adapter's endpoint cardinality and endpoint-conflict checks.
 
@@ -426,7 +451,15 @@ axioms on the initial container API.
    an identity-migration use case exists.
 4. **Pattern materialization.** A future conversion must choose canonical Gram definition
    placement, shared-member rendering, direct self-reference handling, and return shape.
-   Resolve it with a reference-preserving export/import use case.
+   Resolve it with a reference-preserving export/import use case. Until then, managed
+   Frames cannot use `Pattern.Graph`, `PatternGraph`, `GraphQuery`, or
+   `Pattern.Graph.Algorithms` through a `Pattern Subject` materialization.
+5. **Incident-Span discovery cost.** `updateFrame` validates every incident Span Bundle,
+   so its cost grows with a Frame's Span fan-out. Resolve the index strategy after a
+   representative multi-Span workload establishes the required performance profile.
+6. **Within-Frame query and navigation.** The registry model has not yet designed
+   successors for RFC-001's `find`, `containers`, `siblings`, and `framePara` operations.
+   Resolve the query API and its ScopeQuery relationship before implementation planning.
 
 ## Worked Exercise: Aircraft and Maintenance
 
