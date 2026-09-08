@@ -15,6 +15,22 @@ referentially closed containers. It is a reaction to
 architecture decision. It records the model to evaluate before RFC-001 and ADR-001 are
 rewritten.
 
+## Motivation
+
+ADR-001 models a Frame as a wrapper around a recursively embedded `Pattern Subject`.
+That shape has no canonical registry of members or references. A Frame containing the
+worked exercise's indirect cycle `engine -> fuel-system -> fuel-pump ->
+diagnostic-procedure -> engine` cannot have a finite fully expanded presentation; an
+acyclic presentation duplicates shared members. Scoped identity in RFC-001 similarly
+qualifies members but has no aggregate owner that validates cross-Frame pair addresses
+when a Frame or Span changes.
+
+RFC-011 independently requires the same normalized shape for persistence:
+`frame_row(frame_id, id, labels, properties, elements)` uses `(frame_id, id)` as its
+member key, and `bundle_pair` enforces both endpoint Frame membership and endpoint
+existence through foreign keys. The in-memory model should have equivalent ownership and
+integrity rules before it is mapped to those rows.
+
 ## Position
 
 A Frame is a container identified by a `Subject`, not a wrapper around one pre-existing
@@ -32,6 +48,24 @@ The initial Haskell API uses persistent updates: operations return a new Frame, 
 higher-level collection instead of mutating an `IORef` or other process-local cell. This
 is database-like in its integrity rules and data-frame-like in its tabular registry/query
 model, while remaining a portable pure reference implementation for Rust and TypeScript.
+
+## Alternatives Considered
+
+**Keep the recursively embedded wrapper Frame and add cycle detection.** Rejected because
+cycle detection controls traversal but does not provide one canonical member definition,
+referential-integrity checks for updates, or a stable normalized representation for the
+row-based persistence model in RFC-011. A roster presentation also does not make nested
+member updates or shared-member ownership unambiguous.
+
+**Coordinate Frame and Span updates with observers.** Rejected because observers receive a
+Frame change after its local operation has produced it; they do not make the Frame update
+and the Bundle repair one atomic pure replacement. Subscription ordering, failure, and
+observer lifetime would become part of the portable reference model.
+
+**Give each Frame back-references to its incident Spans.** Rejected because Frame mutation
+would then require cross-Frame relationship knowledge inside the Frame. A FrameSpace can
+own Frames and Spans, validate their relationship entries together, and leave each Frame
+independently useful outside that aggregate.
 
 ## Working Model
 
@@ -104,6 +138,10 @@ equivalence rather than structural equality of one chosen nesting.
 
 ### Definitions and local references
 
+The RFC rewrite should retain Definition/Reference admission behavior. The exact
+`PatternLike` declaration, module ownership, and conversion adapters are ADR-level
+implementation decisions.
+
 Frame admission preserves the distinction between a Pattern definition and a local
 reference:
 
@@ -172,13 +210,6 @@ that check a changed Frame against all incident Span Bundles before returning th
 FrameSpace. A Frame remains independently useful outside a FrameSpace; it gains
 cross-Frame integrity only once it is registered in one.
 
-An Observer pattern is not recommended for this boundary. Observers see a change after a
-Frame operation has produced it; they do not make the Frame update and the Bundle repair
-one invariant-preserving operation. Subscription, ordering, failure, and stale-observer
-lifetimes would also become part of the portable reference model. A `FrameSpace` computes
-the replacement Frame and the affected Spans together, without giving a Frame knowledge
-of its neighbors.
-
 A Span canonically stores its left and right Frame identities, not Frame snapshots. It is
 admitted only when both identities resolve in its FrameSpace; Bundle pair validation then
 uses the current endpoint Frames. One Frame can therefore participate in many Spans
@@ -191,7 +222,9 @@ incident Spans before returning the replacement collection.
 
 ### FrameSpace integrity API
 
-FrameSpace provides a small, pure, invariant-preserving API:
+The RFC rewrite should state FrameSpace's atomic integrity responsibilities. The concrete
+function signatures, error constructors, and index representation below are ADR-level
+implementation decisions. The signatures illustrate the minimum operation boundary:
 
 ```text
 emptyFrameSpace
@@ -379,6 +412,22 @@ The useful guidance is directional:
 These concepts should guide extension points and naming without imposing unimplemented
 axioms on the initial container API.
 
+## Open Questions
+
+1. **Cascade deletion and repair ownership.** The initial model rejects referenced-member
+   deletion and does not rewrite local references or incident Bundle pairs. Resolve this
+   after concrete removal and repair workflows establish whether FrameSpace, callers, or a
+   higher-level service owns the transaction.
+2. **Bundle endpoint uniqueness.** A Bundle may optionally limit entries to one PairAddress
+   per ordered endpoint pair. Resolve the constraint's opt-in surface and conflict policy
+   after evaluating whether ordinary workflows need parallel relationship entries.
+3. **Explicit readdressing.** Renaming a Frame or member must atomically rewrite local and
+   incident Pair addresses. Resolve the operation's scope, authorization, and policy when
+   an identity-migration use case exists.
+4. **Pattern materialization.** A future conversion must choose canonical Gram definition
+   placement, shared-member rendering, direct self-reference handling, and return shape.
+   Resolve it with a reference-preserving export/import use case.
+
 ## Worked Exercise: Aircraft and Maintenance
 
 The following exercise tests the managed-container model before its implementation-level
@@ -416,6 +465,13 @@ pair validation, reconciliation, and import/rebase.
    `repair-plan-17.engine` fails by default; an explicit import map may deliberately map
    the source `engine` to that destination identity and invoke the selected reconciliation
    policy. `Attach` then adds the imported root address to a selected repair-plan member.
+7. Exercise the collision-remapped attachment explicitly. Start with
+   `repair-plan-17.work-order` and an existing `repair-plan-17.engine`; map
+   `aircraft-17.engine` to `repair-plan-17.engine` and map its remaining closure members
+   to unused repair-plan identities. After the selected merge policy reconciles the two
+   `engine` definitions, `Attach work-order [engine]` adds the mapped root address to the
+   work order. The operation fails without the explicit collision map and returns one
+   locally closed repair-plan Frame when the map and merge succeed.
 
 ## Proposed Next Steps
 
@@ -423,7 +479,9 @@ pair validation, reconciliation, and import/rebase.
    implementation-level API in an ADR.
 2. Replace the view/wrapper vocabulary and Pattern-shaped Span/Bundle representation in
    RFC-001 with the managed-container model.
-3. Mark ADR-001 superseded or rewrite it against the resulting RFC; it currently assumes
+3. Check RFC-011 for terminology alignment after the RFC-001 rewrite, including
+   `ScopedIdentity` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`.
+4. Mark ADR-001 superseded or rewrite it against the resulting RFC; it currently assumes
    cache-bearing wrappers and a Pattern-shaped Bundle.
-4. Create a new ADR for the Haskell registry representation, error types, FrameSpace
+5. Create a new ADR for the Haskell registry representation, error types, FrameSpace
    ownership API, and the `Pattern.Reconcile` adapter.
