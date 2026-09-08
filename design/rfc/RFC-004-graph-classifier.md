@@ -4,7 +4,7 @@
 **Date:** 2026-02-19
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** `proposals/graph-classifier.md`, `proposals/pattern-graph.md` (the latter migrated into Appendix A)
+**Supersedes:** `design/graph-classifier.md`, `design/pattern-graph.md` (the latter migrated into Appendix A)
 **Followed by:** RFC-005 (GraphQuery) → RFC-008 (GraphTransform) → RFC-009 (GraphMutation)
 **Related modules:** `Pattern.Graph.GraphLens`, `Pattern.PatternGraph`, `Pattern.Graph.GraphClassifier`
 
@@ -214,7 +214,7 @@ describes the target structure; transformation paths into it belong in a separat
 
 ## Appendix A: PatternGraph Container Design
 
-> Migrated from the former `proposals/pattern-graph.md` (Design Only, 2026-02-18). This
+> Migrated from the former `design/pattern-graph.md` (Design Only, 2026-02-18). This
 > appendix records the original design of the `PatternGraph` materialized container, which
 > RFC-004 builds on and modifies. Where the two disagree, **the RFC-004 body above is
 > authoritative** — specifically: `PatternClass` is replaced by `GraphClass extra`,

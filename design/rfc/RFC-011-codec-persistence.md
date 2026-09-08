@@ -2,10 +2,11 @@
 
 **Status:** draft
 **Date:** 2026-06-18
+**Updated:** 2026-09-07
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
 **Depends on:** RFC-001 (Frames and Spans), RFC-007 (RepresentationMap, PatternKind), RFC-004 (GraphClassifier kinds)
-**Prerequisite:** scoped identity namespaces — a future RFC (or RFC-010 extension) gating implementation; see Open Question 3
+**Prerequisite:** RFC-001 scoped identity namespaces (Frame as namespace); see Open Question 3
 **Followed by:** Rust/TypeScript ports (`pattern-rs`) → downstream adoption (`aie-matrix`)
 **Related modules:** `Pattern.Core`, `Pattern.RepresentationMap`, `Pattern.Frame`, `Pattern.Span`, `Pattern.Codec` (new), `Gram.JSON`, `Gram.Schema`
 
@@ -490,16 +491,12 @@ decode resolves store keys back to subject identities, not the reverse. **Upsert
 resolved by **RFC-010 reconciliation** — persistence get/put *is* the I/O boundary at which
 RFC-010 says reconciliation runs.
 
-This commits the local rule but leaves a larger problem open and **upstream**: scoped
-identity namespaces. Ingesting multiple `.gram` files clashes identities, because each file
-carries its own id-space (anonymous `#1`/`#2`, or human-chosen ids that collide across files).
-Resolving how id-spaces are scoped, qualified, or rewritten on ingest is a cross-cutting
-identity concern — it touches parsing, RFC-010 reconciliation, Frame boundaries, and this
-layer's upsert/dedup — and is **bigger than this RFC and a prerequisite for it.** Downstream
-(`aie-matrix`) is already hitting it. The Frame/Span schema's frame-scoped key `(frame_id, id)`
-— Frame as namespace — is this RFC's local manifestation of that scoping; the prerequisite must
-formalize how those frame namespaces are assigned so cross-file ingestion is clash-free. It
-warrants its own RFC (or an RFC-010 extension), settled before RFC-011 implementation (see
+RFC-001 owns the upstream scoped-identity rule: Frame is the namespace,
+`Subject.identity` is local within it, and a member's external identity is
+`(frame identity, local identity)`. Ingesting multiple `.gram` files is clash-free when each
+source receives a stable Frame identity, even if files independently contain `#1` or the same
+human-chosen id. The Frame/Span schema's frame-scoped key `(frame_id, id)` is the persistence
+form of that rule; this layer consumes it rather than defining another identity model (see
 Open Question 3).
 
 ### Relationship to Gram.Schema
@@ -528,8 +525,8 @@ Observable, regardless of file/package layout:
 ### Implementation Sequence
 
 Steps 1–2 (faithful encode/decode and round-trip) need no identity scoping and can proceed
-immediately. **Upsert and seed-then-own, however, are gated on the scoped-identity-namespace
-prerequisite** (Open Question 3) — do not build identity-keyed upsert until that is settled.
+immediately. Upsert and seed-then-own depend on RFC-001's scoped-identity contract and must key
+members by `(frame identity, local identity)`, never by a bare local symbol (Open Question 3).
 
 **Step 1 — Codec, Store, faithful document baseline.** Define `Codec`, `DecodeError`,
 `Store`, `saveVia`/`loadVia`; implement `documentCodec` over `Gram.JSON`; Hedgehog
@@ -558,10 +555,9 @@ cursors (Zippers) are a later, separate addition (Open Question 7).
 
 ## Open Questions
 
-All seven are dispositioned below. The only live *external* dependency is #3 (scoped identity
-namespaces), a prerequisite gating implementation; #5 and #6 are deliberate deferrals. RFC-011
-may be **accepted as a design** independently of #3, but its identity-dependent implementation
-(upsert, seed-then-own) is gated on that prerequisite landing first.
+All seven are dispositioned below. Scoped identity (#3) is owned by RFC-001; #5 and #6 are
+deliberate deferrals. RFC-011's identity-dependent implementation (upsert, seed-then-own)
+therefore depends on the RFC-001 Frame contract landing first.
 
 1. **`relationalKind` expressibility, and faithful RDBMS ingestion. — Resolved.** Two
    concerns were conflated here, and separating them resolves both:
@@ -582,15 +578,12 @@ may be **accepted as a design** independently of #3, but its identity-dependent 
    multi-statement atomic writes (`persistMany`, `withTransaction`) are orchestration *over* a
    `Store` — transport-specific and orthogonal to encoding — so they live above the boundary,
    keeping `Store` instances trivial and the scope tidy (see § Transport is a separate concern).
-3. **Identity and upsert. — Decided in principle; blocked on a prerequisite.** Identity is
+3. **Identity and upsert. — Resolved by RFC-001's prerequisite.** Identity is
    owned by `Subject.identity`, not the store; `StoreKey` is a subordinate physical locator;
    upsert keys on identity; write-time conflicts are RFC-010 reconciliation at the I/O boundary
-   (see § Identity is owned by `Subject.identity`). What remains open is **bigger than this RFC
-   and a prerequisite for it:** scoped identity namespaces for clash-free ingestion of multiple
-   `.gram` files (each carrying its own id-space). That is a cross-cutting identity concern
-   (parsing, RFC-010, Frame boundaries, persistence) that RFC-011 depends on; it warrants its
-   own RFC (or an RFC-010 extension) and should be settled before RFC-011 implementation.
-   Downstream (`aie-matrix`) is already hitting it.
+   (see § Identity is owned by `Subject.identity`). RFC-001 defines Frame as the namespace:
+   upsert keys are `(frame identity, local Subject.identity)`, stable Frame identity distinguishes
+   independently ingested documents, and equal local symbols in different Frames do not collide.
 4. **Shared-Bundle reconstruction. — Resolved: explicit.** On read, decode produces the
    materialized (per-span) Bundle as stored; identical `bundle_pair` sets under one `bundle_id`
    are *not* automatically coalesced into a shared in-memory Bundle. Reconstituting sharing is

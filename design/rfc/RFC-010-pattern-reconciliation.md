@@ -4,7 +4,7 @@
 **Date:** 2026-01-15
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** `proposals/pattern-reconciliation.md` (removed; content consolidated here)
+**Supersedes:** `design/pattern-reconciliation.md` (removed; content consolidated here)
 **Related modules:** `Pattern.Core`, `Pattern.Reconcile`, `Subject.Core`
 
 ## Summary

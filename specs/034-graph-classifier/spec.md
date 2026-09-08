@@ -3,7 +3,7 @@
 **Feature Branch**: `034-graph-classifier`  
 **Created**: 2026-02-20  
 **Status**: Draft  
-**Input**: User description: "Graph classifier as a unified, extensible graph view for patterns described in @proposals/graph-classifier.md" (now consolidated into [proposals/rfc/RFC-004-graph-classifier.md](../../proposals/rfc/RFC-004-graph-classifier.md))
+**Input**: User description: "Graph classifier as a unified, extensible graph view for patterns described in @design/graph-classifier.md" (now consolidated into [design/rfc/RFC-004-graph-classifier.md](../../design/rfc/RFC-004-graph-classifier.md))
 
 ## Clarifications
 

@@ -3,7 +3,7 @@
 **Feature Branch**: `031-pattern-reconciliation`
 **Created**: 2026-01-23
 **Status**: Implemented (2026-02-12)
-**Input**: User description: "Pattern Subject reconciliation as described in proposals/pattern-reconciliation.md" (now consolidated into [proposals/rfc/RFC-010-pattern-reconciliation.md](../../proposals/rfc/RFC-010-pattern-reconciliation.md))
+**Input**: User description: "Pattern Subject reconciliation as described in design/pattern-reconciliation.md" (now consolidated into [design/rfc/RFC-010-pattern-reconciliation.md](../../design/rfc/RFC-010-pattern-reconciliation.md))
 
 ## Clarifications
 

@@ -3,7 +3,7 @@
 **Feature Branch**: `038-scope-unification`  
 **Created**: 2026-03-17  
 **Status**: Draft  
-**Input**: User description: "Unify the use of scope for structure+scope aware operations as described in @proposals/scope-unification-proposal.md" (now consolidated into [proposals/rfc/RFC-006-scope-unification.md](../../proposals/rfc/RFC-006-scope-unification.md))
+**Input**: User description: "Unify the use of scope for structure+scope aware operations as described in @design/scope-unification-proposal.md" (now consolidated into [design/rfc/RFC-006-scope-unification.md](../../design/rfc/RFC-006-scope-unification.md))
 
 ## User Scenarios & Testing *(mandatory)*
 

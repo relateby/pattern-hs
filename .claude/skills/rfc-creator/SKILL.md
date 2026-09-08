@@ -1,22 +1,22 @@
 ---
 name: rfc-creator
-description: Create or update Requests for Comment for this repository. Use when the user wants a new feature, subsystem, module, game mechanic, API change, or vendor contribution proposal drafted in `proposals/rfc/` before implementation.
+description: Create or update Requests for Comment for this repository. Use when the user wants a new feature, subsystem, module, game mechanic, API change, or vendor contribution proposal drafted in `design/rfc/` before implementation.
 ---
 
 # RFC Creator
 
 ## Overview
-Use this skill to draft repository-specific RFCs that follow `proposals/rfc/README.md` exactly. RFCs are for proposals before implementation, not for settled architectural decisions.
+Use this skill to draft repository-specific RFCs that follow `design/rfc/README.md` exactly. RFCs are for proposals before implementation, not for settled architectural decisions.
 
 ## Workflow
-1. Read `proposals/rfc/README.md` and any relevant context from `README.md`, `docs/project-overview.md`, and `docs/architecture.md`.
+1. Read `design/rfc/README.md` and any relevant context from `README.md`, `docs/project-overview.md`, and `docs/architecture.md`.
 2. Confirm the change belongs in an RFC:
    - new subsystem, module, or feature
    - significant behavior or API change
    - vendor contribution introducing new interfaces or behavior
-3. Determine the next RFC number from the index in `proposals/rfc/README.md` (highest existing `RFC-NNN` + 1). Filename is `RFC-NNN-short-title.md` — `NNN` zero-padded to three digits, `short-title` in lowercase kebab-case (e.g. `RFC-011-codec-persistence.md`).
+3. Determine the next RFC number from the index in `design/rfc/README.md` (highest existing `RFC-NNN` + 1). Filename is `RFC-NNN-short-title.md` — `NNN` zero-padded to three digits, `short-title` in lowercase kebab-case (e.g. `RFC-011-codec-persistence.md`).
 4. Create a branch named `proposal/RFC-NNN-short-title` matching the RFC filename exactly before writing any files. Do not proceed without switching to this branch.
-5. Create or update `proposals/rfc/RFC-NNN-short-title.md` on that branch.
+5. Create or update `design/rfc/RFC-NNN-short-title.md` on that branch.
 6. Use this structure exactly. The five `##` sections are required and in this order; the header fields below `**Date:**` are optional — include the ones that apply, omit the rest:
 
 ```markdown
@@ -53,7 +53,7 @@ Use this skill to draft repository-specific RFCs that follow `proposals/rfc/READ
 ## Output
 When creating a new RFC:
 1. Confirm the active branch is `proposal/RFC-NNN-short-title` before writing files.
-2. Write the RFC file under `proposals/rfc/`.
-3. Update `proposals/rfc/README.md`: add the RFC to the appropriate category section's index table (or create a new section if it opens a new area), and reflect any new dependency in the Implementation Order diagram.
+2. Write the RFC file under `design/rfc/`.
+3. Update `design/rfc/README.md`: add the RFC to the appropriate category section's index table (or create a new section if it opens a new area), and reflect any new dependency in the Implementation Order diagram.
 4. Call out missing inputs or unresolved dependencies.
 5. Remind the author to run `/rfc-review` before opening the proposal for comment.

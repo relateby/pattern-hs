@@ -20,17 +20,17 @@ Neo4j persistence, and ad-hoc Pattern→object mapping at runtime.
 
 | RFC | Title | Status | Code |
 |-----|-------|--------|------|
-| [002](proposals/rfc/RFC-002-pattern-container-substrate.md) | Pattern container/substrate | accepted | ✅ `Pattern.Core` |
-| [003](proposals/rfc/RFC-003-gram-notation-semantics.md) | Gram notation | accepted | ✅ `Gram.*` |
-| [004](proposals/rfc/RFC-004-graph-classifier.md) | GraphClassifier | draft | ✅ `Pattern.Graph.GraphClassifier`, `PatternGraph` |
-| [005](proposals/rfc/RFC-005-graph-query.md) | GraphQuery | draft | ✅ `Pattern.Graph.GraphQuery`, `Algorithms` |
-| [006](proposals/rfc/RFC-006-scope-unification.md) | Scope unification | draft | ✅ `ScopeQuery`/`paraWithScope`/`PatternKind` in `Pattern.Core` |
-| [008](proposals/rfc/RFC-008-graph-transform.md) | GraphTransform | draft | ✅ `Pattern.Graph.Transform` |
-| [010](proposals/rfc/RFC-010-pattern-reconciliation.md) | Reconciliation | accepted | ✅ `Pattern.Reconcile` (single-pattern dedup) |
-| [007](proposals/rfc/RFC-007-representation-map.md) | RepresentationMap | draft | ⚠️ implemented **minus** `repMapConventions` + fallible `reconstruct` |
-| [001](proposals/rfc/RFC-001-frames-and-spans.md) | **Frames and Spans** | draft | ❌ not implemented — no `Frame`/`Span` newtypes |
-| [009](proposals/rfc/RFC-009-graph-mutation.md) | GraphMutation | draft | ❌ not implemented |
-| [011](proposals/rfc/RFC-011-codec-persistence.md) | **Codec / persistence** | draft | ❌ not implemented (RFC merged #70) |
+| [002](design/rfc/RFC-002-pattern-container-substrate.md) | Pattern container/substrate | accepted | ✅ `Pattern.Core` |
+| [003](design/rfc/RFC-003-gram-notation-semantics.md) | Gram notation | accepted | ✅ `Gram.*` |
+| [004](design/rfc/RFC-004-graph-classifier.md) | GraphClassifier | draft | ✅ `Pattern.Graph.GraphClassifier`, `PatternGraph` |
+| [005](design/rfc/RFC-005-graph-query.md) | GraphQuery | draft | ✅ `Pattern.Graph.GraphQuery`, `Algorithms` |
+| [006](design/rfc/RFC-006-scope-unification.md) | Scope unification | draft | ✅ `ScopeQuery`/`paraWithScope`/`PatternKind` in `Pattern.Core` |
+| [008](design/rfc/RFC-008-graph-transform.md) | GraphTransform | draft | ✅ `Pattern.Graph.Transform` |
+| [010](design/rfc/RFC-010-pattern-reconciliation.md) | Reconciliation | accepted | ✅ `Pattern.Reconcile` (single-pattern dedup) |
+| [007](design/rfc/RFC-007-representation-map.md) | RepresentationMap | draft | ⚠️ implemented **minus** `repMapConventions` + fallible `reconstruct` |
+| [001](design/rfc/RFC-001-frames-and-spans.md) | **Frames and Spans** | draft | ❌ not implemented — no `Frame`/`Span` newtypes |
+| [009](design/rfc/RFC-009-graph-mutation.md) | GraphMutation | draft | ❌ not implemented |
+| [011](design/rfc/RFC-011-codec-persistence.md) | **Codec / persistence** | draft | ❌ not implemented (RFC merged #70) |
 
 ### Recommended sequence
 

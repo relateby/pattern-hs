@@ -7,9 +7,9 @@ Design, Open Questions, Alternatives.
 ## How this directory is organized
 
 - **`rfc/RFC-NNN-*.md`** — authoritative, numbered design documents. **Start here.**
-- **`proposals/research/`** — supporting notes that are not RFCs: implementation
+- **`design/research/`** — supporting notes that are not RFCs: implementation
   references, CLI plans, and exploratory designs. Optional context, not load-bearing spec.
-- **`proposals/` (top level)** — pre-RFC stubs: motivating sketches awaiting a full RFC.
+- **`design/` (top level)** — pre-RFC stubs: motivating sketches awaiting a full RFC.
 
 ## RFC Index
 
@@ -23,9 +23,9 @@ Design, Open Questions, Alternatives.
 
 ### Active Design (Draft — In Progress)
 
-| RFC | Title | Status | Key Modules |
-|-----|-------|--------|-------------|
-| [RFC-001](RFC-001-frames-and-spans.md) | Frames and Spans | draft | `Pattern.Core`, `Pattern.RepresentationMap` |
+| RFC | Title | Status | Key Modules | ADRs |
+|-----|-------|--------|-------------|------|
+| [RFC-001](RFC-001-frames-and-spans.md) | Frames and Spans | draft | `Pattern.Core`, `Pattern.RepresentationMap` | [ADR-001](../adr/ADR-001-frame-span-implementation.md) |
 
 ### Graph Interface Layer (Draft — Design)
 
@@ -82,17 +82,17 @@ provenance is recorded in each RFC's **Supersedes:** header:
 |-----------------|--------------------|
 | RFC-002 | `DESIGN.md` (deferred sketches → RFC-002 Appendix B), `pattern-category.md` (categorical detail → RFC-002 Appendix A) |
 | RFC-003 | `SEMANTICS.md`, `EXTENDED-SEMANTICS.md` |
-| RFC-004 | `proposals/graph-classifier.md`, `proposals/pattern-graph.md` (PatternGraph design → RFC-004 Appendix A) |
-| RFC-005 | `proposals/graph-query.md` |
-| RFC-006 | `proposals/scope-unification-proposal.md` |
-| RFC-007 | `proposals/representation-map-proposal.md` |
-| RFC-008 | `proposals/graph-transform.md`, `proposals/pipeline-scenarios.md` |
-| RFC-009 | `proposals/graph-mutation.md` |
-| RFC-010 | `proposals/pattern-reconciliation.md` |
+| RFC-004 | `design/graph-classifier.md`, `design/pattern-graph.md` (PatternGraph design → RFC-004 Appendix A) |
+| RFC-005 | `design/graph-query.md` |
+| RFC-006 | `design/scope-unification-proposal.md` |
+| RFC-007 | `design/representation-map-proposal.md` |
+| RFC-008 | `design/graph-transform.md`, `design/pipeline-scenarios.md` |
+| RFC-009 | `design/graph-mutation.md` |
+| RFC-010 | `design/pattern-reconciliation.md` |
 
 ## Research & Supporting Notes
 
-Non-RFC documents live in [`proposals/research/`](../research/). They are reference material,
+Non-RFC documents live in [`design/research/`](../research/). They are reference material,
 not authoritative specifications:
 
 | File | Purpose |
@@ -103,9 +103,18 @@ not authoritative specifications:
 | [gram-hs-cli-plan.md](../research/gram-hs-cli-plan.md) | CLI tool implementation plan |
 | [pattern-matching-dsl-design.md](../research/pattern-matching-dsl-design.md) | Pattern matching DSL exploration |
 
+## RFC Discussion Notes
+
+Discussion notes record review feedback and proposed revisions without changing the
+parent RFC's status or establishing an architecture decision.
+
+| RFC | Discussion |
+|-----|------------|
+| [RFC-001](RFC-001-frames-and-spans.md) | [Managed Frame and Span Containers](comments/RFC-001-managed-frame-containers.md) |
+
 ## Pre-RFC Stubs
 
-Motivating sketches in `proposals/` awaiting development into full RFCs:
+Motivating sketches in `design/` awaiting development into full RFCs:
 
 | File | Status |
 |------|--------|

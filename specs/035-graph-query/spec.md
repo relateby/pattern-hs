@@ -3,7 +3,7 @@
 **Feature Branch**: `035-graph-query`  
 **Created**: 2026-02-20  
 **Status**: Draft  
-**Input**: User description: "GraphQuery — A Portable, Composable Graph Query Interface as described in @proposals/graph-query.md" (now consolidated into [proposals/rfc/RFC-005-graph-query.md](../../proposals/rfc/RFC-005-graph-query.md))
+**Input**: User description: "GraphQuery — A Portable, Composable Graph Query Interface as described in @design/graph-query.md" (now consolidated into [design/rfc/RFC-005-graph-query.md](../../design/rfc/RFC-005-graph-query.md))
 
 ## User Scenarios & Testing *(mandatory)*
 
