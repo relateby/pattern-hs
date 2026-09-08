@@ -7,7 +7,7 @@
 **Depends on:** RFC-001 (Frames are the scope-grounding primitive), RFC-003 (uses gram's leading header-record mechanism), RFC-010 (consumes resolved identity; owns post-hoc merge)
 **Followed by:** RFC-011 (Codec) implementation — this RFC is the prerequisite gating its identity-dependent paths (upsert, seed-then-own, clash-free ingest)
 **Related modules:** `Subject.Core`, `Pattern.Core`, `Pattern.Reconcile`, `Gram.Parse` (header entry point `fromGramWithHeader`), `Gram.Transform`, `Pattern.Frame` (RFC-001), `Pattern.Codec` (RFC-011)
-**Research companion:** [proposals/research/identity-management-survey.md](../research/identity-management-survey.md) — cited prior-art survey (RDF, Datomic, Neo4j, UUIDv5, Matrix, SQL, Wikidata)
+**Research companion:** [design/research/identity-management-survey.md](../research/identity-management-survey.md) — cited prior-art survey (RDF, Datomic, Neo4j, UUIDv5, Matrix, SQL, Wikidata)
 
 ## Summary
 
