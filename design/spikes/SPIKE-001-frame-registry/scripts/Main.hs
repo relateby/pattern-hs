@@ -261,86 +261,104 @@ main = do
         , Definition (subject "inspect-fuel") []
         ]
       anonymousInput = [Definition (subject "") []]
-      Right aircraft = admit (emptyFrame (subject "aircraft-17")) aircraftInput
-      Right maintenance = admit (emptyFrame (subject "maintenance-17")) maintenanceInput
-      Right anonymousFrame = admit (emptyFrame (subject "anonymous-17")) anonymousInput
-      initialSpace = FrameSpace
-        (Map.fromList [(frameId aircraft, aircraft), (frameId maintenance, maintenance)])
-        Map.empty
-      pairEngine = Pair (labelled "pair-engine" "Summarizes") (Subject.Symbol "engine") (Subject.Symbol "inspect-engine")
-      pairSensor = Pair (labelled "pair-sensor" "Summarizes") (Subject.Symbol "sensor") (Subject.Symbol "inspect-fuel")
-      maintenanceSpan = Span (subject "aircraft-maintenance") (frameId aircraft) (frameId maintenance)
-        (Map.fromList [(identityOf (pairSubject pairEngine), pairEngine), (identityOf (pairSubject pairSensor), pairSensor)])
-      Right spaceWithSpan = addSpan maintenanceSpan initialSpace
-      rawAmbiguousPattern = Pattern (subject "root")
-        [ Pattern (labelled "engine" "Engine") [Pattern (subject "sensor") []]
-        , Pattern (subject "engine") []
-        ]
-      reconcileInput = Pattern (subject "root")
-        [ Pattern (labelled "fuel-pump" "Pump") []
-        , Pattern (labelled "fuel-pump" "Critical") []
-        ]
-      reconcileResult = Reconcile.reconcile
-        (Reconcile.Merge Reconcile.UnionElements Reconcile.defaultSubjectMergeStrategy)
-        reconcileInput
-      replacePolicyInput = Pattern (subject "root")
-        [ Pattern (labelled "engine" "First") [Pattern (subject "first-child") []]
-        , Pattern (labelled "engine" "Last") [Pattern (subject "last-child") []]
-        ]
-      lastWriteResult = Reconcile.reconcile Reconcile.LastWriteWins replacePolicyInput
-      lastWriteUnionsElements = case lastWriteResult of
-        Right (Pattern _ [Pattern engine children]) ->
-          Set.member "Last" (Subject.labels engine)
-            && map (identityOf . value) children == [Subject.Symbol "first-child", Subject.Symbol "last-child"]
-        _ -> False
-      Right sensorRemoved = removeMember (Subject.Symbol "sensor") aircraft
-      crossDeletionRejected = case replaceFrame sensorRemoved spaceWithSpan of
-        Left _ -> True
-        Right _ -> False
-      Right reboundSpace = rebindPair (Subject.Symbol "aircraft-maintenance") (Subject.Symbol "pair-sensor")
-        (Subject.Symbol "engine") (Subject.Symbol "inspect-fuel") spaceWithSpan
-      crossDeletionAllowed = case replaceFrame sensorRemoved reboundSpace of
-        Right _ -> True
-        Left _ -> False
-      Right repairBase = admit (emptyFrame (subject "repair-plan-17"))
-        [ Definition (subject "work-order") []
-        , Definition (labelled "engine" "ExistingRepairEngine") []
-        ]
-      collisionRejected = case importSubgraph aircraft [Subject.Symbol "engine"] Map.empty repairBase of
-        Left _ -> True
-        Right _ -> False
-      renameMap = Map.fromList
-        [ (Subject.Symbol "engine", Subject.Symbol "imported-engine")
-        , (Subject.Symbol "fuel-system", Subject.Symbol "imported-fuel-system")
-        , (Subject.Symbol "fuel-pump", Subject.Symbol "imported-fuel-pump")
-        , (Subject.Symbol "diagnostic-procedure", Subject.Symbol "imported-diagnostic-procedure")
-        ]
-      importedRepair = importSubgraph aircraft [Subject.Symbol "engine"] renameMap repairBase
-      attachedRepair = importedRepair >>= attach (Subject.Symbol "work-order") [Subject.Symbol "imported-engine"]
-      invalidSpan = Span (subject "invalid-span") (frameId aircraft) (frameId maintenance)
-        (Map.singleton (Subject.Symbol "pair-invalid")
-          (Pair (subject "pair-invalid") (Subject.Symbol "missing") (Subject.Symbol "inspect-engine")))
-      invalidSpanRejected = case addSpan invalidSpan initialSpace of
-        Left _ -> True
-        Right _ -> False
-      checks =
-        [ ("parses aircraft/maintenance Gram fixture", parsedAircraft)
-        , ("parses ambiguous-reference Gram fixture", parsedAmbiguous)
-        , ("parses repair-plan collision Gram fixture", parsedRepair)
-        , ("flattens nested definitions into one Frame namespace", Map.size (frameMembers aircraft) == 5)
-        , ("accepts indirect cycles without recursive copies", either (const False) (elem (Subject.Symbol "engine")) (closure aircraft [Subject.Symbol "engine"]))
-        , ("assigns a stable local identity to an anonymous definition", Map.member (Subject.Symbol "#spike-1") (frameMembers anonymousFrame))
-        , ("rejects a direct self-reference", case admit (emptyFrame (subject "self-17")) [Definition (subject "self") [Reference (Subject.Symbol "self")]] of Left _ -> True; Right _ -> False)
-        , ("fails ambiguous raw Pattern compatibility import", case rawImport rawAmbiguousPattern of Left _ -> True; Right _ -> False)
-        , ("runs real Pattern.Reconcile Merge policy", either (const False) (const True) reconcileResult)
-        , ("observes LastWriteWins subject replacement with element union", lastWriteUnionsElements)
-        , ("rejects a Span pair whose endpoint does not resolve", invalidSpanRejected)
-        , ("rejects local deletion while a member is referenced", case removeMember (Subject.Symbol "fuel-system") aircraft of Left _ -> True; Right _ -> False)
-        , ("rejects FrameSpace replacement that leaves a pair endpoint dangling", crossDeletionRejected)
-        , ("allows replacement after explicit pair rebind", crossDeletionAllowed)
-        , ("rejects cross-Frame import identity collisions by default", collisionRejected)
-        , ("imports a reference closure with explicit local rebase", either (const False) (Map.member (Subject.Symbol "imported-engine") . frameMembers) importedRepair)
-        , ("attaches an imported root after Frame-local validation", either (const False) (elem (Subject.Symbol "imported-engine") . memberElements . (Map.! Subject.Symbol "work-order") . frameMembers) attachedRepair)
-        ]
-  outcomes <- mapM (uncurry check) checks
-  if and outcomes then pure () else exitFailure
+      scenario = do
+        aircraft <- admit (emptyFrame (subject "aircraft-17")) aircraftInput
+        maintenance <- admit (emptyFrame (subject "maintenance-17")) maintenanceInput
+        anonymousFrame <- admit (emptyFrame (subject "anonymous-17")) anonymousInput
+        let initialSpace = FrameSpace
+              (Map.fromList [(frameId aircraft, aircraft), (frameId maintenance, maintenance)])
+              Map.empty
+            pairEngine = Pair (labelled "pair-engine" "Summarizes") (Subject.Symbol "engine") (Subject.Symbol "inspect-engine")
+            pairSensor = Pair (labelled "pair-sensor" "Summarizes") (Subject.Symbol "sensor") (Subject.Symbol "inspect-fuel")
+            maintenanceSpan = Span (subject "aircraft-maintenance") (frameId aircraft) (frameId maintenance)
+              (Map.fromList [(identityOf (pairSubject pairEngine), pairEngine), (identityOf (pairSubject pairSensor), pairSensor)])
+        spaceWithSpan <- addSpan maintenanceSpan initialSpace
+        Right (aircraft, maintenance, anonymousFrame, initialSpace, spaceWithSpan)
+  case scenario of
+    Left err -> do
+      _ <- check ("builds spike scenario: " ++ err) False
+      exitFailure
+    Right (aircraft, maintenance, anonymousFrame, initialSpace, spaceWithSpan) -> do
+      let rawAmbiguousPattern = Pattern (subject "root")
+            [ Pattern (labelled "engine" "Engine") [Pattern (subject "sensor") []]
+            , Pattern (subject "engine") []
+            ]
+          reconcileInput = Pattern (subject "root")
+            [ Pattern (labelled "fuel-pump" "Pump") []
+            , Pattern (labelled "fuel-pump" "Critical") []
+            ]
+          reconcileResult = Reconcile.reconcile
+            (Reconcile.Merge Reconcile.UnionElements Reconcile.defaultSubjectMergeStrategy)
+            reconcileInput
+          replacePolicyInput = Pattern (subject "root")
+            [ Pattern (labelled "engine" "First") [Pattern (subject "first-child") []]
+            , Pattern (labelled "engine" "Last") [Pattern (subject "last-child") []]
+            ]
+          lastWriteResult = Reconcile.reconcile Reconcile.LastWriteWins replacePolicyInput
+          lastWriteUnionsElements = case lastWriteResult of
+            Right (Pattern _ [Pattern engine children]) ->
+              Set.member "Last" (Subject.labels engine)
+                && map (identityOf . value) children == [Subject.Symbol "first-child", Subject.Symbol "last-child"]
+            _ -> False
+          sensorRemoved = removeMember (Subject.Symbol "sensor") aircraft
+          crossDeletionRejected = case sensorRemoved of
+            Left _ -> False
+            Right replacement -> case replaceFrame replacement spaceWithSpan of
+              Left _ -> True
+              Right _ -> False
+          reboundSpace = rebindPair (Subject.Symbol "aircraft-maintenance") (Subject.Symbol "pair-sensor")
+            (Subject.Symbol "engine") (Subject.Symbol "inspect-fuel") spaceWithSpan
+          crossDeletionAllowed = case (sensorRemoved, reboundSpace) of
+            (Right replacement, Right rebound) -> case replaceFrame replacement rebound of
+              Right _ -> True
+              Left _ -> False
+            _ -> False
+          repairBase = admit (emptyFrame (subject "repair-plan-17"))
+            [ Definition (subject "work-order") []
+            , Definition (labelled "engine" "ExistingRepairEngine") []
+            ]
+          collisionRejected = case repairBase of
+            Left _ -> False
+            Right base -> case importSubgraph aircraft [Subject.Symbol "engine"] Map.empty base of
+              Left _ -> True
+              Right _ -> False
+          renameMap = Map.fromList
+            [ (Subject.Symbol "engine", Subject.Symbol "imported-engine")
+            , (Subject.Symbol "fuel-system", Subject.Symbol "imported-fuel-system")
+            , (Subject.Symbol "fuel-pump", Subject.Symbol "imported-fuel-pump")
+            , (Subject.Symbol "diagnostic-procedure", Subject.Symbol "imported-diagnostic-procedure")
+            ]
+          importedRepair = repairBase >>= importSubgraph aircraft [Subject.Symbol "engine"] renameMap
+          attachedRepair = importedRepair >>= attach (Subject.Symbol "work-order") [Subject.Symbol "imported-engine"]
+          invalidSpan = Span (subject "invalid-span") (frameId aircraft) (frameId maintenance)
+            (Map.singleton (Subject.Symbol "pair-invalid")
+              (Pair (subject "pair-invalid") (Subject.Symbol "missing") (Subject.Symbol "inspect-engine")))
+          invalidSpanRejected = case addSpan invalidSpan initialSpace of
+            Left _ -> True
+            Right _ -> False
+          attachedImportedRoot = do
+            repair <- attachedRepair
+            workOrder <- maybe (Left "work-order is absent") Right
+              (Map.lookup (Subject.Symbol "work-order") (frameMembers repair))
+            Right (Subject.Symbol "imported-engine" `elem` memberElements workOrder)
+          checks =
+            [ ("parses aircraft/maintenance Gram fixture", parsedAircraft)
+            , ("parses ambiguous-reference Gram fixture", parsedAmbiguous)
+            , ("parses repair-plan collision Gram fixture", parsedRepair)
+            , ("flattens nested definitions into one Frame namespace", Map.size (frameMembers aircraft) == 5)
+            , ("accepts indirect cycles without recursive copies", either (const False) (elem (Subject.Symbol "engine")) (closure aircraft [Subject.Symbol "engine"]))
+            , ("assigns a stable local identity to an anonymous definition", Map.member (Subject.Symbol "#spike-1") (frameMembers anonymousFrame))
+            , ("rejects a direct self-reference", case admit (emptyFrame (subject "self-17")) [Definition (subject "self") [Reference (Subject.Symbol "self")]] of Left _ -> True; Right _ -> False)
+            , ("fails ambiguous raw Pattern compatibility import", case rawImport rawAmbiguousPattern of Left _ -> True; Right _ -> False)
+            , ("runs real Pattern.Reconcile Merge policy", either (const False) (const True) reconcileResult)
+            , ("observes LastWriteWins subject replacement with element union", lastWriteUnionsElements)
+            , ("rejects a Span pair whose endpoint does not resolve", invalidSpanRejected)
+            , ("rejects local deletion while a member is referenced", case removeMember (Subject.Symbol "fuel-system") aircraft of Left _ -> True; Right _ -> False)
+            , ("rejects FrameSpace replacement that leaves a pair endpoint dangling", crossDeletionRejected)
+            , ("allows replacement after explicit pair rebind", crossDeletionAllowed)
+            , ("rejects cross-Frame import identity collisions by default", collisionRejected)
+            , ("imports a reference closure with explicit local rebase", either (const False) (Map.member (Subject.Symbol "imported-engine") . frameMembers) importedRepair)
+            , ("attaches an imported root after Frame-local validation", either (const False) id attachedImportedRoot)
+            ]
+      outcomes <- mapM (uncurry check) checks
+      if and outcomes then pure () else exitFailure

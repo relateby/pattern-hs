@@ -28,7 +28,7 @@ to this documentation-and-spike-only change.
 | Pattern.Reconcile | Pass | A Merge policy reconciles duplicate `fuel-pump` Subjects. `reconcile` accepts one Pattern, so Additive requires Frame code to prepare an adapter input. |
 | Replace policy | Source-confirmed | `LastWriteWins` and `FirstWriteWins` select a Subject value but both use `UnionElements`; Frame Replace cannot directly delegate to either. |
 | Span validation | Pass | Pair endpoints resolve against the Span's ordered left/right Frame identities; missing endpoints are rejected. |
-| Deletion protection | Pass | Local reference removal and incident Bundle-pair dangling endpoints both reject Frame replacement. |
+| Deletion protection | Pass | Local reference removal and incident Span-pair dangling endpoints both reject Frame replacement. |
 | Pair rebind | Pass | `rebindPair` validates a new ordered endpoint pair before permitting the Frame replacement. |
 | Import/rebase + Attach | Pass | A default identity collision rejects; an explicit collision-avoiding map copies the reachable closure and Attach preserves local closure. |
 
