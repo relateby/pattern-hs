@@ -99,6 +99,17 @@ would then require cross-Frame relationship knowledge inside the Frame. A FrameS
 own Frames and Spans, validate their relationship entries together, and leave each Frame
 independently useful outside that aggregate.
 
+**Give each Span ownership of its two Frames by value.** Rejected on two independent
+grounds. Ownership is exclusive containment: a Frame owned by one Span cannot also be
+owned by a second, directly contradicting one Frame participating in many Spans.
+Relaxing exclusivity to let the same Frame be embedded by value in several Spans instead
+reintroduces the divergent-snapshot problem the Observer alternative above was also
+rejected for — each embedding Span now holds its own copy, and a later Frame update has
+no shared coordinator through which to reach every copy. A Span that stores Frame
+identities and resolves them through FrameSpace satisfies the required many-to-many
+relationship the same way RFC-011's `bundle_pair` join table does at the schema layer,
+rather than embedding Frames inside a `frame_row`.
+
 ## Working Model
 
 ### Identity and addresses
@@ -303,6 +314,35 @@ requires FrameSpace membership because its endpoints and pair addresses must res
 A FrameSpace snapshot, rather than a second public Span-by-value type, is the exchange
 form for a Span with its endpoint Frames. Replacing a Frame through FrameSpace checks all
 incident Spans before returning the replacement collection.
+
+### Span validity is relative to a FrameSpace
+
+A Frame and a Span are not symmetric containers. A Frame's closure invariant — every
+local reference resolves inside its own registry — is a closed predicate: it is decidable
+from the Frame value alone, which is exactly what lets a Frame stand alone before it is
+registered in any FrameSpace. A Span's pair-endpoint invariant is open: a Span stores only
+its left and right Frame identities, so whether a pair endpoint exists is undecidable
+without a `FrameIdentity -> Frame` lookup, which only a FrameSpace supplies. A Span is
+better understood as a claim about two Frames it does not possess, confirmed only relative
+to a FrameSpace, rather than as a value with standalone validity the way a Frame has one.
+
+This is also a cardinality argument, independent of the decidability one above. A Frame
+participating in many Spans is a many-to-many relationship; ownership is exclusive
+containment and can only express one-to-many. A Span that owned its two Frames by value
+would either forbid a Frame from joining a second Span or embed a separate Frame copy per
+owning Span that a later Frame update has no shared coordinator to keep synchronized.
+Storing Frame identities and resolving them through FrameSpace is the same move RFC-011
+makes at the schema layer: `bundle_pair` is a join table with two foreign keys into
+`frame_row`, not a column embedded in it, because Frame-to-Span is many-to-many and a join
+relation is the only structure that represents that without embedding.
+
+The initial API should reflect this asymmetry directly. A raw, freely constructible span
+record — identity, left and right Frame identity, and an unvalidated Bundle of candidate
+pairs — is distinct from the confirmed Span that `addSpan` or `lookupSpan` returns.
+Mirroring Frame's own `PatternLike`/registry-entry distinction, only the FrameSpace-
+confirmed form should be named `Span`; holding a `Span` value should itself be evidence
+that its pairs already resolved against some FrameSpace, not merely a record shaped like
+one.
 
 ### FrameSpace integrity API
 
