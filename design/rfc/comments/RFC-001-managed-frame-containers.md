@@ -17,17 +17,48 @@ rewritten.
 
 ## Motivation
 
-ADR-001 models a Frame as a wrapper around a recursively embedded `Pattern Subject`.
-That shape has no canonical registry of members or references. A Frame containing the
-worked exercise's indirect cycle `engine -> fuel-system -> fuel-pump ->
-diagnostic-procedure -> engine` cannot have a finite fully expanded presentation; an
-acyclic presentation duplicates shared members. Scoped identity in RFC-001 similarly
-qualifies members but has no aggregate owner that validates cross-Frame pair addresses
-when a Frame or Span changes.
+Higher-order graph construction needs a stable way to treat selected Pattern structures as
+addressable units without changing Pattern's value-agnostic, semantics-free substrate or
+forcing every operation to understand a special node role.
 
-RFC-011 independently requires the same normalized shape for persistence:
-`frame_row(frame_id, id, labels, properties, elements)` uses `(frame_id, id)` as its
-member key, and `bundle_pair` enforces both endpoint Frame membership and endpoint
+`Pattern v` already supports arbitrary recursive composition. A Pattern with no elements
+can be interpreted as a node; one with an element as an annotation; one with two node-like
+elements as a relationship; a connected sequence of relationship Patterns as a path; and
+recursively nested Patterns as subgraphs, annotations over subgraphs, or graphs of graphs.
+These interpretations are useful precisely because Pattern does not enforce any one of
+them. Its values remain polymorphic and its recursive structure remains available to any
+consumer.
+
+The difficulty appears when a higher-order structure must itself participate as an
+addressable unit in further graph construction. Promoting selected Patterns into a node
+role inside the existing Pattern substrate would make membership, identity, traversal, and
+referential-integrity rules depend on a special context. A wrapper/view approach retains
+that ambiguity: it starts with an already-formed Pattern and attempts to add module,
+identity, and integrity semantics after the fact.
+
+A Frame establishes a new construction context instead. It begins with an identifying
+Subject and admits Pattern definitions into one referentially closed member registry. Each
+admitted definition becomes an addressable member; its ordered local references establish
+higher structure inside the Frame. A Span then establishes correspondence between members
+of two Frames without placing cross-Frame references inside either Frame.
+
+Given a Pattern `a`, a derived construction proceeds explicitly:
+
+1. Create Frame `af`.
+2. Admit `a` into `af`, registering each definition as a Frame member.
+3. Create Frame `bf`.
+4. Create Span `abs` between `af` and `bf`.
+5. Create fresh members in `bf` for the selected members of `af`.
+6. Add ordered pair relationship Patterns to `abs`, pairing each selected address in `af`
+   with its corresponding address in `bf`.
+
+The source members remain members of `af`; the derived members remain members of `bf`; and
+the Span owns the correspondence between them. Frames therefore supply the integrity
+boundary, while Spans make higher-order correspondence explicit.
+
+This boundary also gives the in-memory model the ownership shape required by RFC-011
+persistence: `frame_row(frame_id, id, labels, properties, elements)` uses `(frame_id, id)`
+as its member key, and `bundle_pair` enforces both endpoint Frame membership and endpoint
 existence through foreign keys. The in-memory model should have equivalent ownership and
 integrity rules before it is mapped to those rows.
 
@@ -41,8 +72,9 @@ Frame operations add, combine, and remove Patterns while preserving that invaria
 A Span is a container that relates two Frame identities and owns the cross-Frame
 correspondences between their members. Its Bundle is a collection of pair relationship
 Patterns. Each pair Pattern has exactly two elements: one member reference from each
-endpoint Frame. A Portal is either member of such a pair. Bundle membership, rather than
-a label or a type, gives a member its Portal role.
+endpoint Frame. A member participates in a cross-Frame correspondence when it appears as
+an endpoint of such a pair. Pair membership is a relationship fact, not a label or a
+distinct member type.
 
 The initial Haskell API uses persistent updates: operations return a new Frame, Span, or
 higher-level collection instead of mutating an `IORef` or other process-local cell. This
@@ -71,23 +103,41 @@ independently useful outside that aggregate.
 
 ### Identity and addresses
 
-`Subject.identity` is a local identity. It says which member is being discussed inside
-one Frame. It is not a global identity.
-
-`ScopedIdentity` is an address:
+Named and anonymous Patterns have different identity properties. A named Pattern carries a
+non-anonymous `Subject.identity`, such as `engine` or `messages`; that Symbol identifies a
+member within one Frame. An anonymous Pattern carries no Subject identity, for example:
 
 ```text
-FrameIdentity x LocalIdentity
+[:Greeting { msg: "Hello" }]
 ```
 
-It says where a locally identified member is found in an enclosing collection. A registry
-is a set of such addresses, together with the member Patterns they resolve to. This
-distinction permits separately ingested Frames to contain `alice` or generated `#1`
-without collision while preserving the Symbols supplied by source data.
+Anonymous Patterns remain valid Frame members. Their address derives from their containing
+address and ordinal element position. In `[messages | [:Greeting { msg: "Hello" }]]`, the
+greeting is addressed relative to `messages` and position `0`. Deeper anonymous Patterns
+extend that positional path.
+
+An anonymous atomic Pattern is admitted rather than rejected. Adding `()` three times to
+one Frame creates three distinct registry entries at three positional addresses, even
+though their Subjects and element lists are identical. The entries do not receive invented
+Subject identities; their addresses distinguish their Frame-local occurrences.
+
+Every Frame member has a local address, while only named members have a local identity.
+A scoped address identifies where either kind of member occurs:
+
+```text
+LocalAddress  = Named LocalIdentity | Positional ParentAddress ElementOrdinal
+ScopedAddress = FrameIdentity x LocalAddress
+```
+
+The Frame registry is keyed by `LocalAddress`, not by `Subject.identity`. Named members
+retain their Symbols unchanged; anonymous members remain anonymous and acquire no invented
+Subject identity during Frame admission. This permits separately ingested Frames to contain
+the same named symbols without collision while preserving anonymous structural vocabulary.
 
 Frame identity must be stable across versions of the same logical Frame and unique among
 Frames held by one collection. Reconciliation under the same Frame identity updates one
-namespace. Equal local identities in different Frame identities remain different members.
+namespace. Equal named local identities in different Frame identities remain different
+members.
 
 A Frame's identifying Subject supplies its Frame identity: `FrameIdentity` is the
 Subject's non-anonymous `identity`. A Frame's identity cannot change during its lifetime,
@@ -99,54 +149,14 @@ identities, or rewrite source member identities. Re-ingestion explicitly selects
 destination Frame identity: it uses `Replace` or `Additive` for an existing identity and
 `addFrame` for a new one.
 
-### Frame registry and closure
+### Defining and reference occurrences
 
-A new Frame starts with its identifying Subject and no members. Adding an external
-`PatternLike Subject` recursively registers each definition and nested definition as an
-independently addressable Frame member. Duplicate local identities are reconciled by a
-selected policy; unresolved identity references and conflicting definitions are errors.
-Frame admission has no nested identity namespaces: every Definition at every input depth
-becomes a row in the same flat local registry, and only ordered local-address links express
-its containment relationships.
-
-Each registered `Member` is an internal row in the Frame registry. It is Pattern-like:
-it retains a `Subject` and an ordered sequence of elements, but its elements are local
-member addresses rather than recursively embedded Pattern values. The registry is the
-canonical membership domain; its address links are the canonical containment structure.
-This provides one authoritative row for every local identity, permits cycles, and avoids
-updating copied nested values when a member changes.
-
-A Frame can produce many semantically equivalent `Pattern Subject` presentations. Each
-complete presentation defines every registered member once and uses atomic local
-references for additional occurrences. This is Gram's finite recursive-graph form:
-
-```text
-[frame | [a | b], [b | a]]
-```
-
-The definitions of `a` and `b` occur once, while the bare identifiers close their
-indirect cycle. The Frame registry and any complete, reference-bearing presentation are
-logically equivalent when they resolve to the same member Subjects and ordered local
-references. They need not have the same recursive value shape: a member may be defined
-at a different nesting position, and shared members may be reached by references from
-multiple parents.
-
-A fully expanded presentation that recursively embeds every target value is only one
-possible view. It cannot be finite when the registry contains a cycle and duplicates
-shared members when it does not. A cycle-tolerant roster presentation places every full
-member definition once beneath the Frame Subject and retains each member's atomic local
-references, preserving both complete membership and containment links. Conversion APIs
-remain deferred, but their eventual contract should be reference-preserving graph
-equivalence rather than structural equality of one chosen nesting.
-
-### Definitions and local references
-
-The RFC rewrite should retain Definition/Reference admission behavior. The exact
+The RFC rewrite should retain defining/reference admission behavior. The exact
 `PatternLike` declaration, module ownership, and conversion adapters are ADR-level
 implementation decisions.
 
-Frame admission preserves the distinction between a Pattern definition and a local
-reference:
+Frame admission preserves the distinction between a defining Pattern occurrence and a
+local reference occurrence:
 
 ```text
 PatternLike Subject
@@ -154,36 +164,80 @@ PatternLike Subject
   | Reference LocalIdentity
 ```
 
-`Definition` introduces or reconciles one registry member. `Reference` contributes an
-ordered local address to its containing definition without introducing another member.
-An admission batch first collects all Definitions, then resolves References against the
-combined existing and incoming registry. This permits forward references and indirect
-cycles while rejecting unresolved local addresses.
+In this illustrative shape, `Definition` introduces or reconciles one registry entry.
+`Reference` is provisional: it contributes an ordered local address to its containing
+defining occurrence, then resolves to a fuller definition with the same named local
+identity when one exists. An admission batch collects all occurrences before resolving
+them, permitting forward references and indirect cycles.
 
-An anonymous Definition receives a generated LocalIdentity unique in the combined Frame
-registry before Reference resolution. The generated identity remains stable for that
-member's lifetime; anonymous source syntax cannot itself refer to that member by name.
+`Reference LocalIdentity` names a prospective named registry entry. If no fuller definition
+of that identity exists after admission and reconciliation, the occurrence is promoted to
+an atomic defining entry. An anonymous defining occurrence retains its anonymous Subject
+and receives a positional LocalAddress from its parent address and ordinal position. It
+cannot be targeted by a named Reference, a Span pair endpoint, or a stable external key
+until a later explicit promotion operation is defined.
 
-A Definition must not directly reference its own local identity. Direct self-reference
-does not add useful containment structure and is rejected at Frame admission. References
-among distinct members may form indirect cycles; those cycles are valid registry topology.
-Semantic self-loops belong in relationship Patterns when a domain requires them.
+A defining occurrence must not directly reference its own local address. Direct
+self-reference does not add useful containment structure and is rejected at Frame
+admission. References among distinct registry entries may form indirect cycles; those
+cycles are valid registry topology. Semantic self-loops belong in relationship Patterns
+when a domain requires them.
 
 Gram supplies this distinction directly: bracket syntax maps to `Definition` and a bare
 identifier in element position maps to `Reference`. A complete Frame presentation defines
-each local identity once and uses References for every further occurrence.
+each named local identity once and uses References for every further named occurrence.
 
-Raw `Pattern Subject` does not preserve definition/reference provenance: an atomic
-`Pattern` may be a definition or the in-memory form of a Gram reference. It remains a
-convenient compatibility import format. Its importer applies the existing
-`Pattern.Reconcile` convention that an atomic Pattern sharing an identity with a fuller
-definition is a reference only when that produces one unambiguous interpretation. Any
-ambiguous raw import fails with an import-ambiguity error; it never silently selects an
-interpretation. `PatternLike Subject` is the canonical admission format for Frame
-construction and updates.
+Raw `Pattern Subject` does not preserve definition/reference provenance: an atomic Pattern
+may be a definition or the in-memory form of a Gram reference. It remains a convenient
+compatibility import format. Its importer applies the existing `Pattern.Reconcile`
+convention: an atomic Pattern sharing an identity with a fuller definition is a reference;
+an atomic Pattern with no fuller definition is promoted to an atomic defining entry.
+`PatternLike Subject` remains the canonical admission format because it retains source
+provenance before this fallback is needed.
 
 A full Pattern in one Frame and an atomic Pattern in another Frame are not a
 Frame-internal reference; a Span pair records their relationship.
+
+### Frame registry and closure
+
+A new Frame starts with its identifying Subject and no registry entries. Admitting a
+`PatternLike Subject` recursively turns each defining occurrence into one independently
+addressable Frame entry. Duplicate named local identities reconcile under the selected
+policy; conflicting fuller definitions are errors. Anonymous defining occurrences receive
+positional addresses from their containing addresses and element positions.
+
+Frame admission has no nested identity namespaces: every defining occurrence at every
+input depth becomes an entry in the same registry, while ordered local-address links
+express its containment relationships.
+
+Each registry entry retains a Subject and an ordered sequence of local member addresses
+rather than recursively embedded Pattern values. The registry is the canonical membership
+domain; its address links are the canonical containment structure. This provides one
+authoritative entry for every local address, permits cycles, and avoids updating copied
+nested values when a member changes.
+
+A Frame can produce many semantically equivalent `Pattern Subject` presentations. Each
+complete presentation defines every registry entry once and uses atomic local references
+for additional occurrences. This is Gram's finite recursive-graph form:
+
+```text
+[frame | [a | b], [b | a]]
+```
+
+The defining occurrences of `a` and `b` occur once, while the bare identifiers close their
+indirect cycle. The Frame registry and any complete, reference-bearing presentation are
+logically equivalent when they resolve to the same member Subjects and ordered local
+references. They need not have the same recursive value shape: a member may be defined at
+a different nesting position, and shared members may be reached by references from multiple
+parents.
+
+A fully expanded presentation that recursively embeds every target value is only one
+possible view. It cannot be finite when the registry contains a cycle and duplicates shared
+members when it does not. A cycle-tolerant roster presentation places every full member
+definition once beneath the Frame Subject and retains each member's atomic local references,
+preserving both complete membership and containment links. Conversion APIs remain deferred,
+but their eventual contract should be reference-preserving graph equivalence rather than
+structural equality of one chosen nesting.
 
 ### Frame updates
 
@@ -193,18 +247,34 @@ The initial update operations are pure and invariant-preserving:
 emptyFrame subject
 addPatternLike mergePolicy pattern frame
 combinePatternLikes mergePolicy patterns frame
-removePattern localIdentity frame
+removePattern localAddress frame
 ```
 
-Adding or combining admits Definitions and resolves their transitive local References.
-Matching local identities reconcile according to the selected policy. Removing a member
-fails when another registered member refers to it. Cascade deletion, reference rewriting,
-and automatic cross-Span cleanup remain caller operations until concrete workflows
-establish their semantics.
+`addPatternLike` admits one top-level occurrence. `combinePatternLikes` admits a batch of
+top-level occurrences atomically and resolves forward references across that batch. Both
+operations admit defining occurrences and resolve their transitive named references.
+Matching named local identities reconcile according to the selected policy.
 
-The API returns explicit errors for duplicate/conflicting identity definitions,
-unresolvable local references, and referenced-member deletion. No operation silently
-widens a Frame's registry or treats another Frame's local identity as its own.
+`removePattern` removes a registry entry only when no other entry refers to its address. A
+caller must first detach a parent-to-child containment link before removing a nested entry.
+Detachment is a structural operation distinct from deletion, symmetric with
+[Attach](#reconciliation); whether it is a named initial API primitive is an ADR-level
+decision. Structural edits recompute
+positional addresses for their affected anonymous descendants. A positional address is valid
+only against the Frame version that produced it; the replacement Frame supplies the
+authoritative new addresses.
+
+Frame updates preserve local registry closure and return a candidate replacement Frame.
+`FrameSpace.updateFrame` is the cross-Frame commit boundary: it validates every incident
+Span pair before returning a replacement FrameSpace. A Frame may be locally valid while
+being ineligible to replace its registered version in a FrameSpace.
+
+The API returns explicit errors for conflicting fuller definitions and referenced-member
+deletion. Named atomic occurrences are admitted as references or promoted definitions, not
+reported as unresolved references. Admission expands a Frame registry only through supplied
+occurrences and their nested defining occurrences. No operation resolves a named reference
+by importing a member from another Frame or treats another Frame's local identity as its
+own.
 
 ### Span, Bundle, and ownership
 
@@ -302,12 +372,12 @@ The first element identifies a member of the Span's first Frame and the second i
 a member of its second Frame. The Bundle validates that both endpoints exist in the
 endpoint Frames.
 
-Each endpoint is an atomic local reference: it has a non-anonymous local identity and no
-labels, properties, or nested elements. The Span supplies its Frame scope by position:
+Each endpoint is an atomic named local reference: it has a non-anonymous local identity and
+no labels, properties, or nested elements. The Span supplies its Frame scope by position:
 
 ```text
-pair.elements[0] = ScopedIdentity(Span.leftFrame, localIdentity)
-pair.elements[1] = ScopedIdentity(Span.rightFrame, localIdentity)
+pair.elements[0] = ScopedAddress(Span.leftFrame, Named localIdentity)
+pair.elements[1] = ScopedAddress(Span.rightFrame, Named localIdentity)
 ```
 
 An endpoint is never a member definition. Unlike a raw Pattern admitted to a Frame, its
@@ -356,17 +426,20 @@ integrity errors; it does not duplicate Subject merge policy.
 Frame reconciliation has two modes. `Replace` validates the incoming Frame and replaces
 the existing registry of the same Frame identity; existing members omitted from the
 incoming Frame do not survive. `Additive` admits incoming `PatternLike` definitions into
-the existing registry, adds missing local identities, reconciles matching identities with
-the selected `Pattern.Reconcile` policy, and retains existing members omitted from the
-incoming batch. FrameSpace validates incident Span endpoints after either mode.
+the existing registry, adds missing members, reconciles matching named identities with the
+selected `Pattern.Reconcile` policy, and retains existing members omitted from the incoming
+batch. FrameSpace validates incident Span endpoints after either mode.
 
-Frame identity and admitted member local identities are immutable addresses. A FrameSpace
+Frame identity and named member identities remain stable after admission. A FrameSpace
 requires each admitted Frame identity to be non-anonymous and unique. Reconciliation may
 change a member's labels, properties, and ordered local references, but it does not rename
-that member or its Frame. `Replace` may remove a member only when no local reference or
-incident Bundle pair addresses it; otherwise FrameSpace rejects the replacement.
+that member or its Frame. Positional addresses are derived structural locations and may
+change when their containing structure changes; anonymous members cannot serve as Span
+pair endpoints or stable external keys. `Replace` may remove a member only when no local
+reference or incident Bundle pair addresses it; otherwise FrameSpace rejects the
+replacement.
 
-Containment attachment is not a reconciliation mode. `Attach targetLocalIdentity
+Containment attachment is not a reconciliation mode. `Attach targetLocalAddress
 incomingDefinitions` admits definitions into the destination Frame namespace, then adds
 the selected incoming root addresses to the target member's ordered element sequence. It
 rejects direct self-reference, unresolved references, and identity conflicts. Content
@@ -374,11 +447,12 @@ from a different Frame must be imported or rebased into the destination namespac
 attachment; coincident local identities never trigger cross-Frame merging.
 
 `importSubgraph` copies selected source roots and their complete transitive local-reference
-closure into a destination Frame without changing the source. It preserves each local
-identity when it is unoccupied in the destination and rejects collisions by default. An
-import plan maps any colliding source local identity to its destination address and must
-cover every member reachable from the selected roots. The mapping is injective for newly
-imported members and rewrites every imported local Reference consistently.
+closure into a destination Frame without changing the source. It preserves each named local
+identity when it is unoccupied in the destination and rejects collisions by default.
+Anonymous members receive destination-relative positional addresses as their containment is
+rebuilt. An import plan maps any colliding source named local identity to its destination
+address and must cover every reachable named member. The mapping is injective for newly
+imported named members and rewrites every imported local Reference consistently.
 
 Mapping a source identity onto an existing destination identity is an explicit request to
 merge those members. That deliberate merge delegates content conflicts to the selected
@@ -389,8 +463,8 @@ Reconciliation, import/rebase, and attachment operate on distinct axes.
 `Replace` and `Additive` reconcile temporal versions of one Frame identity. `importSubgraph`
 copies content across Frame namespaces through an explicit address map while preserving the
 source Frame. `Attach` changes containment among content already in the destination
-namespace. Because its input references use only `LocalIdentity`, Attach cannot create a
-cross-Frame reference; cross-Frame relationships require a Span pair.
+namespace. Because its input references use only named `LocalIdentity` values, Attach cannot
+create a cross-Frame reference; cross-Frame relationships require a Span pair.
 
 Span-level pair reconciliation delegates pair-root Subject conflicts to the same policy,
 while retaining the pair adapter's endpoint cardinality and endpoint-conflict checks.
@@ -513,7 +587,7 @@ pair validation, reconciliation, and import/rebase.
 2. Replace the view/wrapper vocabulary and Pattern-shaped Span/Bundle representation in
    RFC-001 with the managed-container model.
 3. Check RFC-011 for terminology alignment after the RFC-001 rewrite, including
-   `ScopedIdentity` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`.
+   `ScopedAddress` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`.
 4. Mark ADR-001 superseded or rewrite it against the resulting RFC; it currently assumes
    cache-bearing wrappers and a Pattern-shaped Bundle.
 5. Create a new ADR for the Haskell registry representation, error types, FrameSpace
