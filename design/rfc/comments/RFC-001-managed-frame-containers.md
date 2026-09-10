@@ -363,9 +363,9 @@ updateFrame FrameIdentity
             -> Either FrameSpaceError FrameSpace
 removeFrame FrameIdentity -> FrameSpace -> Either FrameSpaceError FrameSpace
 
-addSpan     Span -> FrameSpace -> Either FrameSpaceError FrameSpace
+addSpan     SpanDraft -> FrameSpace -> Either FrameSpaceError FrameSpace
 updateSpan  SpanIdentity
-            (Span -> Either SpanError Span)
+            (Span -> Either SpanError SpanDraft)
             -> FrameSpace
             -> Either FrameSpaceError FrameSpace
 rebindPair  SpanIdentity PairLocalIdentity (LocalIdentity, LocalIdentity)
@@ -379,6 +379,11 @@ validates the replacement Frame, finds every incident Span, and validates every 
 Bundle endpoint before returning the next FrameSpace. An edit that removes a member used
 by a Bundle pair fails with an error identifying the affected PairAddresses; it never
 returns a partially updated FrameSpace.
+
+`addSpan` and `updateSpan` take a `SpanDraft` — the raw, unvalidated shape described above,
+not the confirmed `Span` type — and return a confirmed `Span` only once its pairs resolve
+against the current FrameSpace. Holding a `Span` value is therefore itself evidence that
+its pairs already resolved; no operation here accepts a bare `Span` as input.
 
 `addFrame` requires a new Frame identity and a locally valid Frame. `addSpan` requires
 both endpoint Frames and all Bundle pair endpoints to resolve in their designated left or
