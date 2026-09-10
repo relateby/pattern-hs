@@ -36,21 +36,26 @@ referential-integrity rules depend on a special context. A wrapper/view approach
 that ambiguity: it starts with an already-formed Pattern and attempts to add module,
 identity, and integrity semantics after the fact.
 
-A Frame establishes a new construction context instead. It begins with an identifying
-Subject and admits Pattern definitions into one referentially closed member registry. Each
-admitted definition becomes an addressable member; its ordered local references establish
-higher structure inside the Frame. A Span then establishes correspondence between members
-of two Frames without placing cross-Frame references inside either Frame.
+A Frame establishes a new construction context instead, echoing Pattern's own shape one
+level up: an identifying Subject admitting definitions into one referentially closed
+registry, whose entries are again a Subject with ordered elements — now references, not
+embedded values. A Span then establishes correspondence between members of two Frames
+without placing cross-Frame references inside either Frame. This is the same externality
+principle property graphs rely on — a node doesn't know its own relationships — applied to
+modules instead of nodes; the same principle later governs why an admitted member's own
+address never names its container, either.
 
 Given a Pattern `a`, a derived construction proceeds explicitly:
 
 1. Create Frame `af`.
 2. Admit `a` into `af`, registering each definition as a Frame member.
 3. Create Frame `bf`.
-4. Create Span `abs` between `af` and `bf`.
+4. Register `af` and `bf` in a FrameSpace — the two Frames must be found there, or held
+   directly, before any Span can confirm a correspondence between them.
 5. Create fresh members in `bf` for the selected members of `af`.
-6. Add ordered pair relationship Patterns to `abs`, pairing each selected address in `af`
-   with its corresponding address in `bf`.
+6. Draft `abs`'s Bundle, pairing each selected address in `af` with its corresponding
+   address in `bf`, and confirm it — as a `Span` via the FrameSpace, or as a `ClosedSpan`
+   directly against `af` and `bf`.
 
 The source members remain members of `af`; the derived members remain members of `bf`; and
 the Span owns the correspondence between them. Frames therefore supply the integrity
@@ -61,6 +66,15 @@ persistence: `frame_row(frame_id, id, labels, properties, elements)` uses `(fram
 as its member key, and `bundle_pair` enforces both endpoint Frame membership and endpoint
 existence through foreign keys. The in-memory model should have equivalent ownership and
 integrity rules before it is mapped to those rows.
+
+Pattern, Frame, ClosedSpan, Span, and FrameSpace form one spectrum, not five unrelated
+concepts. Pattern is deliberately semantics-free: a value with ordered elements, no
+identity or integrity rules at all. FrameSpace is the opposite pole: where identity,
+cross-container integrity, and `PairDispositionPolicy`'s actual enforcement happen over
+time. Frame and ClosedSpan sit in between — each carries a real, checkable invariant but
+needs no ongoing operational context to hold it, unlike Span, which only ever means
+anything relative to a FrameSpace. Building the model required discovering FrameSpace was
+necessary; read back, FrameSpace is the foundation the other four selectively forgo.
 
 ## Position
 
