@@ -208,7 +208,10 @@ a content-free defining entry. An anonymous defining occurrence retains its anon
 and receives a positional `LocalAddress` — a Frame-scoped ordinal assigned at admission, not
 derived from any containing occurrence. It
 cannot be targeted by a named Reference, a Span pair endpoint, or a stable external key
-until a later explicit promotion operation is defined.
+until a later explicit promotion operation is defined. Promotion assigns such a member a
+`LocalIdentity`; it is thereafter an ordinary named member and may serve as a Span pair
+endpoint. Whether that identity is caller-supplied or codec-minted is a concern shared
+with RFC-012, not decided here.
 
 A defining occurrence must not directly reference its own local address. Direct
 self-reference does not add useful containment structure and is rejected at Frame
@@ -685,9 +688,11 @@ implementation. Frame is not a wrapper, so the initial API does not expose a los
 Subject`, preserving the distinction between Definitions and References before registry
 validation.
 
-A later materialization is correct when it is reference-preserving graph equivalent to a
-Frame registry: it defines the same locally identified members, preserves their Subjects
-and ordered local references, and resolves to the same containment graph. It does not
+A later materialization is correct when it is topologically isomorphic to the Frame
+registry: a shape-preserving correspondence anchored on named identities, respecting
+Subject content and ordered containment edges. Anonymous members' ordinals are labels of
+one expression of that shape, not part of it — a faithful round-trip may reassign them,
+which is safe precisely because pair endpoints are named, never positional. It does not
 promise structural equality to one chosen nested `Pattern Subject` shape. The future
 conversion design must choose a canonical Gram presentation if one is required, root and
 definition placement, shared-member rendering, direct self-reference behavior, and
@@ -803,7 +808,12 @@ pair validation, reconciliation, import/rebase, and anonymous-member addressing.
    RFC-001 with the managed-container model.
 3. Check RFC-011 for terminology alignment after the RFC-001 rewrite, including
    `ScopedAddress` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`.
-4. Mark ADR-001 superseded or rewrite it against the resulting RFC; it currently assumes
+4. Align RFC-012's anonymous-identity model with this note: replace its parent-relative
+   `(nearest named ancestor, ordinal)` weak-entity paths with flat Frame-scoped ordinals,
+   which directly resolve its Open Question 1 (ordinal fragility under reordering), and
+   restate its acceptance criterion 5 so round-trip faithfulness means topological
+   isomorphism of the containment shape, not reproduction of any particular positional id.
+5. Mark ADR-001 superseded or rewrite it against the resulting RFC; it currently assumes
    cache-bearing wrappers and a Pattern-shaped Bundle.
-5. Create a new ADR for the Haskell registry representation, error types, FrameSpace
+6. Create a new ADR for the Haskell registry representation, error types, FrameSpace
    ownership API, and the `Pattern.Reconcile` adapter.
