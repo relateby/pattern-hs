@@ -32,3 +32,5 @@ cabal.sandbox.config
 # Universal additions
 Thumbs.db
 *.tmp
+
+.kilo
