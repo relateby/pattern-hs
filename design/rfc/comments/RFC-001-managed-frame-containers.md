@@ -454,10 +454,12 @@ removeSpan  SpanIdentity -> FrameSpace -> Either FrameSpaceError FrameSpace
 ```
 
 `updateFrame` is the cross-Frame integrity boundary. It applies a pure local Frame edit,
-validates the replacement Frame, finds every incident Span, and validates every affected
-Bundle endpoint before returning the next FrameSpace. An edit that removes a member used
-by a Bundle pair fails with an error identifying the affected PairAddresses; it never
-returns a partially updated FrameSpace.
+validates the replacement Frame, finds every incident Span, and consults each affected
+pair's owning Span `PairDispositionPolicy` (§Pair disposition policy) before returning the
+next FrameSpace. An edit that removes a member addressed by a `Veto` pair fails with an
+error identifying the affected PairAddresses; an edit affecting only `AutoDrop` pairs
+succeeds, and those pairs are dropped from their Bundle. It never returns a partially
+updated FrameSpace.
 
 `addSpan` and `updateSpan` take a `SpanDraft` — the raw, unvalidated shape described above,
 not the confirmed `Span` type — and return a confirmed `Span` only once its pairs resolve
@@ -554,6 +556,40 @@ and properties using the selected `Subject` reconciliation policy. Two versions 
 same PairAddress but different endpoints fail with an endpoint conflict. Changing a
 pair's endpoints requires an explicit rebind operation rather than generic Pattern
 element merging.
+
+### Pair disposition policy
+
+A Bundle pair's Subject may carry data relevant to how important that specific
+correlation is — a `Derived` label, a confidence score, a provenance property — but that
+data has no defined behavior on its own. Something must map it to what FrameSpace does
+when the pair's endpoint is threatened by a Frame edit. That mapping is a policy declared
+once per Span, not a value declared per pair, because pairs sharing one Span typically
+share one coherent provenance and confidence model:
+
+```text
+PairDisposition = Veto | AutoDrop
+
+PairDispositionPolicy
+  = AlwaysVeto
+  | AlwaysAutoDrop
+  | CustomDisposition (Pair -> PairDisposition)
+```
+
+`AlwaysVeto` and `AlwaysAutoDrop` are the two boundary cases. `AlwaysVeto` — every pair
+protects its endpoints; removing a referenced member always fails — is the default when a
+Span does not declare a policy, preserving the behavior described throughout this
+document and exercised in the Worked Exercise. `AlwaysAutoDrop` is its opposite: no pair
+ever blocks a Frame edit, and a pair left dangling by one is dropped rather than vetoing.
+`CustomDisposition` covers graduated policies between those two extremes — for example, a
+policy that reads a pair's `Derived` label and buckets its `confidence` property into
+low/medium/high, returning `Veto` for high-confidence pairs and `AutoDrop` for low ones —
+mirroring how `Pattern.Reconcile` supplies named policies (`LastWriteWins`, `Strict`,
+...) alongside custom ones rather than only ever hardcoding behavior into the substrate.
+
+A Span carries its `PairDispositionPolicy`; `ClosedSpan` carries it too, inertly, so a
+`ClosedSpan` re-admitted into a fresh FrameSpace does not silently revert to the default.
+FrameSpace consults the owning Span's policy, not a hardcoded rule, whenever `updateFrame`
+or `removeFrame` finds an incident pair.
 
 ### Reconciliation
 
@@ -653,10 +689,12 @@ axioms on the initial container API.
 
 ## Open Questions
 
-1. **Cascade deletion and repair ownership.** The initial model rejects referenced-member
-   deletion and does not rewrite local references or incident Bundle pairs. Resolve this
-   after concrete removal and repair workflows establish whether FrameSpace, callers, or a
-   higher-level service owns the transaction.
+1. **Cascade deletion and repair ownership.** The initial model still rejects deletion of a
+   member addressed by a local reference; whether FrameSpace, callers, or a higher-level
+   service repairs those references remains open pending concrete removal workflows. The
+   incident-Bundle-pair half is resolved by `PairDispositionPolicy` (§Pair disposition
+   policy): `AutoDrop` pairs are repaired by FrameSpace itself, dropped from their Bundle
+   rather than vetoing; `Veto` pairs still block the edit exactly as before.
 2. **Bundle endpoint uniqueness.** A Bundle may optionally limit entries to one PairAddress
    per ordered endpoint pair. Resolve the constraint's opt-in surface and conflict policy
    after evaluating whether ordinary workflows need parallel relationship entries.
