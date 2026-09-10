@@ -806,14 +806,39 @@ pair validation, reconciliation, import/rebase, and anonymous-member addressing.
    Bundle pair endpoint in `aircraft-maintenance` fails: pair endpoints require a named,
    author-chosen identity, which an anonymous ordinal is not.
 
+### Acceptance criteria and demo
+
+The exercise is the acceptance surface. Demonstrable today via SPIKE-001: scoped-address
+collision handling across two Frames (step 2); namespace-mismatch rejection (step 2 — no
+operation treats another Frame's local identity as its own); FrameSpace rejection of a
+Frame update that invalidates an incident pair (step 4). Two criteria wait on Open
+Question 6, since they are navigation operations: within-Frame navigation staying inside
+the Frame, and counterpart traversal returning only paired members. `AutoDrop` repair
+(§Pair disposition policy) is specified but not yet exercised.
+
+Runnable demo — `design/spikes/SPIKE-001-frame-registry`:
+
+```text
+cabal build all
+cabal exec -- runghc -ilibs/pattern/src -ilibs/subject/src -ilibs/gram/src \
+  design/spikes/SPIKE-001-frame-registry/scripts/Main.hs
+```
+
+Recorded result: 17 PASS assertions against the three fixtures. Completion time is
+unmeasured.
+
 ## Proposed Next Steps
 
 1. Exercise the model above against representative source documents before fixing the
    implementation-level API in an ADR.
 2. Replace the view/wrapper vocabulary and Pattern-shaped Span/Bundle representation in
-   RFC-001 with the managed-container model.
+   RFC-001 with the managed-container model, retaining behavioral contracts and named
+   public concepts — a small contract table — and moving signatures, error constructors,
+   and index lifecycle to the ADR.
 3. Check RFC-011 for terminology alignment after the RFC-001 rewrite, including
-   `ScopedAddress` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`.
+   `ScopedAddress` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`,
+   and confirm that any by-reference serialization form names the Span-ownership
+   boundary, so a Bundle is never independently shared mutable state.
 4. Align RFC-012's anonymous-identity model with this note: replace its parent-relative
    `(nearest named ancestor, ordinal)` weak-entity paths with flat Frame-scoped ordinals,
    which directly resolve its Open Question 1 (ordinal fragility under reordering), and
