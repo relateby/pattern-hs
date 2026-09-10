@@ -221,11 +221,21 @@ Frame admission has no nested identity namespaces: every defining occurrence at 
 input depth becomes an entry in the same registry, while ordered local-address links
 express its containment relationships.
 
-Each registry entry retains a Subject and an ordered sequence of local member addresses
-rather than recursively embedded Pattern values. The registry is the canonical membership
-domain; its address links are the canonical containment structure. This provides one
-authoritative entry for every local address, permits cycles, and avoids updating copied
-nested values when a member changes.
+Each registry entry is a `PatternRow` — the same Subject-plus-ordered-references shape
+`Pattern` itself has, but with elements as local references rather than recursively
+embedded Pattern values:
+
+```text
+PatternRow    = PatternRow Subject [LocalIdentity]
+FrameRegistry = Map LocalAddress PatternRow
+```
+
+`FrameRegistry`, keyed by `LocalAddress`, is the canonical membership domain; its address
+links are the canonical containment structure. This provides one authoritative entry for
+every local address, permits cycles, and avoids updating copied nested values when a
+member changes. Unlike Bundle below, this keyed form is not an optimization layered over
+some other canonical ordered shape — it is canonical, precisely because a cycle has no
+single canonical ordered presentation (next paragraph).
 
 A Frame can produce many semantically equivalent `Pattern Subject` presentations. Each
 complete presentation defines every registry entry once and uses atomic local references
@@ -311,9 +321,9 @@ uses the current endpoint Frames. One Frame can therefore participate in many Sp
 without copied state or divergent snapshots. A standalone Frame remains valid, but a Span
 requires FrameSpace membership because its endpoints and pair addresses must resolve.
 
-A FrameSpace snapshot, rather than a second public Span-by-value type, is the exchange
-form for a Span with its endpoint Frames. Replacing a Frame through FrameSpace checks all
-incident Spans before returning the replacement collection.
+A `ClosedSpan` (below), rather than a second public Span-by-value type living inside
+FrameSpace, is the exchange form for a Span with its endpoint Frames. Replacing a Frame
+through FrameSpace checks all incident Spans before returning the replacement collection.
 
 ### Span validity is relative to a FrameSpace
 
@@ -343,6 +353,75 @@ Mirroring Frame's own `PatternLike`/registry-entry distinction, only the FrameSp
 confirmed form should be named `Span`; holding a `Span` value should itself be evidence
 that its pairs already resolved against some FrameSpace, not merely a record shaped like
 one.
+
+### ClosedSpan: Span validity without a FrameSpace
+
+Frame's closure invariant is already decidable from a Frame value alone (previous section),
+so Frame needs no separate "closed" counterpart — it already is one. A Span's pair-endpoint
+invariant only appears open because `Span` stores Frame *identities* rather than Frame
+*values*. Given the two actual Frame values a Span relates, pair-endpoint resolution is a
+purely local check against their own registries; it needs nothing from a broader FrameSpace.
+
+`ClosedSpan` makes that explicit: a Span-shaped value built directly from two Frame values
+and a Bundle of candidate pairs, validated against those two Frames alone.
+
+```text
+closedSpan :: Subject -> Frame -> Frame -> Bundle -> Either SpanError ClosedSpan
+```
+
+`ClosedSpan` is independently valid outside any FrameSpace, the same way Frame already is.
+`closeSpan :: Span -> FrameSpace -> ClosedSpan` remains available as a convenience — resolve
+a confirmed Span's two Frame identities through a FrameSpace, then call `closedSpan` — but
+FrameSpace involvement is optional plumbing for `ClosedSpan`, not a requirement.
+
+This sharpens what FrameSpace is actually for. It is not required to validate a Span's
+pairs — that only ever needed two Frame values. FrameSpace exists to let a Span reference a
+Frame by identity rather than by value, so one Frame can be related by many Spans without
+duplication, and to track which Spans must be revalidated when a Frame identity's current
+value later changes. Neither Frame nor ClosedSpan needs that tracking, because neither one
+references anything by identity that could later move: a Frame is a value, and a ClosedSpan
+embeds values, not identities.
+
+`Span` and `ClosedSpan` therefore serve different, non-overlapping roles rather than one
+superseding the other. `Span` answers "what does this relationship mean right now,"
+re-resolved against whatever FrameSpace it is given each time; it can never go stale because
+it never freezes anything. `ClosedSpan` answers "what did this relationship mean at the
+moment it was closed" — a permanently valid, self-contained record, useful for
+serialization, export, or any consumer without a live FrameSpace, but unable by construction
+to observe a later Frame update.
+
+### Correlating Frames by shared local identity
+
+Two independently ingested Frames may reuse the same named local identity for what is, in
+the source domain, the same real-world thing — while the Frame model's own namespacing rule
+treats that as coincidence, not correlation: equal named local identities in different Frame
+identities remain different members until something explicit says otherwise. A convenience
+constructor can turn that coincidence into an explicit correlation, without changing that
+rule.
+
+Graph-algebra combinators are close, but not exact, here. `overlay` (Mokhov, "An Algebra of
+Graphs") adds no new edges between the graphs it combines — applied to two Frames it would
+only give back two unrelated Frames, which is already true without it. `connect` adds an
+edge from every vertex of the first graph to every vertex of the second, which is too
+indiscriminate: it would pair every member of one Frame with every member of the other, not
+just the ones that actually correspond. The useful operation is a filtered `connect` — a
+natural join on matching named local identities:
+
+```text
+correlateByIdentity :: Frame -> Frame -> Bundle
+```
+
+For each named local identity occurring in both Frames, `correlateByIdentity` proposes one
+candidate pair relating them. It produces candidates only: consistent with pair admission
+requiring a non-anonymous PairLocalIdentity, and with Attach's rule that coincident local
+identities never trigger cross-Frame merging, a caller must assign each candidate its own
+PairLocalIdentity before `closedSpan` or `addSpan` will accept it. Matching symbols are a
+construction hint, never an automatic merge.
+
+`correlateByIdentity` is one convenience constructor among several ways to populate a
+Bundle, not the general case. Manual pairing remains necessary whenever a correspondence
+holds between differently named members, as in the aircraft/maintenance exercise's
+`engine`/`inspect-engine` pairing.
 
 ### FrameSpace integrity API
 
@@ -400,9 +479,25 @@ same atomic pure replacement model.
 ### Bundle pair Patterns
 
 A Bundle is a Span-owned collection of pair relationship Patterns, not a Pattern of
-pairs and not an independent serializable entity. Each pair Pattern has a root `Subject`
-and exactly two elements. The root Subject supplies the pair's local identity, labels,
-and properties. Its identity is scoped by its containing Span:
+pairs and not an independent serializable entity:
+
+```text
+Pair   = PatternRow
+Bundle = [Pair]
+```
+
+A `Pair` is a `PatternRow`: the same Subject-plus-ordered-references shape as a Frame
+registry entry, conventionally constrained to exactly two elements — enforced at
+admission, not by the type — with the Frame each position resolves against supplied
+externally by the owning Span rather than by containment. `Bundle`'s canonical shape is
+the ordered list, matching `Pattern`'s own ordered-elements convention; unlike
+`FrameRegistry`, there is no cycle among pairs forcing a keyed form to be canonical, so
+order is preserved rather than given up. Bundle admission maintains a derived
+`Map PairLocalIdentity Pair` index for uniqueness checking and lookup — an optimization
+over the canonical ordered list, not a replacement for it. The root Subject supplies the
+pair's local identity, labels, and properties. Its identity is the `PairLocalIdentity` —
+the same relationship a Frame's identifying Subject has to its `FrameIdentity` — and is
+scoped by its containing Span:
 
 ```text
 PairAddress = (SpanIdentity, PairLocalIdentity)
@@ -579,6 +674,10 @@ axioms on the initial container API.
 6. **Within-Frame query and navigation.** The registry model has not yet designed
    successors for RFC-001's `find`, `containers`, `siblings`, and `framePara` operations.
    Resolve the query API and its ScopeQuery relationship before implementation planning.
+7. **Correlate-by-identity ambiguity.** `correlateByIdentity` needs a policy for a named
+   identity occurring as a candidate correspondence more than once, or for a candidate that
+   conflicts with an existing pair's endpoints. Resolve the conflict policy and
+   PairLocalIdentity assignment convention once a concrete correlation workflow exists.
 
 ## Worked Exercise: Aircraft and Maintenance
 
