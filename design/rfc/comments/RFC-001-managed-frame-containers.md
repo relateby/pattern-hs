@@ -183,7 +183,7 @@ them, permitting forward references and indirect cycles.
 
 `Reference LocalIdentity` names a prospective named registry entry. If no fuller definition
 of that identity exists after admission and reconciliation, the occurrence is promoted to
-an atomic defining entry. An anonymous defining occurrence retains its anonymous Subject
+a content-free defining entry. An anonymous defining occurrence retains its anonymous Subject
 and receives a positional LocalAddress from its parent address and ordinal position. It
 cannot be targeted by a named Reference, a Span pair endpoint, or a stable external key
 until a later explicit promotion operation is defined.
@@ -198,13 +198,15 @@ Gram supplies this distinction directly: bracket syntax maps to `Definition` and
 identifier in element position maps to `Reference`. A complete Frame presentation defines
 each named local identity once and uses References for every further named occurrence.
 
-Raw `Pattern Subject` does not preserve definition/reference provenance: an atomic Pattern
-may be a definition or the in-memory form of a Gram reference. It remains a convenient
-compatibility import format. Its importer applies the existing `Pattern.Reconcile`
-convention: an atomic Pattern sharing an identity with a fuller definition is a reference;
-an atomic Pattern with no fuller definition is promoted to an atomic defining entry.
-`PatternLike Subject` remains the canonical admission format because it retains source
-provenance before this fallback is needed.
+Raw `Pattern Subject` carries no syntactic tag distinguishing a definition from a
+reference, unlike `PatternLike`. Its importer recovers that distinction from content:
+identity alone is a reference-candidate; any labels, properties, or elements make it a
+definition. Two definitions sharing an identity are a content conflict, deferred to the
+selected `Pattern.Reconcile` policy rather than treated as an admission error — raw
+Pattern import is a compatibility fallback, more permissive than `PatternLike`
+admission's stricter default. `PatternLike Subject` remains canonical because it carries
+this distinction directly, without needing content-based recovery. The recovery
+algorithm and its batch semantics are an ADR-level concern.
 
 A full Pattern in one Frame and an atomic Pattern in another Frame are not a
 Frame-internal reference; a Span pair records their relationship.
@@ -291,7 +293,7 @@ Span pair before returning a replacement FrameSpace. A Frame may be locally vali
 being ineligible to replace its registered version in a FrameSpace.
 
 The API returns explicit errors for conflicting fuller definitions and referenced-member
-deletion. Named atomic occurrences are admitted as references or promoted definitions, not
+deletion. Named content-free occurrences are admitted as references or promoted definitions, not
 reported as unresolved references. Admission expands a Frame registry only through supplied
 occurrences and their nested defining occurrences. No operation resolves a named reference
 by importing a member from another Frame or treats another Frame's local identity as its
@@ -514,7 +516,7 @@ The first element identifies a member of the Span's first Frame and the second i
 a member of its second Frame. The Bundle validates that both endpoints exist in the
 endpoint Frames.
 
-Each endpoint is an atomic named local reference: it has a non-anonymous local identity and
+Each endpoint is a named local reference: it has a non-anonymous local identity and
 no labels, properties, or nested elements. The Span supplies its Frame scope by position:
 
 ```text
@@ -523,8 +525,8 @@ pair.elements[1] = ScopedAddress(Span.rightFrame, Named localIdentity)
 ```
 
 An endpoint is never a member definition. Unlike a raw Pattern admitted to a Frame, its
-position inside a pair is explicitly a reference position, so an atomic Pattern has only
-that interpretation. FrameSpace validates the two resulting scoped addresses when the
+position inside a pair is explicitly a reference position, so a content-free Pattern has
+only that interpretation. FrameSpace validates the two resulting scoped addresses when the
 Span is admitted or updated.
 
 Each Bundle pair is an ordered two-element Pattern. Its first endpoint must resolve in
