@@ -58,6 +58,14 @@ Definition/Reference input, accepts the aircraft workflow's indirect cycle, give
 anonymous Definition a generated Frame-unique identity, rejects direct self-reference,
 and rejects ambiguous raw Pattern import.
 
+**2026-09-11 addendum:** the discussion note's anonymous-member model changed after this
+spike concluded — anonymous members now acquire no invented Subject identity at all and
+are addressed instead by a flat, Frame-scoped positional ordinal (see
+`design/rfc/comments/RFC-001-managed-frame-containers.md`, §Identity and addresses). The
+"generated Frame-unique identity" assertion above validates the superseded model that
+preceded that change, not the current one. This spike is frozen and not re-run against
+later revisions; it answers the question posed in §1 as of 2026-09-08.
+
 FrameSpace validation rejects both local referenced-member deletion and deletion that
 would leave a Span pair endpoint dangling. Explicit `rebindPair` permits the latter
 replacement. Import/rebase rejects a local identity collision by default, succeeds with

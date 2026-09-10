@@ -241,7 +241,8 @@ Frame-internal reference; a Span pair records their relationship.
 A new Frame starts with its identifying Subject and no registry entries. Admitting a
 `PatternLike Subject` recursively turns each defining occurrence into one independently
 addressable Frame entry. Duplicate named local identities reconcile under the selected
-policy; conflicting fuller definitions are errors. Anonymous defining occurrences receive
+policy. Two fuller definitions whose content that policy cannot reconcile are errors.
+Anonymous defining occurrences receive
 positional addresses as Frame-scoped ordinals assigned at admission, independent of any
 containing occurrence.
 
@@ -397,9 +398,14 @@ closedSpan :: Subject -> Frame -> Frame -> Bundle -> Either SpanError ClosedSpan
 ```
 
 `ClosedSpan` is independently valid outside any FrameSpace, the same way Frame already is.
-`closeSpan :: Span -> FrameSpace -> ClosedSpan` remains available as a convenience — resolve
-a confirmed Span's two Frame identities through a FrameSpace, then call `closedSpan` — but
-FrameSpace involvement is optional plumbing for `ClosedSpan`, not a requirement.
+`closeSpan :: Span -> FrameSpace -> Either SpanError ClosedSpan` remains available as a
+convenience — resolve a confirmed Span's two Frame identities through a FrameSpace, then
+call `closedSpan` — but FrameSpace involvement is optional plumbing for `ClosedSpan`, not
+a requirement. `closeSpan` can fail even though `Span` was already confirmed: a `Span`
+proves validity only against the FrameSpace generation that confirmed it, and a later
+generation may have dropped a pair (`AutoDrop`) or rebound one, so `closeSpan` revalidates
+against the FrameSpace it is actually given rather than assuming the old confirmation
+still holds.
 
 This sharpens what FrameSpace is actually for. It is not required to validate a Span's
 pairs — that only ever needed two Frame values. FrameSpace exists to let a Span reference a
@@ -489,9 +495,11 @@ succeeds, and those pairs are dropped from their Bundle. It never returns a part
 updated FrameSpace.
 
 `addSpan` and `updateSpan` take a `SpanDraft` — the raw, unvalidated shape described above,
-not the confirmed `Span` type — and return a confirmed `Span` only once its pairs resolve
-against the current FrameSpace. Holding a `Span` value is therefore itself evidence that
-its pairs already resolved; no operation here accepts a bare `Span` as input.
+not the confirmed `Span` type — and, on success, store a confirmed `Span` in the returned
+FrameSpace once its pairs resolve against the current FrameSpace. Neither function returns
+a `Span` directly: the caller retrieves it with `lookupSpan` against that returned
+FrameSpace. Holding a `Span` value obtained that way is therefore itself evidence that its
+pairs already resolved; no operation here accepts a bare `Span` as input.
 
 `addFrame` requires a new Frame identity and a locally valid Frame. `addSpan` requires
 both endpoint Frames and all Bundle pair endpoints to resolve in their designated left or
@@ -616,7 +624,18 @@ mirroring how `Pattern.Reconcile` supplies named policies (`LastWriteWins`, `Str
 A Span carries its `PairDispositionPolicy`; `ClosedSpan` carries it too, inertly, so a
 `ClosedSpan` re-admitted into a fresh FrameSpace does not silently revert to the default.
 FrameSpace consults the owning Span's policy, not a hardcoded rule, whenever `updateFrame`
-or `removeFrame` finds an incident pair.
+finds an incident pair. The policy governs a member-level edit inside a Frame, not the
+disappearance of an entire endpoint Frame: `removeFrame` still fails unconditionally while
+any incident Span exists, since `AutoDrop`-ping a pair cannot repair a Span whose Frame
+identity no longer resolves at all. Cascade-removing Spans when an endpoint Frame is
+removed is a separate, undesigned capability.
+
+`AlwaysVeto` and `AlwaysAutoDrop` are serializable by name; `CustomDisposition` wraps an
+opaque function and is not. A `ClosedSpan` built with a named policy round-trips through
+export and re-admission intact. A `ClosedSpan` built with `CustomDisposition` is
+re-admission-only: its policy must be resupplied by the caller at admission, since no
+serializable identifier for an arbitrary `Pair -> PairDisposition` function exists yet.
+A serializable policy-identifier scheme, if one is needed, is an ADR-level concern.
 
 ### Reconciliation
 
@@ -809,12 +828,15 @@ pair validation, reconciliation, import/rebase, and anonymous-member addressing.
 ### Acceptance criteria and demo
 
 The exercise is the acceptance surface. Demonstrable today via SPIKE-001: scoped-address
-collision handling across two Frames (step 2); namespace-mismatch rejection (step 2 — no
-operation treats another Frame's local identity as its own); FrameSpace rejection of a
-Frame update that invalidates an incident pair (step 4). Two criteria wait on Open
-Question 6, since they are navigation operations: within-Frame navigation staying inside
-the Frame, and counterpart traversal returning only paired members. `AutoDrop` repair
-(§Pair disposition policy) is specified but not yet exercised.
+collision handling across two Frames (step 2 — equal local symbols in `aircraft-17` and
+`maintenance-17` coexist without merging); FrameSpace rejection of a Frame update that
+invalidates an incident pair (step 4). Three criteria are not yet demonstrated: namespace-
+mismatch rejection specifically — a local identity that exists, but only in the Span's
+other Frame, used as an endpoint — since the spike's invalid-Span check uses an identity
+absent from both Frames, not one merely misplaced; and, pending Open Question 6, two
+navigation operations: within-Frame navigation staying inside the Frame, and counterpart
+traversal returning only paired members. `AutoDrop` repair (§Pair disposition policy) is
+specified but not yet exercised either.
 
 Runnable demo — `design/spikes/SPIKE-001-frame-registry`:
 
