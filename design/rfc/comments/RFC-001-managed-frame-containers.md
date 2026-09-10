@@ -122,21 +122,28 @@ member within one Frame. An anonymous Pattern carries no Subject identity, for e
 [:Greeting { msg: "Hello" }]
 ```
 
-Anonymous Patterns remain valid Frame members. Their address derives from their containing
-address and ordinal element position. In `[messages | [:Greeting { msg: "Hello" }]]`, the
-greeting is addressed relative to `messages` and position `0`. Deeper anonymous Patterns
-extend that positional path.
+Anonymous Patterns remain valid Frame members. Admission assigns each one a flat,
+Frame-scoped ordinal — the same status a named identity has, just unnamed — rather than an
+address relative to whatever Pattern first contained it. Containment is recorded the other
+way around: whichever `PatternRow` lists that ordinal among its elements is one of its
+containers, and nothing prevents more than one from doing so, so an anonymous Pattern is
+shareable across multiple containers exactly like a named one. In
+`[messages | [:Greeting { msg: "Hello" }]]`, the greeting receives its own ordinal at
+admission, and `messages`'s `PatternRow` records that ordinal as its element — containment
+is `messages`'s statement about the greeting, not the greeting's own address. Nesting depth
+has no bearing on that ordinal; only a containing `PatternRow`'s element list records the
+relationship.
 
 An anonymous atomic Pattern is admitted rather than rejected. Adding `()` three times to
-one Frame creates three distinct registry entries at three positional addresses, even
-though their Subjects and element lists are identical. The entries do not receive invented
-Subject identities; their addresses distinguish their Frame-local occurrences.
+one Frame creates three distinct registry entries at three ordinals, even though their
+Subjects and element lists are identical. The entries do not receive invented Subject
+identities; their ordinals distinguish their Frame-local occurrences.
 
 Every Frame member has a local address, while only named members have a local identity.
 A scoped address identifies where either kind of member occurs:
 
 ```text
-LocalAddress  = Named LocalIdentity | Positional ParentAddress ElementOrdinal
+LocalAddress  = Named LocalIdentity | Positional ElementOrdinal
 ScopedAddress = FrameIdentity x LocalAddress
 ```
 
@@ -184,7 +191,8 @@ them, permitting forward references and indirect cycles.
 `Reference LocalIdentity` names a prospective named registry entry. If no fuller definition
 of that identity exists after admission and reconciliation, the occurrence is promoted to
 a content-free defining entry. An anonymous defining occurrence retains its anonymous Subject
-and receives a positional LocalAddress from its parent address and ordinal position. It
+and receives a positional `LocalAddress` — a Frame-scoped ordinal assigned at admission, not
+derived from any containing occurrence. It
 cannot be targeted by a named Reference, a Span pair endpoint, or a stable external key
 until a later explicit promotion operation is defined.
 
@@ -217,7 +225,8 @@ A new Frame starts with its identifying Subject and no registry entries. Admitti
 `PatternLike Subject` recursively turns each defining occurrence into one independently
 addressable Frame entry. Duplicate named local identities reconcile under the selected
 policy; conflicting fuller definitions are errors. Anonymous defining occurrences receive
-positional addresses from their containing addresses and element positions.
+positional addresses as Frame-scoped ordinals assigned at admission, independent of any
+containing occurrence.
 
 Frame admission has no nested identity namespaces: every defining occurrence at every
 input depth becomes an entry in the same registry, while ordered local-address links
@@ -228,7 +237,7 @@ Each registry entry is a `PatternRow` — the same Subject-plus-ordered-referenc
 embedded Pattern values:
 
 ```text
-PatternRow    = PatternRow Subject [LocalIdentity]
+PatternRow    = PatternRow Subject [LocalAddress]
 FrameRegistry = Map LocalAddress PatternRow
 ```
 
@@ -278,14 +287,13 @@ top-level occurrences atomically and resolves forward references across that bat
 operations admit defining occurrences and resolve their transitive named references.
 Matching named local identities reconcile according to the selected policy.
 
-`removePattern` removes a registry entry only when no other entry refers to its address. A
-caller must first detach a parent-to-child containment link before removing a nested entry.
-Detachment is a structural operation distinct from deletion, symmetric with
-[Attach](#reconciliation); whether it is a named initial API primitive is an ADR-level
-decision. Structural edits recompute
-positional addresses for their affected anonymous descendants. A positional address is valid
-only against the Frame version that produced it; the replacement Frame supplies the
-authoritative new addresses.
+`removePattern` removes a registry entry only when no other entry refers to its address —
+named or positional alike, now that both are stable, Frame-scoped addresses rather than one
+being relative to a container. A caller must first detach a containment link, removing the
+address from whichever `PatternRow`'s element list held it, before removing an entry
+nothing else references. Detachment is a structural operation distinct from deletion,
+symmetric with [Attach](#reconciliation); whether it is a named initial API primitive is an
+ADR-level decision.
 
 Frame updates preserve local registry closure and return a candidate replacement Frame.
 `FrameSpace.updateFrame` is the cross-Frame commit boundary: it validates every incident
@@ -611,9 +619,11 @@ batch. FrameSpace validates incident Span endpoints after either mode.
 Frame identity and named member identities remain stable after admission. A FrameSpace
 requires each admitted Frame identity to be non-anonymous and unique. Reconciliation may
 change a member's labels, properties, and ordered local references, but it does not rename
-that member or its Frame. Positional addresses are derived structural locations and may
-change when their containing structure changes; anonymous members cannot serve as Span
-pair endpoints or stable external keys. `Replace` may remove a member only when no local
+that member or its Frame. Positional addresses are as stable as named ones once assigned;
+anonymous members still cannot serve as Span pair endpoints or stable external keys — not
+because their address is unstable, but because a pair endpoint needs an author-chosen,
+domain-meaningful identity, which an anonymous ordinal is not. `Replace` may remove a
+member only when no local
 reference or incident Bundle pair addresses it; otherwise FrameSpace rejects the
 replacement.
 
@@ -627,8 +637,8 @@ attachment; coincident local identities never trigger cross-Frame merging.
 `importSubgraph` copies selected source roots and their complete transitive local-reference
 closure into a destination Frame without changing the source. It preserves each named local
 identity when it is unoccupied in the destination and rejects collisions by default.
-Anonymous members receive destination-relative positional addresses as their containment is
-rebuilt. An import plan maps any colliding source named local identity to its destination
+Anonymous members receive fresh Frame-scoped ordinals in the destination as their
+containment is rebuilt. An import plan maps any colliding source named local identity to its destination
 address and must cover every reachable named member. The mapping is injective for newly
 imported named members and rewrites every imported local Reference consistently.
 
