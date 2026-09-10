@@ -747,7 +747,7 @@ axioms on the initial container API.
 
 The following exercise tests the managed-container model before its implementation-level
 API is fixed. It uses two Frames in one FrameSpace and covers local closure, cross-Frame
-pair validation, reconciliation, and import/rebase.
+pair validation, reconciliation, import/rebase, and anonymous-member addressing.
 
 1. Admit an `aircraft-17` Frame with members `engine`, `fuel-system`, `fuel-pump`, and
    `diagnostic-procedure`. Its local references form the indirect cycle `engine ->
@@ -787,6 +787,13 @@ pair validation, reconciliation, and import/rebase.
    `engine` definitions, `Attach work-order [engine]` adds the mapped root address to the
    work order. The operation fails without the explicit collision map and returns one
    locally closed repair-plan Frame when the map and merge succeed.
+8. Admit an anonymous `[:Note { text: "temporary patch, revisit" }]` into `aircraft-17`
+   as an element of `fuel-pump`. It receives its own Frame-scoped ordinal, distinct from
+   `fuel-pump`'s own address. Attaching that same ordinal as an element of
+   `diagnostic-procedure` too gives the note two containers — valid, since nothing in the
+   note's own address ties it to either one. Attempting to use the note's ordinal as a
+   Bundle pair endpoint in `aircraft-maintenance` fails: pair endpoints require a named,
+   author-chosen identity, which an anonymous ordinal is not.
 
 ## Proposed Next Steps
 
