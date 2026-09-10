@@ -740,9 +740,15 @@ axioms on the initial container API.
 5. **Incident-Span discovery cost.** `updateFrame` validates every incident Span Bundle,
    so its cost grows with a Frame's Span fan-out. Resolve the index strategy after a
    representative multi-Span workload establishes the required performance profile.
-6. **Within-Frame query and navigation.** The registry model has not yet designed
-   successors for RFC-001's `find`, `containers`, `siblings`, and `framePara` operations.
-   Resolve the query API and its ScopeQuery relationship before implementation planning.
+6. **Within-Frame query and navigation.** RFC-001's `find`, `containers`, `siblings`,
+   and `framePara` have no registry-model successors yet. This gates implementation
+   planning, not merely implementation: `ScopeQuery` (`Pattern.Core`) has live generic
+   consumers — `RepresentationMap`, `Graph.Transform`, `Pattern` — so the rewrite must
+   decide whether it is retained, adapted, or replaced, and must preserve or explicitly
+   revise each operation's documented behavior. Traversal order, cycle and
+   shared-membership handling, and ambient-context semantics over `FrameRegistry` are
+   the ADR's to specify against that contract. Public lookup and counterpart operations
+   return a typed error on an unresolved endpoint, never a silent skip.
 7. **Correlate-by-identity ambiguity.** `correlateByIdentity` needs a policy for a named
    identity occurring as a candidate correspondence more than once, or for a candidate that
    conflicts with an existing pair's endpoints. Resolve the conflict policy and
