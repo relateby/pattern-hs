@@ -86,6 +86,13 @@ One day.
   Patterns — `fromGramWithIds` assigns those at parse time, pre-empting Frame admission's
   own ordinal assignment. See Findings.
 - `cabal build all` required before `cabal exec -- runghc`, same as SPIKE-001.
+- Initial parse-failure findings for `social.gram`, `implicit-root.gram`, and
+  `deep-nesting.gram` were checked only against `gramref`, this repo's own reference CLI —
+  not authoritative. Re-checked against the canonical `gram check`
+  ([gram-data/tree-sitter-gram/tools/gram](https://github.com/gram-data/tree-sitter-gram/tree/main/tools/gram)):
+  all three fail identically there too, so `Gram.Parse` was never the problem. Issue #75
+  closed as a misdiagnosis; #76 retitled from "parser gap" to "invalid fixtures." See
+  Findings below for the corrected account.
 
 ## 5. Findings
 
@@ -108,38 +115,44 @@ finding rather than a toy-example near-miss:
   registry entries — exactly the superseded generated-identity model SPIKE-001 validated
   and this RFC later replaced. `fromGram` is the correct entry point for any raw-Pattern
   admission path; `fromGramWithIds` is not a compatibility option for it.
-- **`social.gram` (tree-sitter-gram's own example) does not parse under `Gram.Parse`.**
-  Top-level comma-concatenation — `(ee:Person {...}), (mh:Person {...})` — fails with
-  `unexpected ','`. This syntax is used in a separate project's own example corpus for its
-  own grammar; `Gram.Parse` does not currently accept it. A `Gram.Parse` gap, not a
-  Frame/Span one. Confirmed independently via `gramref parse` (not just this spike's own
-  driver) and filed as
-  [relateby/pattern-hs#75](https://github.com/relateby/pattern-hs/issues/75).
-- **`implicit-root.gram` (`a-b-c`) and `deep-nesting.gram` (`[a | b | c | d | e]`) do not
-  parse under `Gram.Parse`** (`fromGram` and `fromGramWithIds` both fail identically, at the
-  shared CST-parsing stage before either function's Transform step; `gramref parse`
-  reproduces both independently). Both are this repo's own committed roundtrip fixtures.
-  Filed as [relateby/pattern-hs#76](https://github.com/relateby/pattern-hs/issues/76).
-  Investigating why surfaced a second, independent bug: `RoundtripSpec.hs`'s "Custom Edge
-  Case Roundtrip Tests" reports *"No .gram custom test files found in
-  `libs/gram/test-data/roundtrip/custom/`"* and skips as pending when run via
+- **`social.gram`, `implicit-root.gram`, and `deep-nesting.gram` do not parse under
+  `Gram.Parse`** — but `Gram.Parse` is not at fault. `gramref`, this repo's own reference
+  CLI, is not the authoritative implementation; the canonical tool is `gram check` from
+  [gram-data/tree-sitter-gram/tools/gram](https://github.com/gram-data/tree-sitter-gram/tree/main/tools/gram),
+  built from the actual grammar. Checked against it directly, all three fail identically
+  (`route-66.gram` passes clean as a positive control), so `Gram.Parse` correctly agrees
+  with the canonical grammar in every case — there is no pattern-hs parser gap here at all.
+  `social.gram`'s top-level comma-concatenation (`(ee:Person {...}), (mh:Person {...})`) is
+  invalid per the canonical grammar despite the file's own inline comment claiming it works
+  — a stale example in `gram-data/tree-sitter-gram`'s own upstream corpus, not a pattern-hs
+  issue; closed as
+  [relateby/pattern-hs#75](https://github.com/relateby/pattern-hs/issues/75) once confirmed,
+  to be reported upstream separately. `implicit-root.gram` (`a-b-c`) and `deep-nesting.gram`
+  (`[a | b | c | d | e]`) use syntax that was never valid gram at all, canonically — these
+  are this repo's own fixtures and are simply wrong, not aspirational; tracked as
+  [relateby/pattern-hs#76](https://github.com/relateby/pattern-hs/issues/76), retitled after
+  the correction. Investigating the second of those surfaced a genuinely independent bug:
+  `RoundtripSpec.hs`'s "Custom Edge Case Roundtrip Tests" reports *"No .gram custom test
+  files found in `libs/gram/test-data/roundtrip/custom/`"* and skips as pending when run via
   `cabal test`/`cabal test all`, even though five files are present — `findCorpusFiles`'s
   repo-root-relative path only resolves when the test binary's working directory is the
   repo root, which `cabal test` does not use. Running the built `gram-test` binary directly
-  from the repo root finds all five files and correctly reproduces both failures (2 of 6
-  examples). Filed as
-  [relateby/pattern-hs#77](https://github.com/relateby/pattern-hs/issues/77). All three are
-  `Gram.Parse`/test-infrastructure issues, out of this spike's Frame-only scope, and are not
-  fixed here.
+  from the repo root finds all five files and correctly reproduces both fixtures' failures
+  (2 of 6 examples). Filed as
+  [relateby/pattern-hs#77](https://github.com/relateby/pattern-hs/issues/77), unaffected by
+  the correction above. All three are test-fixture/test-infrastructure issues, out of this
+  spike's Frame-only scope, and are not fixed here.
 
 ## 6. Conclusion
 
 Frame admission and closure, under the corrected flat-ordinal model, held up against real,
 independently authored content with no special-casing required — the positive result this
-spike was timeboxed to obtain. The two parser gaps and the roundtrip-corpus-discovery bug
-are real and worth a follow-up outside this spike's scope; they say nothing about the
-Frame/Span model's soundness, only that `Gram.Parse` and its own test suite have drifted
-from a subset of their own committed/upstream examples. `fromGramWithIds` should not be
+spike was timeboxed to obtain. `Gram.Parse` itself came out of this spike looking better
+than the first pass of findings suggested: checked against the canonical `gram` tool, it
+agrees with the grammar on every fixture tried, including the three that failed to parse.
+The real findings were two invalid fixtures — one upstream, one this repo's own — and a
+real, independent `cabal test` discovery bug, all worth a follow-up outside this spike's
+scope but silent on the Frame/Span model's soundness. `fromGramWithIds` should not be
 assumed a valid stand-in for `fromGram` anywhere the RFC's anonymous-identity model
 matters — a note worth carrying into the eventual ADR's admission-adapter section
 alongside SPIKE-001's own `PatternLike`-adapter conclusion.
