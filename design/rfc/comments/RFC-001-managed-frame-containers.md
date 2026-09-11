@@ -886,9 +886,28 @@ unmeasured.
    anonymous ordinals as parser-assigned (`#1`/`#2`) — the `fromGramWithIds` model SPIKE-002
    discredited — and corrected them to match RFC-001's `fromGram`-preserves-anonymity,
    admission-assigns-the-ordinal position.
-5. **Open.** Mark ADR-001 superseded or rewrite it against the resulting RFC. RFC-001's own
-   ADRs section already notes it as superseded, but `design/adr/ADR-001-frame-span-implementation.md`
-   itself still carries `status: proposed` and its original cache-bearing-wrapper content —
-   the ADR file has not yet been updated to match.
-6. **Open.** Create a new ADR for the Haskell registry representation, error types,
-   FrameSpace ownership API, and the `Pattern.Reconcile` adapter.
+5. ✅ **Done.** [ADR-001](../../adr/ADR-001-frame-span-implementation.md) is rewritten
+   against the resulting RFC, in place — same id, since the prior wrapper-model decision
+   was never implemented (`status` stayed `proposed`). Its own frontmatter and body no
+   longer describe cache-bearing wrappers or a Pattern-shaped Bundle.
+6. ✅ **Done, combined with step 5.** The same rewrite covers the Haskell registry
+   representation (`LocalAddress`, `PatternRow`, `FrameRegistry`), error types
+   (`FrameError`, `SpanError`, `FrameSpaceError`, `ImportError`), the FrameSpace ownership
+   API (re-typed from SPIKE-001's validated operation shapes onto `LocalAddress` and the
+   `SpanDraft`/`Span` split), and the `Pattern.Reconcile` adapter (`reconcileFrame`'s
+   `Replace`/`Additive` modes, with `Attach` split out as its own operation per RFC-001,
+   succeeding the prior ADR's `Subsumed` mode). Within-Frame query/navigation (Open
+   Question 6) remains explicitly out of scope, as RFC-001 requires.
+7. **Open.** Update `specs/040-frames-spans/spec.md` to reflect ADR-001, now that it's
+   rewritten. The spec still describes the superseded wrapper/view model
+   end to end — typed views with optional acceleration, Portal as a role, `ScopeQuery`
+   re-expressed as an alias, Frames present by value inside a Span (FR-001–FR-025,
+   Key Entities, Assumptions) — none of which match Frame-as-registry, FrameSpace, or
+   `PairDispositionPolicy`. Pausing this spec's implementation planning to resolve the
+   model mismatch is what started this discussion note in the first place; closing the
+   loop back to it is the last step, not an afterthought. Scoped identity (FR-026–FR-033,
+   User Story 2) needs the least rework — RFC-001/RFC-012's `(FrameIdentity, LocalAddress)`
+   model is a direct, if not verbatim, match for the spec's `(Frame identity, local
+   Subject identity)` — while the modularization and composition requirements
+   (FR-001–FR-025, User Stories 1 and 3, the Frame/Span/Bundle/Portal Key Entities) need
+   rewriting against Frame admission/closure, Span/FrameSpace validity, and Bundle pairs.

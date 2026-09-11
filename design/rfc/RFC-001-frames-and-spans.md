@@ -726,8 +726,8 @@ records 8 PASS assertions against five independently authored documents.
 
 ## ADRs
 
-- [ADR-001: Frame and Span Implementation Model](../adr/ADR-001-frame-span-implementation.md)
-  — superseded by this RFC's managed-container model; it assumes cache-bearing wrappers and
-  a Pattern-shaped Bundle. A replacement ADR, covering the Haskell registry representation,
-  error types, FrameSpace ownership API, and the `Pattern.Reconcile` adapter, is not yet
-  written.
+- [ADR-001: Frame, Span, and FrameSpace Implementation Model](../adr/ADR-001-frame-span-implementation.md)
+  — rewritten against this RFC's managed-container model: the Haskell registry
+  representation, error types, FrameSpace ownership API, and the `Pattern.Reconcile`
+  adapter. Status remains `proposed`; within-Frame query/navigation (Open Question 6) is
+  explicitly out of its scope.
