@@ -94,7 +94,7 @@ merge classifier p g = mergeWithPolicy classifier Reconcile.LastWriteWins p g
 mergeWithPolicy
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph extra v
   -> PatternGraph extra v
@@ -113,7 +113,7 @@ twoOccurrences existing p = Pattern (value existing) [p]
 
 insertNode
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
-  => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  => Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph extra v
   -> PatternGraph extra v
@@ -129,7 +129,7 @@ insertNode policy p g =
 insertRelationship
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph extra v
   -> PatternGraph extra v
@@ -151,7 +151,7 @@ insertRelationship classifier policy p g =
 insertWalk
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph extra v
   -> PatternGraph extra v
@@ -168,7 +168,7 @@ insertWalk classifier policy p g =
 insertAnnotation
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> Pattern v
   -> PatternGraph extra v
   -> PatternGraph extra v
@@ -186,7 +186,7 @@ insertAnnotation classifier policy p g =
 
 insertOther
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
-  => Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  => Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> extra
   -> Pattern v
   -> PatternGraph extra v
@@ -216,7 +216,7 @@ fromPatterns classifier ps = fromPatternsWithPolicy classifier Reconcile.LastWri
 fromPatternsWithPolicy
   :: (GraphValue v, Eq v, Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v)
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> [Pattern v]
   -> PatternGraph extra v
 fromPatternsWithPolicy classifier policy ps =
@@ -323,7 +323,7 @@ materialize
   :: ( GraphValue v, Eq v
      , Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v )
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> GraphView extra v
   -> PatternGraph extra v
 materialize classifier policy (GraphView _ elems) =

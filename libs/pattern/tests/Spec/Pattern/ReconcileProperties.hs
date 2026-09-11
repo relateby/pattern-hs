@@ -25,7 +25,11 @@ import Data.Either (isLeft, isRight)
 -- ============================================================================
 
 -- | Generate arbitrary ReconciliationPolicy for testing.
-instance Arbitrary (ReconciliationPolicy SubjectMergeStrategy) where
+--
+-- 'CustomMerge' is deliberately excluded: QuickCheck can't meaningfully generate
+-- random merge functions. It's covered by targeted unit tests in ReconcileSpec.hs
+-- instead of property-based generation here.
+instance Arbitrary (ReconciliationPolicy Subject SubjectMergeStrategy) where
   arbitrary = oneof
     [ pure LastWriteWins
     , pure FirstWriteWins
