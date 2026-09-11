@@ -248,6 +248,20 @@ spec = do
             Right other -> expectationFailure $ "Unexpected structure: " ++ show other
             Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
 
+        it "rejects a callback that changes the occurrence group's identity" $ do
+          let alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+              -- Deliberately wrong: returns a value identified as "root" for
+              -- an "alice" occurrence group.
+              renameToRoot _ _ = root
+
+          case reconcile (CustomMerge UnionElements renameToRoot) pattern of
+            Left err -> errorConflicts err `shouldSatisfy` (not . null)
+            Right other -> expectationFailure $
+              "Expected identity-preservation failure, got: " ++ show other
+
       describe "Element Merge Strategies" $ do
         it "UnionElements deduplicates elements by identity" $ do
           let child1 = Subject (Symbol "child") (Set.singleton "A") Map.empty

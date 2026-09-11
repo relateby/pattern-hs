@@ -256,7 +256,7 @@ reconcile
 reconcile policy pattern =
   case policy of
     Strict -> reconcileStrict pattern
-    _ -> Right $ reconcileNonStrict policy pattern
+    _ -> reconcileNonStrict policy pattern
 
 {-# INLINABLE reconcileWithReport #-}
 reconcileWithReport
@@ -301,35 +301,60 @@ reconcileNonStrict
   :: (HasIdentity v i, Mergeable v, Refinable v)
   => ReconciliationPolicy v (MergeStrategy v)
   -> Pattern v
-  -> Pattern v
-reconcileNonStrict policy pattern =
+  -> Either (ReconcileError i v) (Pattern v)
+reconcileNonStrict policy pattern = do
   let occurrenceMap = collectByIdentity pattern
-      canonicalMap = Map.map (reconcileOccurrences policy) occurrenceMap
-  in fst $ rebuildPattern Set.empty canonicalMap pattern
+  canonicalMap <- traverse (reconcileOccurrences policy) occurrenceMap
+  Right $ fst $ rebuildPattern Set.empty canonicalMap pattern
 
+-- | Reconcile one identity's group of occurrences to a single canonical
+-- Pattern. 'LastWriteWins', 'FirstWriteWins', and 'Merge' always succeed:
+-- each preserves the group's identity structurally (by construction for the
+-- first two, and by the 'Mergeable' instance's contract for 'Merge', which
+-- never touches the identity field). 'CustomMerge' calls an arbitrary
+-- caller-supplied function with no such guarantee, so its result is checked
+-- against the group's own identity before being accepted.
 reconcileOccurrences
   :: (HasIdentity v i, Mergeable v)
   => ReconciliationPolicy v (MergeStrategy v)
   -> [(Pattern v, Path)]
-  -> Pattern v
+  -> Either (ReconcileError i v) (Pattern v)
 reconcileOccurrences LastWriteWins occurrences =
   case map fst occurrences of
     [] -> error "reconcileOccurrences: empty occurrences"
     patterns ->
       let v = value (last patterns)
           allElements = mergeElements UnionElements (map elements patterns)
-      in Pattern v allElements
+      in Right (Pattern v allElements)
 reconcileOccurrences FirstWriteWins occurrences =
   case map fst occurrences of
     [] -> error "reconcileOccurrences: empty occurrences"
     patterns@(p:_) ->
       let v = value p
           allElements = mergeElements UnionElements (map elements patterns)
-      in Pattern v allElements
+      in Right (Pattern v allElements)
 reconcileOccurrences (Merge elemStrat valStrat) occurrences =
-  mergeOccurrencesWith elemStrat (merge valStrat) occurrences
+  Right (mergeOccurrencesWith elemStrat (merge valStrat) occurrences)
 reconcileOccurrences (CustomMerge elemStrat customMerge) occurrences =
-  mergeOccurrencesWith elemStrat customMerge occurrences
+  case map fst occurrences of
+    [] -> error "reconcileOccurrences: empty occurrences"
+    (p : _) ->
+      let expectedId = identity (value p)
+          merged = mergeOccurrencesWith elemStrat customMerge occurrences
+      in if identity (value merged) == expectedId
+           then Right merged
+           else Left ReconcileError
+                  { errorMessage = "CustomMerge callback returned a value with a "
+                      ++ "different identity than the occurrence group it merged"
+                  , errorConflicts =
+                      [ Conflict
+                          { conflictId = expectedId
+                          , conflictExisting = value p
+                          , conflictIncoming = value merged
+                          , conflictLocations = map snd occurrences
+                          }
+                      ]
+                  }
 reconcileOccurrences Strict _ = error "Strict policy handled separately"
 
 -- | Shared body for 'Merge' and 'CustomMerge': fold all occurrences' values
