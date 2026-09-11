@@ -56,6 +56,10 @@
 -- * @'Merge' elementStrategy valueStrategy@ - Combine all occurrences using configurable
 --   strategies for structure (elements) and content (value).
 --
+-- * @'CustomMerge' elementStrategy mergeFn@ - Combine all occurrences using a
+--   configurable strategy for structure (elements), and an arbitrary function for
+--   resolving the content (value) conflict.
+--
 -- * 'Strict' - Fail with detailed error if any duplicates have different content.
 --   Useful for validation and debugging.
 
@@ -139,9 +143,8 @@ class Refinable v where
 -- The type parameter @v@ is the pattern's value type (needed for 'CustomMerge''s
 -- raw merge function); @s@ is the value-specific merge strategy (e.g., 'SubjectMergeStrategy').
 --
--- 'CustomMerge' carries a function, so this type does not derive 'Eq'\/'Show'\/'Generic'
--- (nothing in this codebase compares, shows, or generically serializes a policy value —
--- policies are constructed and passed straight into 'reconcile').
+-- This type has no 'Eq'\/'Show'\/'Generic' instances, since 'CustomMerge' carries a
+-- function.
 data ReconciliationPolicy v s
   = LastWriteWins
   -- ^ Keep the last occurrence of each identity.
@@ -152,10 +155,9 @@ data ReconciliationPolicy v s
   | Merge ElementMergeStrategy s
   -- ^ Combine all occurrences using specified strategies for elements and values.
   | CustomMerge ElementMergeStrategy (v -> v -> v)
-  -- ^ Combine all occurrences using the given element strategy, but resolve the
-  -- value conflict with a caller-supplied function instead of a named 'Mergeable'
-  -- strategy. For domain-specific conflict resolution the four named policies
-  -- can't express (e.g. "prefer whichever Subject has more labels").
+  -- ^ Combine all occurrences using the given element strategy, resolving the
+  -- value conflict with a caller-supplied function for domain-specific logic
+  -- (e.g. "prefer whichever Subject has more labels").
   | Strict
   -- ^ Fail if any duplicate identities have different content.
 
