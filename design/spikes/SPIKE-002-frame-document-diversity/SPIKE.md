@@ -112,18 +112,25 @@ finding rather than a toy-example near-miss:
   Top-level comma-concatenation — `(ee:Person {...}), (mh:Person {...})` — fails with
   `unexpected ','`. This syntax is used in a separate project's own example corpus for its
   own grammar; `Gram.Parse` does not currently accept it. A `Gram.Parse` gap, not a
-  Frame/Span one.
+  Frame/Span one. Confirmed independently via `gramref parse` (not just this spike's own
+  driver) and filed as
+  [relateby/pattern-hs#75](https://github.com/relateby/pattern-hs/issues/75).
 - **`implicit-root.gram` (`a-b-c`) and `deep-nesting.gram` (`[a | b | c | d | e]`) do not
   parse under `Gram.Parse`** (`fromGram` and `fromGramWithIds` both fail identically, at the
-  shared CST-parsing stage before either function's Transform step). Both are this repo's
-  own committed roundtrip fixtures. Investigating why surfaced a second, independent bug:
-  `RoundtripSpec.hs`'s "Custom Edge Case Roundtrip Tests" reports *"No .gram custom test
-  files found in `libs/gram/test-data/roundtrip/custom/`"* and skips as pending — its
-  `findCorpusFiles` call does not find the five files that are actually there, apparently a
-  working-directory assumption mismatch under `cabal test`. These two fixtures' parse
-  failures have therefore never been exercised by their own dedicated test suite. Both
-  findings are `Gram.Parse`/test-infrastructure issues, out of this spike's Frame-only
-  scope, and are not fixed here.
+  shared CST-parsing stage before either function's Transform step; `gramref parse`
+  reproduces both independently). Both are this repo's own committed roundtrip fixtures.
+  Filed as [relateby/pattern-hs#76](https://github.com/relateby/pattern-hs/issues/76).
+  Investigating why surfaced a second, independent bug: `RoundtripSpec.hs`'s "Custom Edge
+  Case Roundtrip Tests" reports *"No .gram custom test files found in
+  `libs/gram/test-data/roundtrip/custom/`"* and skips as pending when run via
+  `cabal test`/`cabal test all`, even though five files are present — `findCorpusFiles`'s
+  repo-root-relative path only resolves when the test binary's working directory is the
+  repo root, which `cabal test` does not use. Running the built `gram-test` binary directly
+  from the repo root finds all five files and correctly reproduces both failures (2 of 6
+  examples). Filed as
+  [relateby/pattern-hs#77](https://github.com/relateby/pattern-hs/issues/77). All three are
+  `Gram.Parse`/test-infrastructure issues, out of this spike's Frame-only scope, and are not
+  fixed here.
 
 ## 6. Conclusion
 
