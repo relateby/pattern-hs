@@ -45,10 +45,14 @@ Two things are already validated by spike code, not merely specified in prose:
   split RFC-001 now requires.
 
 `Pattern.Reconcile.reconcile` normalizes one `Pattern` by identity and accepts a
-`ReconciliationPolicy`, implementing first-write, last-write, merge, and strict conflict
-handling plus reference completion and element merge. Frame-level reconciliation (§2.9)
-adapts this engine rather than reimplementing identity-merge logic, continuing the prior
-ADR's decision on this point.
+`ReconciliationPolicy v s`, implementing first-write, last-write, named-strategy merge,
+custom-function merge, and strict conflict handling, plus reference completion and element
+merge. (`ReconciliationPolicy`'s `CustomMerge` case and its `v` type parameter are a 2026-09
+RFC-010 amendment, made specifically to support this ADR: Frame admission's identity-conflict
+case needed the same domain-specific escape hatch `PairDispositionPolicy`'s
+`CustomDisposition` already gives Bundle pairs, §2.5.) Both Frame admission (§2.2) and
+Frame-level reconciliation (§2.7) call this engine directly rather than reimplementing
+identity-merge logic, continuing the prior ADR's decision on this point.
 
 This ADR does not specify within-Frame query or navigation (RFC-001 Open Question 6):
 `find`, `containers`, `siblings`, and `framePara` have no registry-model successors here.
@@ -114,33 +118,64 @@ data FrameError
   = ConflictingDefinition LocalAddress
   | DirectSelfReference LocalAddress
   | UnresolvedReference LocalIdentity
+  | MemberAbsent LocalAddress
+  | ReferencedMemberDeletion LocalAddress [LocalAddress]  -- addresses still referencing it
   deriving (Eq, Show)
 
-admitPatternLike
-  :: PatternLike
+admitPatternLikeWith
+  :: ReconciliationPolicy Subject.Subject SubjectMergeStrategy
+  -> PatternLike
   -> Frame
   -> Either FrameError Frame
+
+admitPatternLike :: PatternLike -> Frame -> Either FrameError Frame
+admitPatternLike = admitPatternLikeWith Strict
 ```
+
+`admitPatternLikeWith`/`admitPatternLike` follow the `foo`/`fooWith` convention this
+codebase already uses (`Pattern.PatternGraph.merge`/`mergeWithPolicy`,
+`fromPatterns`/`fromPatternsWithPolicy`): the bare name is the sensible default, built
+directly on top of the parameterized one. `Strict` is `admitPatternLike`'s default because
+RFC-001 already calls `PatternLike` admission's default "stricter" than raw-Pattern import
+(§2.3) — `Strict` is the literal stricter end of `ReconciliationPolicy`'s four named cases.
 
 Admission is single-pass, per SPIKE-002's corrected algorithm: a `Definition` recurses into
 its children first, obtaining each child's real assigned `LocalAddress`, then registers its
 own `PatternRow` using those addresses — the address a call resolves to is returned
 directly to its caller, never recomputed by a later walk. An anonymous `Definition`
-receives `Positional (frameNextOrdinal frame)`, incrementing the counter; a named
-`Definition` receives `Named identity`, and a second fuller `Definition` at that identity
-is `ConflictingDefinition` (deferred to reconciliation, §2.9, not raised here) unless the
-existing entry is content-free, in which case it is promoted in place. A `Reference
-identity` contributes `Named identity` to its containing row without registering anything
-itself; if no `Definition` at that identity exists anywhere in the batch once the whole
-batch is admitted, it is promoted to a content-free defining entry (a `PatternRow` with an
-empty label/property Subject and no elements) rather than left dangling.
+receives `Positional (frameNextOrdinal frame)`, incrementing the counter. A named
+`Definition` receives `Named identity`; if the registry already holds a fuller entry at
+that address, the supplied `ReconciliationPolicy` is applied directly (via
+`Pattern.Reconcile.reconcile` on the two occurrences) to produce the merged row, and
+`ConflictingDefinition` is raised only when the policy is `Strict` and the two occurrences'
+content differs — this is a direct consequence of `ReconciliationPolicy` now carrying a
+`CustomMerge` escape hatch (RFC-010 amendment): admission needs no separate conflict
+mechanism of its own, it just calls the same policy machinery reconciliation does. If the
+existing entry was content-free (a promoted reference, not a real conflict), the incoming
+definition simply replaces it, policy or not. A `Reference identity` contributes `Named
+identity` to its containing row without registering anything itself; if no `Definition` at
+that identity exists anywhere in the batch once the whole batch is admitted, it is promoted
+to a content-free defining entry (a `PatternRow` with an empty label/property Subject and
+no elements) rather than left dangling.
 
-`combinePatternLikes :: [PatternLike] -> Frame -> Either FrameError Frame` admits a batch
-of top-level occurrences atomically: every occurrence in the batch is registered before any
-`Reference` in the batch is resolved, so forward references and mutual (indirect) cycles
-within one batch admit correctly — this is the behavior SPIKE-001's aircraft/maintenance
-fixture exercises (`engine -> fuel-system -> fuel-pump -> diagnostic-procedure -> engine`).
-`admitPatternLike` is `combinePatternLikes` applied to a singleton list.
+```haskell
+combinePatternLikesWith
+  :: ReconciliationPolicy Subject.Subject SubjectMergeStrategy
+  -> [PatternLike]
+  -> Frame
+  -> Either FrameError Frame
+
+combinePatternLikes :: [PatternLike] -> Frame -> Either FrameError Frame
+combinePatternLikes = combinePatternLikesWith Strict
+```
+
+`combinePatternLikesWith`/`combinePatternLikes` admit a batch of top-level occurrences
+atomically: every occurrence in the batch is registered before any `Reference` in the batch
+is resolved, so forward references and mutual (indirect) cycles within one batch admit
+correctly — this is the behavior SPIKE-001's aircraft/maintenance fixture exercises
+(`engine -> fuel-system -> fuel-pump -> diagnostic-procedure -> engine`).
+`admitPatternLikeWith policy` is `combinePatternLikesWith policy` applied to a singleton
+list.
 
 Closure validation runs once per admission call, after every occurrence in the batch is
 registered: every `LocalAddress` appearing in any `rowElements` must be a key in the
@@ -149,33 +184,46 @@ run), and no row's `rowElements` may contain its own address (`DirectSelfReferen
 Indirect cycles among distinct addresses are valid registry topology and are not checked
 against.
 
-`removePattern :: LocalAddress -> Frame -> Either FrameError Frame` removes a registry
-entry only when no other entry's `rowElements` contains its address; otherwise it fails
-(the caller detaches the containment link first, an ordinary registry update removing the
-address from the containing row's element list — detachment is not a named primitive in
-this decision, since it is exactly `Frame { frameRegistry = Map.adjust (remove address) ...
-}`, not a separate algorithm).
+```haskell
+removePattern :: LocalAddress -> Frame -> Either FrameError Frame
+```
+
+`removePattern` fails with `MemberAbsent` if the address isn't in the registry, and with
+`ReferencedMemberDeletion` (naming every address still referencing it) if any other entry's
+`rowElements` contains it; otherwise it succeeds. The caller detaches the containment link
+first — an ordinary registry update removing the address from the containing row's element
+list. Detachment is not a named primitive in this decision, since it is exactly `Frame {
+frameRegistry = Map.adjust (remove address) ... }`, not a separate algorithm.
 
 ### 2.3 Raw `Pattern Subject` compatibility import
 
 ```haskell
-importRawPattern
-  :: ReconciliationPolicy SubjectMergeStrategy
+admitRawPatternWith
+  :: ReconciliationPolicy Subject.Subject SubjectMergeStrategy
   -> Pattern Subject.Subject
   -> Frame
   -> Either FrameError Frame
+
+admitRawPattern :: Pattern Subject.Subject -> Frame -> Either FrameError Frame
+admitRawPattern = admitRawPatternWith (Merge UnionElements defaultSubjectMergeStrategy)
 ```
 
-A raw `Pattern Subject` carries no `Definition`/`Reference` tag. `importRawPattern`
+(Renamed from an earlier draft's `importRawPattern` for verb consistency with
+`admitPatternLike`/`admitRawPattern` — both are ways of admitting content into a Frame.)
+
+A raw `Pattern Subject` carries no `Definition`/`Reference` tag. `admitRawPatternWith`
 recovers the distinction from content, per RFC-001 §Defining and reference occurrences: an
 occurrence with an identity and no labels, properties, or elements is a reference
-candidate; any content makes it a definition. Two definitions sharing an identity are
-deferred to the supplied `Pattern.Reconcile` policy rather than raised as
-`ConflictingDefinition` — this path is a more permissive compatibility fallback than
-`PatternLike` admission's stricter default, not a second definition of admission. This
-decision does not fix the recovery algorithm's exact batch semantics beyond that contract;
-an implementation may reuse `admitPatternLike`'s registry-building shape with the
-content-based tag recovered per occurrence instead of read from a `PatternLike` value.
+candidate; any content makes it a definition. Two definitions sharing an identity apply the
+supplied `ReconciliationPolicy` directly (the same mechanism §2.2 now uses), rather than
+raising `ConflictingDefinition` outright. `admitRawPattern`'s default,
+`Merge UnionElements defaultSubjectMergeStrategy`, is the concrete value behind RFC-001's
+claim that raw-Pattern import is "more permissive than `PatternLike` admission's stricter
+default" — permissive because it merges rather than fails, unlike `admitPatternLike`'s
+`Strict` default. This decision does not fix the recovery algorithm's exact batch semantics
+beyond that contract; an implementation may reuse `combinePatternLikesWith`'s
+registry-building shape with the content-based tag recovered per occurrence instead of read
+from a `PatternLike` value.
 
 ### 2.4 Span, SpanDraft, and ClosedSpan
 
@@ -215,18 +263,33 @@ data SpanError
   | EndpointConflict PairLocalIdentity
   deriving (Eq, Show)
 
-closedSpan :: Subject.Subject -> Frame -> Frame -> Bundle -> PairDispositionPolicy -> Either SpanError ClosedSpan
-closeSpan  :: Span -> FrameSpace -> Either SpanError ClosedSpan
+spanDraftWith
+  :: PairDispositionPolicy -> Subject.Subject -> FrameIdentity -> FrameIdentity -> Bundle -> SpanDraft
+spanDraftWith policy subj left right bundle = SpanDraft subj left right bundle policy
+
+spanDraft :: Subject.Subject -> FrameIdentity -> FrameIdentity -> Bundle -> SpanDraft
+spanDraft = spanDraftWith AlwaysVeto
+
+closedSpanWith
+  :: PairDispositionPolicy -> Subject.Subject -> Frame -> Frame -> Bundle -> Either SpanError ClosedSpan
+
+closedSpan :: Subject.Subject -> Frame -> Frame -> Bundle -> Either SpanError ClosedSpan
+closedSpan = closedSpanWith AlwaysVeto
+
+closeSpan :: Span -> FrameSpace -> Either SpanError ClosedSpan
 ```
 
-Only `Span` is confirmed; `SpanDraft` is structurally identical but is never returned by any
-operation in this decision, only accepted as input, matching RFC-001's rule that holding a
-`Span` value is itself evidence its pairs already resolved. `closedSpan` validates a
-`Bundle` directly against two `Frame` values with no `FrameSpace` involved — checking each
-pair's two endpoints resolve in their respective Frame's registry, and that every pair
-identity is non-anonymous and distinct within the Bundle. `closeSpan` is a convenience that
-resolves a confirmed `Span`'s two `FrameIdentity`s through a `FrameSpace` and then calls
-`closedSpan`; it can fail even for an already-confirmed `Span`, since the `FrameSpace`
+Both smart-constructor pairs follow §2.2's `foo`/`fooWith` convention, defaulting to
+`AlwaysVeto` — the policy RFC-001 states explicitly for "a Span [that] does not declare a
+policy." Only `Span` is confirmed; `SpanDraft` is structurally identical but is never
+returned by any operation in this decision, only accepted as input, matching RFC-001's rule
+that holding a `Span` value is itself evidence its pairs already resolved.
+`closedSpanWith` validates a `Bundle` directly against two `Frame` values with no
+`FrameSpace` involved: every pair's `rowElements` must have exactly two entries, each
+resolving in its respective Frame's registry, and every pair identity must be non-anonymous
+and distinct within the Bundle. `closeSpan` is a convenience that resolves a confirmed
+`Span`'s two `FrameIdentity`s through a `FrameSpace` and then calls `closedSpanWith
+(spanPolicy span)`; it can fail even for an already-confirmed `Span`, since the `FrameSpace`
 passed in may be a later generation that dropped or rebound a pair.
 
 ### 2.5 Bundle, Pair, and pair disposition
@@ -266,6 +329,24 @@ throughout the Worked Exercise). `CustomDisposition` is not serializable; a `Clo
 built with one is re-admission-only, per RFC-001 §Pair disposition policy — this decision
 does not introduce a serializable policy-identifier scheme.
 
+A Bundle may hold more than one pair for the same ordered endpoint pair — no uniqueness
+constraint on endpoints is enforced by default (RFC-001 Open Question 2). Resolving whether
+and how to opt into one is deferred to a concrete workflow that needs it; nothing here
+prevents adding it later as an optional check at Bundle-admission time.
+
+```haskell
+correlateByIdentity :: Frame -> Frame -> Bundle
+```
+
+For each named `LocalIdentity` occurring in both Frames, `correlateByIdentity` proposes one
+candidate `Pair` relating them — with an anonymous `rowSubject`, since pair admission
+(§2.4, §2.6) rejects an anonymous `PairLocalIdentity`. It produces unaddressed candidates
+only, never an automatic merge or a directly `addSpan`-able `Bundle`: a caller must assign
+each candidate a `PairLocalIdentity` before `closedSpanWith`/`addSpan` will accept it. What
+happens when a named identity occurs as a candidate correspondence more than once, or a
+candidate conflicts with an already-assigned pair's endpoints, is left to RFC-001 Open
+Question 7 — not decided here.
+
 ### 2.6 FrameSpace and its integrity operations
 
 ```haskell
@@ -298,17 +379,25 @@ rebindPair  :: SpanIdentity -> PairLocalIdentity -> (LocalAddress, LocalAddress)
 removeSpan  :: SpanIdentity -> FrameSpace -> Either FrameSpaceError FrameSpace
 ```
 
-`addFrame` requires `frameIdentity frame` to be `Just` and absent from `spaceFrames`.
-`addSpan`/`updateSpan` resolve `draftLeftFrame`/`draftRightFrame` in `spaceFrames`, then
-validate `draftBundle` against those two Frame values exactly as `closedSpan` does (§2.4),
-before storing a confirmed `Span`; neither returns the `Span` directly, matching RFC-001's
-rule that a caller retrieves it via `lookupSpan` against the returned `FrameSpace`.
+`addFrame` requires `frameIdentity frame` to be `Just` and absent from `spaceFrames`
+(`FrameIdentityExists` otherwise). `addSpan`/`updateSpan` take a `SpanDraft` — built via
+`spanDraft`/`spanDraftWith` (§2.4) — resolve `draftLeftFrame`/`draftRightFrame` in
+`spaceFrames` (`UnresolvedFrame`, wrapped as `SpanRejected`, if either is absent), then
+validate `draftBundle` against those two Frame values exactly as `closedSpanWith` does
+(§2.4), before storing a confirmed `Span`; neither returns the `Span` directly, matching
+RFC-001's rule that a caller retrieves it via `lookupSpan` against the returned
+`FrameSpace`. `updateSpan`'s and `updateFrame`'s first argument being absent from
+`spaceSpans`/`spaceFrames` fails with `SpanIdentityAbsent`/`FrameIdentityAbsent`
+respectively, before their edit function ever runs.
 
 `updateFrame` is the cross-Frame integrity boundary, re-typed from SPIKE-001's
-`replaceFrame` to consult `PairDispositionPolicy`:
+`replaceFrame` (FrameSpace's own Frame-replacement operation — distinct from §2.7's
+`replaceFrame`, a Frame-registry-level reconciliation operation with a different job) to
+consult `PairDispositionPolicy`:
 
-1. Look up the existing Frame at `fid`; apply `edit` to it, producing a candidate Frame
-   (`FrameEditRejected` on failure — `edit` already ran §2.2's closure validation).
+1. Look up the existing Frame at `fid` (`FrameIdentityAbsent` if missing); apply `edit` to
+   it, producing a candidate Frame (`FrameEditRejected` on failure — `edit` already ran
+   §2.2's closure validation).
 2. Find every Span incident to `fid` (left or right `FrameIdentity` equals `fid`) — the
    index used to make this lookup fast (RFC-001 Open Question 5) is not decided here; a
    correct but unindexed implementation scans `spaceSpans`.
@@ -322,22 +411,29 @@ rule that a caller retrieves it via `lookupSpan` against the returned `FrameSpac
 `removeFrame` fails with `IncidentSpanExists` while any Span references `fid` as either
 endpoint — `AutoDrop` cannot repair a Span whose endpoint Frame identity no longer resolves
 at all, only a dangling member reference within a Frame that still exists. `removeSpan`
-removes a Span's own entry without touching its endpoint Frames. `rebindPair` replaces one
-pair's two `LocalAddress` endpoints after validating them against the Span's current left
-and right Frames, then re-runs the same incident-pair check `updateFrame` does (a rebind
-can itself introduce a dangling endpoint if given one).
+removes a Span's own entry without touching its endpoint Frames (`SpanIdentityAbsent` if
+`fid` isn't registered). `rebindPair` replaces one pair's two `LocalAddress` endpoints after
+validating them against the Span's current left and right Frames, then re-runs the same
+incident-pair check `updateFrame` does (a rebind can itself introduce a dangling endpoint if
+given one).
 
 ### 2.7 Reconciliation, import, and attach
 
 ```haskell
-data ReconcileMode = Replace | Additive
-
-reconcileFrame
-  :: ReconcileMode
-  -> ReconciliationPolicy SubjectMergeStrategy
+replaceFrameWith
+  :: ReconciliationPolicy Subject.Subject SubjectMergeStrategy
   -> [PatternLike]           -- incoming top-level occurrences
-  -> Frame                   -- existing
+  -> Frame                   -- existing (supplies the Frame identity)
   -> Either FrameError Frame
+
+replaceFrame :: [PatternLike] -> Frame -> Either FrameError Frame
+replaceFrame = replaceFrameWith Strict
+
+data ImportError
+  = NonInjectiveImportMap
+  | ImportIdentityCollision LocalIdentity
+  | SourceMemberAbsent LocalAddress
+  deriving (Eq, Show)
 
 importSubgraph
   :: Frame                              -- source
@@ -349,50 +445,63 @@ importSubgraph
 attach :: LocalAddress -> [LocalAddress] -> Frame -> Either FrameError Frame
 ```
 
-`reconcileFrame` operates only within one Frame identity (the caller is responsible for
-confirming `existing`'s and the incoming batch's Frame identity match before calling this;
-a mismatch is not a `FrameError` this function raises, since it has no incoming Frame value
-to compare against — only a `[PatternLike]` batch). `Replace` admits the incoming batch into
-a fresh registry and, per RFC-001, removes existing members omitted from it, only when no
-local reference or incident Bundle pair still addresses them — the incident-Bundle-pair
-half of that check happens at the `FrameSpace.updateFrame` boundary (§2.6), not here;
-`reconcileFrame Replace` alone can produce a Frame that a subsequent `updateFrame` call
-rejects. `Additive` admits the incoming batch into the *existing* registry (rather than a
-fresh one), reconciling matching `Named` addresses via the supplied
-`ReconciliationPolicy`-driven call into `Pattern.Reconcile.reconcile`, and retaining every
-existing member the incoming batch omits. Both modes delegate Subject-level conflict
+RFC-001 names two Frame reconciliation modes, `Replace` and `Additive`, but only one of
+them needs its own function. **`Additive` is not a separate operation** — it is exactly
+`combinePatternLikesWith policy incoming existing` (§2.2) called against an
+already-populated `existing` Frame: admit the incoming batch into the *existing* registry,
+reconcile matching `Named` addresses via the supplied policy, retain every existing member
+the incoming batch omits. Nothing about `combinePatternLikesWith` assumes an empty starting
+registry, so RFC-001's "additive" contract is what that function already does, not a
+distinct mode that needs implementing twice.
+
+**`Replace` is genuinely different and gets `replaceFrameWith`/`replaceFrame`**: it admits
+the incoming batch into a *fresh* registry sharing `existing`'s identifying Subject (via
+`combinePatternLikesWith` internally), then, per RFC-001, removes existing members omitted
+from the incoming batch — only when no local reference still addresses them. The
+incident-Bundle-pair half of that removal check happens at the `FrameSpace.updateFrame`
+boundary (§2.6), not here: `replaceFrameWith` alone can produce a Frame that a subsequent
+`updateFrame` call rejects. `replaceFrame`'s default, `Strict`, matches
+`admitPatternLike`'s reasoning (§2.2) — the incoming batch's own internal conflicts should
+fail loudly by default, the same as any other admission.
+
+Both `replaceFrameWith` and plain `combinePatternLikesWith` delegate Subject-level conflict
 resolution (label/property merge, reference completion) to `Pattern.Reconcile`, per the
 prior ADR's decision to not reimplement it; Frame code owns only registry construction,
-address assignment for incoming anonymous occurrences, and the mode-specific
-retain/replace rule.
+address assignment for incoming anonymous occurrences, and (for `replaceFrameWith`) the
+omitted-member removal rule.
 
 `importSubgraph`, re-typed from SPIKE-001's validated shape onto `LocalAddress`, computes
 the transitive closure of `roots` in `source`'s registry, maps each reached `Named` address
 through the caller-supplied map (identity if absent from the map — an omitted `Named`
 address is preserved unchanged, which is a collision unless the destination happens not to
-have it), rejects a non-injective resulting map or any collision with an existing
-destination address, and otherwise copies every reached row into the destination with its
-`rowElements` rewritten through the same map. `Positional` addresses in the closure are
-never looked up in the map; each receives a fresh ordinal in the destination as its
-containment is rebuilt, since a positional address has no portable meaning outside the
-Frame that assigned it.
+have it), rejects a non-injective resulting map (`NonInjectiveImportMap`) or any collision
+with an existing destination address (`ImportIdentityCollision`), and otherwise copies
+every reached row into the destination with its `rowElements` rewritten through the same
+map (`SourceMemberAbsent` if a root or reached address isn't actually in `source`).
+`Positional` addresses in the closure are never looked up in the map; each receives a fresh
+ordinal in the destination as its containment is rebuilt, since a positional address has no
+portable meaning outside the Frame that assigned it. Its remap argument has an obvious
+zero-value default (`Map.empty`, "no explicit collision handling requested"), so
+`importSubgraph` does not get a `foo`/`fooWith` split — passing `Map.empty` directly isn't
+the friction that convention exists to remove.
 
 `attach` admits no new content itself — its `[LocalAddress]` roots must already resolve in
 `frame`'s own registry (typically, immediately after an `importSubgraph` call into that
 same Frame) — and appends them to the target address's `rowElements`, then re-runs closure
 validation on the modified row. This is the successor to the prior ADR's `Subsumed target`
 reconciliation mode, split out as its own operation per RFC-001: reconciliation now
-resolves temporal versions of one Frame identity (`Replace`/`Additive`), `importSubgraph`
-crosses Frame namespaces, and `attach` changes containment within one already-populated
-namespace — three distinct axes, not three cases of one mode.
+resolves temporal versions of one Frame identity (`combinePatternLikesWith` for `Additive`,
+`replaceFrameWith` for `Replace`), `importSubgraph` crosses Frame namespaces, and `attach`
+changes containment within one already-populated namespace — three distinct axes, not three
+cases of one mode. It takes no policy and gets no `foo`/`fooWith` split either.
 
 ### 2.8 Module layout
 
 - `Pattern.Frame` — `LocalAddress`, `ScopedAddress`, `PatternRow`, `FrameRegistry`, `Frame`,
-  `PatternLike`, `FrameError`, admission (§2.2), raw-Pattern import (§2.3), reconciliation,
-  import, and attach (§2.7).
+  `PatternLike`, `FrameError`, `ImportError`, admission (§2.2), raw-Pattern import (§2.3),
+  reconciliation, import, and attach (§2.7).
 - `Pattern.Span` — `SpanIdentity`, `SpanDraft`, `Span`, `ClosedSpan`, `SpanError`, `Bundle`,
-  `Pair`, `PairAddress`, `PairDispositionPolicy` (§2.4, §2.5).
+  `Pair`, `PairAddress`, `PairDispositionPolicy`, `correlateByIdentity` (§2.4, §2.5).
 - `Pattern.FrameSpace` — `FrameSpace`, `FrameSpaceError`, and its integrity operations
   (§2.6).
 
@@ -439,11 +548,33 @@ caller may not expect to lose. `removeFrame` fails instead, requiring the caller
 governing only member-level edits, never a whole Frame's disappearance (RFC-001 Open
 Question 1).
 
+**A Frame-specific merge-policy type instead of reusing (and extending)
+`Pattern.Reconcile.ReconciliationPolicy`.** Considered when admission's identity-conflict
+case turned out to need the same domain-specific escape hatch `PairDispositionPolicy`
+already has. Rejected: RFC-010's `ReconciliationPolicy` is already the accepted vocabulary
+for this exact problem (duplicate-identity resolution) and Frame admission's conflict case
+is not meaningfully different from what `Pattern.Reconcile.reconcile` already solves for a
+whole `Pattern` — introducing a parallel Frame-only policy type would produce two
+inconsistent policy shapes for the same underlying problem. Extended `ReconciliationPolicy`
+itself with `CustomMerge` instead (RFC-010 amendment, 2026-09).
+
+**Named functions per `ReconciliationPolicy` constructor** (e.g. `admitPatternLikeMerging`,
+`admitPatternLikeStrict`, ...) instead of one function taking the policy as a value.
+Rejected: this codebase already answers this exact question for its other closed strategy
+enums — `Pattern.Reconcile`'s own `ElementMergeStrategy`, `LabelMerge`, and `PropertyMerge`
+are each dispatched through one function via pattern matching, never split into named
+functions per constructor — and `Pattern.PatternGraph` already uses the `foo`/`fooWith`
+convention adopted here (`merge`/`mergeWithPolicy`, `fromPatterns`/`fromPatternsWithPolicy`).
+Splitting only the *value-conflict* axis into named functions while leaving `Replace`
+(`replaceFrame`/`replaceFrameWith`) as a separate axis would also combinatorially multiply
+functions for no readability gain, the same reasoning that keeps SQL's `MERGE` one
+statement with a conflict clause rather than one verb per resolution strategy.
+
 ## 4. Consequences
 
 Frame construction is admission-shaped, not wrap-shaped: there is no `asFrame`/`framePattern`
 lossless-conversion pair, because Frame is not a wrapper (RFC-001 Open Question 4). A
-caller building a Frame from an existing `Pattern Subject` value uses `importRawPattern`
+caller building a Frame from an existing `Pattern Subject` value uses `admitRawPattern`
 (§2.3) or converts it to `PatternLike` first; neither is free the way the prior ADR's
 `asFrame` was.
 
@@ -461,23 +592,29 @@ made concretely.
 
 Reconciliation, import, and attach gain the three-axis separation §2.7 describes, replacing
 the prior ADR's single `FrameReconciliationMode` (`OneToOne | Additive | Subsumed Symbol`)
-with two reconciliation modes plus two standalone operations. Any code written against the
-prior ADR's `reconcileFrame` signature requires a rewrite, not a compatibility shim — the
-prior ADR was never implemented (status remained `proposed`), so no such code exists yet.
+with `combinePatternLikesWith` (Additive is not a separate function), `replaceFrame`/
+`replaceFrameWith` (Replace), and two standalone operations (`importSubgraph`, `attach`).
+Any code written against the prior ADR's `reconcileFrame` signature requires a rewrite, not
+a compatibility shim — the prior ADR was never implemented (status remained `proposed`), so
+no such code exists yet.
 
 This decision introduces `Pattern.Frame`, `Pattern.Span`, and `Pattern.FrameSpace` (§2.8),
 exports their public types from the umbrella `Pattern` module, and requires tests for:
 admission (batch forward-references, indirect cycles, anonymous-ordinal stability across
-edits, conflicting-definition and self-reference rejection), FrameSpace integrity
-(incident-pair veto/auto-drop, `removeFrame` while a Span exists, `rebindPair`), Bundle
-pair-identity uniqueness, `ClosedSpan` independent of any `FrameSpace`, and all four
-Frame/registry mutation operations (`reconcileFrame` both modes, `importSubgraph` collision
-and collision-remapped cases, `attach`). SPIKE-001's and SPIKE-002's fixtures and assertions
-are a direct starting point for this suite, re-typed onto `LocalAddress`.
+edits, conflicting-definition and self-reference rejection, `CustomMerge`-driven admission
+conflicts), FrameSpace integrity (incident-pair veto/auto-drop, `removeFrame` while a Span
+exists, `rebindPair`), Bundle pair-identity uniqueness and pair-cardinality rejection,
+`ClosedSpan` independent of any `FrameSpace`, `correlateByIdentity`'s candidate-only output,
+and all Frame/registry mutation operations (`combinePatternLikesWith`, `replaceFrameWith`,
+`importSubgraph` collision and collision-remapped cases, `attach`). SPIKE-001's and
+SPIKE-002's fixtures and assertions are a direct starting point for this suite, re-typed
+onto `LocalAddress`.
 
 ## 5. Related
 
-- RFCs: RFC-001
+- RFCs: RFC-001. This decision also amends RFC-010 (accepted, implemented) — see
+  [RFC-010 §Core Types](../rfc/RFC-010-pattern-reconciliation.md#design)'s 2026-09
+  `CustomMerge` addendum and `libs/pattern/src/Pattern/Reconcile.hs`.
 - Spikes: [SPIKE-001](../spikes/SPIKE-001-frame-registry/SPIKE.md),
   [SPIKE-002](../spikes/SPIKE-002-frame-document-diversity/SPIKE.md)
 - Specs: _(populated automatically by the speckit ADR-link hook once `/speckit-specify`
