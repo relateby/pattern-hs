@@ -1,473 +1,733 @@
 ---
-adrs: [ADR-001]
+adrs: []
 ---
 
-# RFC-0001: Frames and Spans — A Property-Graph-Inspired Navigation Framework for Pattern\<Subject\>
+# RFC-0001: Frame and Span — Managed Registry Containers for Pattern Subject
 
 **Status:** draft
 **Date:** 2026-05-29
-**Updated:** 2026-09-07
+**Updated:** 2026-09-11
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Related modules:** `Pattern.Core`, `Pattern.RepresentationMap`, `Pattern.PatternGraph`, `Pattern.Reconcile`
-**Resolves:** RFC-011 Open Question 3 (scoped identity namespaces)
+**Related modules:** `Pattern.Core`, `Pattern.Reconcile`
+**Grounds:** RFC-011 Open Question 3 (scoped identity namespaces) — Frame identity supplies the namespace; completed by RFC-012's anonymous/weak-entity identity model
+**Supersedes:** the wrapper/view model of this RFC's earlier draft and [ADR-001](../adr/ADR-001-frame-span-implementation.md) (see [ADRs](#adrs))
 
 ## Summary
 
-This RFC proposes a navigation framework for `Pattern Subject` consisting of two typed views over Pattern Subject: **Frame** and **Span**. A *Frame* wraps a self-contained Pattern and offers within-module operations — navigation, search, paramorphism — over its contents. A *Span* wraps a relationship-shaped Pattern whose elements are two Frames and, optionally, a *Bundle*: a Pattern whose own elements are pairwise correspondences between elements of those Frames. Frames are the modularization move (take a Pattern, treat it as a navigable unit); Spans are the composition move (relate Frames into larger structures, with the connecting tissue held externally). Together they recreate property graphs' externality property — that a node does not contain its relationships — one level up: a Frame does not contain its cross-Frame correspondences; the Span does. The substrate (`Pattern v`) is untouched; Frame and Span are typed views defined in terms of it, and either can be unwrapped to its underlying Pattern Subject for substrate-level composition. A Frame is also the identity namespace for its contents: a Subject's identity is local to its Frame, and its identity outside that Frame is the pair `(frame identity, local subject identity)`. The framework's recursive self-similarity is preserved at the substrate level, where everything composes uniformly, while the views add identity scope, navigation, and optimization above it.
+**Frame**, **Span**, and **FrameSpace** are managed containers for higher-order structure
+built from `Pattern Subject`, replacing this RFC's earlier wrapper/view model. A Frame is
+not a wrapper around a pre-existing Pattern; it is a
+construction context, echoing Pattern's own shape one level up — an identifying Subject
+admitting definitions into one referentially closed registry, whose entries are
+Subject-plus-ordered-elements rows where the elements are local references rather than
+embedded values. A Span relates members of two Frames through a Bundle of pair
+relationships, without either Frame carrying a reference to the other — the same
+externality property graphs rely on (a node does not know its own relationships), applied
+to modules. A Span's validity is relative to a FrameSpace, the aggregate owner of Frame and
+Span integrity: FrameSpace is where cross-Frame validation actually happens over time, and
+Frame and Span each forgo needing it only where their own invariants are locally decidable.
+Query and navigation over a Frame's registry — the "moves an analyst makes" that motivated
+this RFC's first draft — remain a real requirement but are not designed here; they are an
+explicit open question (Open Question 6), gating implementation planning rather than
+implementation itself.
 
 ## Glossary
 
-The vocabulary below is used precisely throughout the RFC. Readers can refer back to this section when terms need clarification.
-
 ### Structures
 
-**Pattern** — The substrate container: a value paired with an ordered sequence of element Patterns. Polymorphic in the value type. A Pattern is not itself a graph; it is a value that can be *interpreted* as graph-structured by external machinery. Traversal of a Pattern descends into every reachable sub-Pattern.
+**Pattern** — The substrate container: a value paired with an ordered sequence of element
+Patterns. Polymorphic in the value type, semantics-free, with no identity or integrity
+rules of its own.
 
-**Subject** — The identity-bearing value used throughout this framework: an identity symbol, a set of labels, and a property record. The framework anchors on `Pattern Subject`.
+**Subject** — The identity-bearing value used throughout this framework: an identity
+symbol, a set of labels, and a property record. An anonymous Subject carries no identity
+symbol.
 
-**Local identity** — `Subject.identity`, interpreted within one Frame. Local identities must be unique after reconciliation inside that Frame, but the same symbol may occur independently in any number of other Frames. Anonymous Subjects that need identity-bearing operations are assigned local identities within the Frame; generated names such as `#1` may therefore recur in different Frames without collision.
+**Pattern Subject** — A Pattern whose value type is Subject.
 
-**Scoped identity** — The pair `(frame identity, local identity)` used whenever a Subject is named outside its own Frame. The Frame's root `Subject.identity` supplies the namespace. Two Subjects with the same local symbol in different Frames have different scoped identities. Qualification is contextual: it does not rewrite or concatenate the Subject's stored symbol, so wrapping and unwrapping remain lossless.
+**LocalAddress** — The address of a Frame member: named (for a member with a non-anonymous
+Subject identity) or positional (a flat, Frame-scoped ordinal assigned at admission, for an
+anonymous member). See §Identity and addresses for the type. Neither form carries a
+reference to any containing member — containment is recorded by whichever `PatternRow`
+lists the address among its own elements, not by the address itself. This permits an
+anonymous member to be shared by more than one container, exactly like a named one.
 
-**Pattern Subject** — A Pattern whose value type is Subject. The substrate's working type, and the type that Frame and Span wrap.
+**PatternRow** — A Frame registry entry, or a Bundle pair: a Subject paired with an ordered
+list of `LocalAddress` references — the same Subject-plus-ordered-elements shape `Pattern`
+itself has, but with elements as references rather than embedded values.
 
-**Frame** — A typed view over Pattern Subject. A Frame is a *module* — a self-contained scope whose elements do not reach across to other Frames — and its root Subject identifies the Frame's identity namespace. The type exists to offer within-module operations (search, navigation, paramorphism), contextual identity qualification, and optimizations (such as a cached identity index) that a bare Pattern Subject has no place to hold. Unwrapping via `framePattern` drops back to the substrate, where the Frame's content composes like any other Pattern and retains every local Subject identity unchanged.
+**Frame** — A container identified by a Subject, owning a registry (`FrameRegistry`) of
+`PatternRow`s keyed by `LocalAddress`, and maintaining the invariant that every local
+reference in that registry resolves within it (referential closure). A Frame's identity —
+its identifying Subject's non-anonymous identity — is stable for its lifetime and unique
+within any collection that holds it. A Frame's closure invariant is decidable from the
+Frame value alone, so a Frame is independently useful and independently valid before it is
+registered anywhere.
 
-**Span** — A typed view over Pattern Subject whose wrapped Pattern is relationship-shaped, conventionally containing two or three elements: the two Frames being related, optionally followed by a Bundle. In gram notation, the underlying Pattern is `[spanA | fra, frb]` (no Bundle) or `[spanA | fra, frb, bundle1]` (with one). A Span offers cross-module operations — following a correspondence from one Frame into another — that a bare Frame cannot, because a Frame holds neither the other side nor the connecting tissue. Unwrapping via `spanPattern` drops back to the substrate.
+**Span** — A container relating two Frame identities and owning the cross-Frame
+correspondences between their members, held in a Bundle. Its own identifying Subject's
+non-anonymous identity is its `SpanIdentity`, the same relationship a Frame's identifying
+Subject has to `FrameIdentity`. A Span stores Frame *identities*, not Frame values, so its
+pair-endpoint invariant is not decidable from the Span value alone — it requires resolving
+those identities to Frame values, which only a FrameSpace supplies. A `Span` value is the
+FrameSpace-confirmed form; a `SpanDraft` is the raw, freely constructible, unvalidated input
+to admitting or updating one.
 
-**Bundle** — A Pattern whose elements are pairwise correspondences between elements of two Frames. Each element of a Bundle is itself a relationship-shaped Pattern — typically `(fra_i)-->(frb_j)`, with an anonymous or named relationship Subject — pairing one element from one Frame with one element from the other. A Bundle has its own identifying Subject and is a first-class Pattern: it can stand alone, appear as the third element of a Span alongside the Frames it pairs, or be referenced by multiple Spans. The Bundle's pair-elements are the cross-Frame edges, externalized from both Frames.
+**ClosedSpan** — A Span-shaped value built directly from two Frame values and a Bundle,
+validated against those two Frames alone, with no FrameSpace involved. Independently valid
+the same way a Frame is, and the export/exchange form for a Span together with its endpoint
+Frames.
 
-**Portal** — A Pattern Subject that participates in a Bundle. Portal-hood is a *role*, not a type: any Pattern Subject can play the Portal role for some Bundle's pair-element, and the same Subject can be a Portal in multiple Bundles. Portal-hood is established by appearing as an endpoint of a pair-element, not by carrying any special label or marker on the Subject itself.
+**FrameSpace** — An immutable collection of Frames (keyed by Frame identity) and Spans
+(keyed by Span identity) that provides atomic replacement operations checking a changed
+Frame against every incident Span's Bundle before returning the next FrameSpace. The
+aggregate owner of cross-container integrity: a Frame or Span may exist and be independently
+valid outside a FrameSpace, but only gains cross-Frame integrity enforcement once
+registered in one.
 
-### The module boundary
+**Bundle** — A Span-owned, ordered collection of pair relationship Patterns (`Pair`s), not
+an independently serializable entity and not a Pattern of pairs. Canonically an ordered
+list, matching Pattern's own convention, because — unlike `FrameRegistry` — no cycle among
+pairs forces a keyed form to be canonical.
 
-**Self-containment (Reading 1)** — A Frame's elements do not reference other Frames. Whatever a Frame contains is reachable by traversing the Frame; nothing inside it points outward. This is a property of how Frames are constructed, not a behavior imposed by Frame's instances. A Frame built by summarizing sub-Patterns of another Frame contains *atomic* Portals (fresh Subjects with no elements), not the summarized sub-Patterns themselves — those remain in the lower Frame, referenced only through a Bundle. Encapsulation is therefore automatic: there is nothing to suppress during traversal, because there are no outward edges in the Frame to follow.
+**Pair** — One Bundle entry: a `PatternRow` conventionally constrained to exactly two
+elements, one endpoint reference into each of the Span's two Frames. A pair's own identity,
+the `PairLocalIdentity`, is scoped by its containing Span as `PairAddress = (SpanIdentity,
+PairLocalIdentity)`.
 
-**Crossing the boundary** — When a user wants to follow a correspondence from one Frame into another, they do not reach through a Frame's encapsulation. They work with the *Span*, which is a Pattern that already contains both Frames and the Bundle of cross-Frame pair-elements. The cross-boundary edges exist — as the Bundle's pair-elements — but they live in the Span, not in either Frame. Crossing a boundary is a Span operation; it never punches through a Frame.
-
-**Naming across the boundary** — A local Subject identity is sufficient while operating inside one Frame. A Bundle, Span, workbook, or persistence layer names a member with its scoped identity, including the Frame identity. This prevents unrelated entities such as `(aircraft-a, #1)` and `(aircraft-b, #1)` from being merged merely because their local symbols match.
-
-### Operations
-
-**Within-module operations (Frame)** — `find`, `containers`, `siblings`, and `framePara`. Each operates over a single Frame's contents. They stay within the Frame because the Frame stays within itself (self-containment); no special suppression is needed.
-
-**Find** — Given a predicate over Patterns and a Frame, return all Patterns in the Frame matching the predicate. Traverses the Frame's content (consistent with the structure-is-distributed principle). The general operation that subsumes by-identity, by-label, by-property, and by-shape lookups, each as a composition of `find` with the appropriate predicate.
-
-**Frame paramorphism** — A paramorphism over a Frame in which the step function receives the whole Frame as ambient context throughout the recursion. The Frame argument is *not* narrowed as the recursion descends; the recursion always sees the same Frame. This embodies the principle that structure is distributed across the original point of inquiry rather than localized to a current subtree.
-
-**Containers / siblings** — Given a Frame and a Pattern within it, find the Patterns in the Frame that contain it / share a container with it.
-
-**Cross-module operations (Span)** — Operations that traverse from a Frame, across a Bundle pair-element, into the other Frame. *Refinement* — following a Portal back to the sub-Pattern(s) it summarizes — is the canonical example. These are Span operations because the connecting tissue is Span-level data.
-
-**Frame-to-Frame transforms** — Pipeline-style operations that produce new Frames from old: `filtered` (keep elements matching a predicate), `intersect` and `union` (element-set composition), `rewriteElements` (element-wise transformation). All take general predicates or functions; specialized variants (by-label, by-property, by-kind) are caller compositions, not primitive operations. Filtering is construction-time, not view-time: a filter produces a new Frame with the filtered elements present as real values.
-
-**Reconciliation** — A Frame-to-Frame operation, conventionally invoked at I/O boundaries, that merges two Frames by Subject identity. Three modes:
-
-  - *1:1* — incoming Frame replaces existing Frame (or there is no existing Frame; the incoming Frame simply lands).
-  - *Additive* — incoming Frame's contents merge into existing Frame: new Subjects added, shared Subjects reconciled.
-  - *Subsumed* — incoming Frame's contents are absorbed into existing Frame at some non-root location.
+**PairDispositionPolicy** — A policy, declared once per Span, mapping a threatened pair to
+`Veto` (block the Frame edit) or `AutoDrop` (drop the pair, let the edit proceed). Governs
+what FrameSpace does when a Frame edit would dangle an incident pair's endpoint.
 
 ### Principles
 
-Five principles are load-bearing for this design. They are stated here because future contributors will face pressures to violate them, and the principles are what keep the design coherent over time.
+**1. The substrate is untouched; Frame, Span, and FrameSpace are framework types over it.**
+`Pattern v` gains no fields and no new constraints. These containers are defined entirely
+in the framework layer, in terms of the substrate.
 
-**1. The substrate is untouched; the framework adds typed views above it.** `Pattern v` gains no fields and no new constraints. Frame and Span are distinct framework types over `Pattern Subject`, defined entirely in the framework layer. Adding a typed view is not extending the substrate; it is building on it.
+**2. A member's address never names its container.** Containment is recorded by the
+containing `PatternRow`, never by the contained member's own address. This is the same
+externality principle applied one level below the Frame/Span boundary: just as a Frame does
+not carry back-references to its Spans, a member does not carry a back-reference to
+whatever contains it — which is exactly what lets one anonymous member be shared by several
+containers.
 
-**2. Frames are self-contained; crossing between them is a Span operation.** A Frame's elements do not reach across to other Frames (Reading 1). The only way to traverse from one Frame into another is through a Span, which holds the cross-Frame correspondences externally. This is the property-graph externality move applied to modules: a Frame does not contain its cross-Frame edges, just as a node does not contain its relationships.
+**3. A Frame does not carry back-references to its Spans.** The only way to relate members
+across Frames is through a Span, whose Bundle holds the cross-Frame correspondences
+externally. A Frame never knows it is spanned.
 
-**3. Structure is distributed, not localized.** Within-module navigation operations always see the whole Frame, never a narrowed local subtree. This is what makes Frame paramorphism powerful for graph-shaped reasoning and what avoids the subtle scoping bugs that come from implicit context narrowing.
+**4. Reconciliation is a boundary operation, and namespace-aware.** Frame-level
+reconciliation applies only between versions of the same Frame identity; it delegates
+content-conflict resolution to `Pattern.Reconcile`. Equal named local identities in
+different Frames are not duplicate identities — combining differently scoped Frames
+requires an explicit import into a chosen destination namespace.
 
-**4. Reconciliation is a boundary operation.** Reconciliation happens at I/O boundaries (get/put), not throughout user code. Internal operations may assume already-reconciled data once a boundary operation completes. Defensive reconciliation sprinkled through internal code is the smell of a misplaced boundary.
-
-**5. Identity is local to a Frame.** `Subject.identity` identifies a Subject inside one Frame; `(frame identity, Subject.identity)` identifies it outside that Frame. Local symbols are not made globally unique by mutation or string prefixing. Any operation that compares, stores, or references members across Frame boundaries must retain both parts of the scoped identity.
+**5. Identity is local to a Frame; a Span's validity is relative to a FrameSpace.** A
+`LocalAddress` is meaningful inside one Frame. Outside it, a member is named by
+`FrameIdentity x LocalAddress`. A Span carries no standalone validity the way a Frame does:
+it is a claim about two Frames it does not possess, confirmed only relative to a
+FrameSpace (or, without one, directly against two Frame values as a `ClosedSpan`).
 
 ## Motivation
 
-`Pattern Subject` is a uniform container type. Crucially, a Pattern is not itself a graph — it is a substrate that can be interpreted as graph-structured by external machinery. This separation of substrate from interpretation is load-bearing, and it leaves a navigational gap: there is no shared vocabulary for the moves an analyst makes over a Pattern that respect the substrate's polymorphism while doing the work analysts actually need.
+Higher-order graph construction needs a stable way to treat selected Pattern structures as
+addressable units without changing Pattern's value-agnostic, semantics-free substrate, and
+without forcing every operation to understand a special node role.
 
-The moves fall into two categories, and the design gives each its own type.
+`Pattern v` already supports arbitrary recursive composition, useful precisely because
+Pattern enforces none of the interpretations placed on it. The difficulty appears when a
+higher-order structure must itself participate as an addressable unit in further graph
+construction: promoting selected Patterns into a node role inside the existing substrate
+would make membership, identity, traversal, and referential-integrity rules depend on a
+special context. A wrapper/view over an already-formed Pattern — this RFC's original
+approach — retains that ambiguity, attempting to add module, identity, and integrity
+semantics after the fact.
 
-**Modularization** takes a Pattern and treats it as a self-contained unit you can navigate within: search it, walk it, ask what contains what. This is the Frame. A Frame draws a boundary around a Pattern and says "this is a module; here are its members." Crucially, a Frame's members do not reach outside the Frame — the boundary is real because nothing inside crosses it.
+A Frame instead establishes a new construction context, echoing Pattern's own shape one
+level up: an identifying Subject admitting definitions into one referentially closed
+registry, whose entries are again a Subject with ordered elements — now references, not
+embedded values. A Span then establishes correspondence between members of two Frames
+without placing cross-Frame references inside either Frame — the same externality principle
+property graphs rely on (a node does not know its own relationships), applied to modules
+instead of nodes; the same principle later governs why a member's own address never names
+its container either.
 
-**Composition** takes Frames (modules) and relates them into larger structures. This is the Span. A Span connects two Frames, optionally specifying element-level correspondences via a Bundle. The connections live in the Span, not in the Frames — so relating two modules does not violate either module's encapsulation. The Span is where cross-module structure accumulates.
+This boundary also gives the in-memory model the ownership shape RFC-011 persistence
+already requires: `frame_row(frame_id, id, labels, properties, elements)` uses
+`(frame_id, id)` as its member key, and `bundle_pair` enforces both endpoint Frame
+membership and endpoint existence through foreign keys. The in-memory model has equivalent
+ownership and integrity rules before it is mapped to those rows, rather than requiring a
+lossy translation between a recursively nested value and a row-based store.
 
-The unifying insight is **externality applied recursively**. The property-graph model's success comes from refusing to embed adjacency in nodes: a node does not list its relationships; the graph holds them, externally. Pattern Subject already shares this property within a single Pattern (an element does not know its container or siblings). Frame and Span extend it one level up: a Frame does not hold its cross-Frame correspondences; the Span does. The Frame is the node; the Span is the graph the node sits in. Cross-boundary traversal is graph traversal over the Span, never node-internal traversal that breaks encapsulation.
+Pattern, Frame, ClosedSpan, Span, and FrameSpace form one spectrum, not five unrelated
+concepts. Pattern is deliberately semantics-free: a value with ordered elements, no
+identity or integrity rules at all. FrameSpace is the opposite pole: where identity,
+cross-container integrity, and pair disposition policy actually get enforced over time.
+Frame and ClosedSpan sit in between — each carries a real, checkable invariant but needs no
+ongoing operational context to hold it, unlike Span, which only ever means anything
+relative to a FrameSpace.
 
-The motivating use cases:
+The motivating use cases carry over from this RFC's original draft, restated against the
+managed model:
 
-  - **Clash-free multi-document ingestion.** Two `.gram` files may both contain `alice`, `#1`, or an anonymous entity assigned `#1` during parsing. Each document is assigned a distinct Frame identity at its ingestion boundary. The local symbols remain unchanged, while `(file-a, #1)` and `(file-b, #1)` remain distinct in combined structures and persistence.
+  - **Clash-free multi-document ingestion.** Two `.gram` files may both contain `alice` or
+    an anonymous entity. Each document is admitted into a Frame with a distinct, explicitly
+    assigned Frame identity. Local identities remain unchanged, and `(file-a, alice)` and
+    `(file-b, alice)` remain distinct registry members.
 
-  - **Disentangling graphs-of-graphs.** A maintained airplane is simultaneously a mechanical Frame, an electrical Frame, a maintenance Frame, a supplier Frame, a procedure Frame. Each is a self-contained module. Correspondences between them — shared entities at irregular granularities — are Spans. Queries like "the electrical aspects of wing components subject to procedure X owned by technician Y" become navigation within Frames plus traversal across Spans, with no special-purpose graph-of-graphs machinery.
+  - **Disentangling graphs-of-graphs.** A maintained airplane is simultaneously a
+    mechanical Frame, an electrical Frame, a maintenance Frame, a supplier Frame, a
+    procedure Frame. Correspondences between them are Spans, validated by a shared
+    FrameSpace. Queries that cross these Frames become within-Frame lookup (Open Question
+    6) plus cross-Frame traversal via Span Bundles, with no special-purpose
+    graph-of-graphs machinery.
 
-  - **Aspect-aware partitioning.** Spans carry the structure that distinguishes co-accessed regions across modules. A workload-aware partitioner that respects Span boundaries produces splits tuned to query access patterns rather than to topology in isolation.
+  - **Aspect-aware partitioning and query-plan scope reduction.** A Span's Bundle names
+    exactly the cross-Frame edges that exist; a query or partitioner expressed in terms of
+    Frame membership and Span participation carries its own scope information, rather than
+    requiring irrelevance to be proven from arbitrary predicates.
 
-  - **Query-plan scope reduction.** A query expressed in terms of Frame membership and Span participation carries its own scope information in its statement. The planner does not need to prove irrelevance from arbitrary predicates; the structure names what is in-scope.
-
-The framework lines up cleanly with the spreadsheet model. Pattern-hs's posture is "a substrate for composing structure the way spreadsheets compose values," and the Frame/Span vocabulary maps directly:
-
-| Spreadsheet | Frame + Span |
-|---|---|
-| Sheet | Frame |
-| Sheet name (tab label) | Frame's identifying Subject |
-| Sheet contents (cell grid) | The Frame's elements |
-| Cell | A Pattern in the Frame (sometimes a Portal) |
-| Cross-sheet reference (`Sheet2!A1`) | A pair-element within a Bundle |
-| Named range of references | A Bundle |
-| Workbook (collection of sheets) | A Pattern Subject whose elements are Frames (or Frame references) |
-| Formula bar / "show formula" | Following a Span's Bundle to a Portal's correspondences |
-
-The mapping is sharp because the cross-sheet reference — the thing that connects one sheet to another — is not stored *inside* either sheet's cells; it is its own piece of structure that names cells on both sides. That is exactly what a Bundle pair-element is, and exactly why it lives in the Span rather than in either Frame.
+The initial Haskell API uses persistent updates: operations return a new Frame, Span, or
+FrameSpace instead of mutating a process-local cell. This is database-like in its integrity
+rules and data-frame-like in its tabular registry/query model, while remaining a portable
+pure reference implementation for Rust and TypeScript.
 
 ## Design
 
-### Substrate vs. framework
+### Identity and addresses
 
-Pattern-hs's substrate (`Pattern v`) is polymorphic in the value type and is not modified by this RFC. The framework anchors on `Pattern Subject` and introduces typed views over it:
+Named and anonymous Patterns have different identity properties. A named Pattern carries a
+non-anonymous `Subject.identity`; that Symbol identifies a member within one Frame. An
+anonymous Pattern carries no Subject identity. Both remain valid Frame members: admission
+assigns an anonymous Pattern a flat, Frame-scoped ordinal — the same status a named identity
+has, just unnamed — rather than an address relative to whatever Pattern first contained it.
+Containment is recorded the other way around: whichever `PatternRow` lists that ordinal
+among its elements is one of its containers, and nothing prevents more than one from doing
+so. Adding the same anonymous Pattern shape to a Frame multiple times creates distinct
+registry entries at distinct ordinals; entries never receive invented Subject identities.
 
-```haskell
-newtype Frame = Frame { framePattern :: Pattern Subject }
-newtype Span  = Span  { spanPattern  :: Pattern Subject }
+Every Frame member has a local address, while only named members have a local identity:
 
-data ScopedIdentity = ScopedIdentity
-  { frameIdentity :: Symbol
-  , localIdentity :: Symbol
-  }
+```text
+LocalAddress  = Named LocalIdentity | Positional ElementOrdinal
+ScopedAddress = FrameIdentity x LocalAddress
 ```
 
-The declarations are illustrative interface shapes, not a commitment to an internal representation. If optional indexes require stored state, the implementation may use a single-field wrapper plus external indexing or a data type that also carries derived state; either way `framePattern` and `spanPattern` remain lossless projections. Adding these views is not extending the substrate. `Pattern v` gains no fields, no constraints, and no instances it didn't have. Frame and Span live in the framework layer (`Pattern.Frame`, `Pattern.Span`), defined entirely in terms of the substrate. The substrate-not-framework principle is honored by the *substrate* staying fixed, not by the framework refusing to define types.
-
-The views earn their keep in two ways a bare `Pattern Subject` cannot. First, they carry distinct operations: Frame offers within-module navigation, Span offers cross-module traversal, and the type you hold tells you which moves are available. Second, they can carry optimizations — a Frame may cache an identity index so that lookups are fast; a Span may cache its endpoint identities or a pair-index for refinement. A bare Pattern Subject has nowhere to hold such derived state.
-
-Either view unwraps losslessly to its underlying Pattern Subject (`framePattern`, `spanPattern`) for substrate-level work. Wrapping may have a cost when the view maintains a cache (building the index is work). This shapes idiomatic use: wrap when you are about to do a lot of within-module navigation (amortize the index build); stay in Pattern-land for structural composition (no index needed). The cache is an enrichment, not a requirement — a Frame that holds no index is a perfectly good Frame whose `find` is linear.
-
-### Frame
-
-A **Frame** wraps a self-contained Pattern Subject — one whose elements do not reach across to other Frames. The root Subject of the wrapped Pattern is the Frame's identifying entity (its name at the inter-Frame layer, with whatever labels and properties classify the module as a whole). The elements are the module's members.
-
-The root Subject's identity is also the Frame namespace. A Frame used in identity-bearing cross-Frame operations must therefore have a non-anonymous root identity that is unique among the Frames in the enclosing composition or storage boundary. Ingestion assigns that identity explicitly (for example from a stable document key) by constructing a Frame root around the document's parsed top-level Patterns; it must not rely on a per-document generated root such as `#1` being globally unique.
-
-Within a Frame, `Subject.identity` remains the lookup and reconciliation key. Outside it, the key is `ScopedIdentity frameId localId`. Qualification does not alter the wrapped Pattern: `framePattern` returns exactly the local identities supplied at construction. This gives multi-file ingestion a deterministic rule without coupling `Subject` or gram notation to a global namespace scheme.
-
-Anonymous Subjects are a separate, intra-Frame concern. A caller that needs lookup, reconciliation, Span endpoints, or persistence assigns them distinct local identities before those operations, using the existing per-document identity assignment. Generated identities need only be unique within the Frame and may restart in every Frame.
-
-Self-containment (Reading 1) is the key property and the reason encapsulation needs no enforcement. A Frame built by summarizing sub-Patterns of a lower Frame contains *atomic Portals* — fresh Subjects with no elements — not the summarized sub-Patterns. The sub-Patterns stay in the lower Frame; the correspondence is recorded in a Bundle. So traversing a Frame stays within the Frame not because traversal is held back at a boundary, but because there are no outward edges to follow. The Frame's `Foldable` and `Traversable` instances are the ordinary Pattern ones; they encapsulate by virtue of the data, not by special behavior.
-
-Frame construction and within-module operations:
-
-```haskell
--- | Wrap a Pattern Subject as a Frame. If the Frame maintains a cache
---   (e.g. an identity index), it is built here.
-frame :: Subject -> [Pattern Subject] -> Frame
-
--- | Wrap an existing Pattern Subject as a Frame without rebuilding it.
-asFrame :: Pattern Subject -> Frame
-
--- | Qualify a local identity when this Frame has a usable namespace.
-scopedIdentity :: Frame -> Symbol -> Maybe ScopedIdentity
-
--- | Find a member only when both the Frame and local portions match.
-findScoped :: ScopedIdentity -> Frame -> Maybe (Pattern Subject)
-
--- | Add / remove an element at the top level (matched by Subject identity).
-addElement    :: Pattern Subject -> Frame -> Frame
-removeElement :: Pattern Subject -> Frame -> Frame
-
-class FrameOps f where
-  -- | Find all Patterns in the Frame matching the predicate. Traverses
-  --   the Frame's content; returns matches in traversal order.
-  find :: (Pattern Subject -> Bool) -> f -> [Pattern Subject]
-
-  -- | Patterns that contain / share a container with the given Pattern.
-  containers :: f -> Pattern Subject -> [Pattern Subject]
-  siblings   :: f -> Pattern Subject -> [Pattern Subject]
-
-  -- | Paramorphism with ambient Frame context. The step function sees the
-  --   whole Frame (never narrowed), the current sub-Pattern, and the
-  --   already-computed results for the sub-Pattern's elements.
-  framePara :: (f -> Pattern Subject -> [a] -> a) -> f -> a
-```
-
-`find` takes an arbitrary predicate rather than privileging any specific Subject field. Identity lookup is one composition (`find (\p -> identityOf p == sym)`); label filtering is another (`find (hasLabel "Mechanical")`); property filtering is another. The framework has no opinion about which Subject fields warrant a dedicated operation; consumers compose `find` with whatever predicates they need. Predicate helpers (`hasLabel`, `propertySatisfies`, `matchesKind`) are ordinary functions, living alongside the primitives or in a small `Pattern.Predicates` module.
-
-The unqualified lookup is intentionally local. Code holding identities obtained from a workbook, Span, or store uses `findScoped`; a Frame must reject a scoped identity whose Frame portion does not match rather than silently comparing only the local symbol.
-
-By default `find` is linear in the Frame's size. A Frame that caches an identity index answers the by-identity case in better-than-linear time; this is the kind of optimization the typed view exists to make possible, and is why `frame` (which may build the index) is distinguished from `asFrame` (which wraps without rebuilding).
-
-The key design point of `framePara` is that the Frame argument is *not* narrowed during recursion. At any step, the step function has access to the whole Frame, not just the local subtree. This is what makes `containers` and `siblings` answer "in the Frame" rather than "in the current subtree," and what makes the paramorphism useful for graph-shaped reasoning where local context is misleading.
-
-`FrameOps` has an instance for `Frame` (the primary one) and may also have an instance for bare `Pattern Subject` (so that code holding an unwrapped Pattern can navigate it without wrapping). The `Frame` instance is where caching-backed implementations live.
-
-### Span
-
-A **Span** wraps a relationship-shaped Pattern whose first two elements are the Frames being related. The root Subject of the wrapped Pattern identifies the Span-as-entity and carries properties describing the relationship collectively.
-
-In gram notation, the underlying Pattern of a bare Span is:
-
-```
-[spanA | fra, frb]
-```
-
-— a relationship-shaped Pattern (root `spanA`, two elements `fra` and `frb`) of the same shape as any gram relationship `[r | a, b]`, applied at the inter-Frame layer. A bare Span asserts that `fra` and `frb` are related, named by `spanA`, with no element-level detail.
-
-When element-level pairing matters, a third element — a **Bundle** — provides it:
-
-```
-[spanA | fra, frb, [bundle1 | (fra_1)-->(frb_1), (fra_2)-->(frb_2), ...]]
-```
-
-The Bundle's elements are pair-elements, each a relationship-shaped Pattern pairing one element of `fra` with one element of `frb`. The arrow `(fra_1)-->(frb_1)` is gram shorthand for a relationship-shaped Pattern with an anonymous Subject; pair-elements may carry explicit Subjects (`(fra_1)-[pair_1]->(frb_1)`) when an individual pairing needs identity or properties.
-
-Structural notes:
-
-  - **Frames are present by value.** The Frames a Span relates are elements of the Span's underlying Pattern — actual sub-Patterns, not identity references to Frames elsewhere. A Span is self-contained: resolving "what does this Span relate?" needs no external lookup. (By-reference encoding is available at serialization boundaries; that conversion is an I/O concern.)
-
-  - **The Bundle is where cross-Frame edges live.** This is the heart of the design. The pair-elements connecting `fra`'s elements to `frb`'s elements are not stored in `fra` or `frb` — they are in the Bundle, which is in the Span. Neither Frame knows it is spanned. Crossing from `fra` to `frb` means traversing the Span's Bundle, never reaching through a Frame.
-
-  - **A Span typically has 2 or 3 elements, interpretively.** The framework is optimistic about shape: a 2-element relationship-shaped Pattern between Frames is a bare Span, a 3-element one is bundled. Shape validation is deferred; non-conforming shapes have undefined interpretation under the Span convention.
-
-  - **Bundles are first-class Patterns.** A Bundle has its own Subject and is a Pattern in its own right. It can stand alone, be the third element of a Span, or be shared by several Spans.
-
-Span and Bundle construction, and cross-module operations:
-
-```haskell
--- | Wrap two Frames as a bare Span (no Bundle).
-span :: Subject -> Frame -> Frame -> Span
-
--- | Wrap two Frames and a Bundle as a Span.
-spanBundled :: Subject -> Frame -> Frame -> Pattern Subject -> Span
-
--- | Construct a Bundle from a list of pair-elements. Each pair is two
---   Patterns (by value) to be paired. The pair-element Subject is
---   anonymous by default; richer pair construction uses ordinary
---   Pattern construction.
-bundle :: Subject -> [(Pattern Subject, Pattern Subject)] -> Pattern Subject
-
-class SpanOps s where
-  spanFrames :: s -> (Frame, Frame)
-  spanBundle :: s -> Maybe (Pattern Subject)
-
-class BundleOps b where
-  pairElements :: b -> [Pattern Subject]
-  pairSubjects :: b -> [(Symbol, Symbol)]
-
--- | Qualify the Bundle's ordered local endpoints with the Span's Frames.
-spanPairSubjects :: Span -> [(ScopedIdentity, ScopedIdentity)]
-
--- | Destructure a relationship-shaped Pattern into its two endpoints.
-endpointsOf :: Pattern Subject -> (Pattern Subject, Pattern Subject)
-```
-
-`SpanOps` and `BundleOps` are narrow on purpose — composition, inversion, and richer operations are ordinary functions, not typeclass methods. A standalone Bundle can expose only its ordered local endpoint symbols because it does not own Frame namespaces. Once placed in a Span, its first endpoint is qualified by the first Frame and its second endpoint by the second Frame; `spanPairSubjects` is the unambiguous cross-Frame view.
-
-#### Multiple Spans between the same Frames
-
-Nothing constrains how many Spans relate two Frames. A mechanical Frame and an electrical Frame can be related by a `shares-physical-housing` Span, a `shares-power-source` Span, and a `was-serviced-together` Span at once — three Spans, each with its own Bundle (or none), all valid, none preferred. Spans are first-class: a Pattern whose elements are Spans, a Span between two Spans (each unwrapped to its Pattern and re-related), and so on, with no machinery beyond Pattern composition at the substrate level.
-
-#### Portals
-
-A **Portal** is the role a Pattern Subject plays when it appears as an endpoint of a Bundle's pair-element. Portal-hood is not a type, a label, or a structural property of the host Frame — it is the fact of being paired in some Bundle. At a Span boundary, Portal participation is identified by scoped identity, not by a bare local symbol.
-
-This is a deliberate substrate-faithful choice. The alternative — labeling a Subject `Portal` when it becomes paired — embeds knowledge of the pairing into the Pattern, violating the externality principle. The right way to discover Portals is to traverse Bundles and find the entities their pair-elements reference. Consumers needing fast Portal-discovery can build an index (`Map ScopedIdentity [Span]`) outside the substrate, the same posture as everywhere else.
-
-#### Bundles standing alone
-
-A Bundle is meaningful without a Span — a Pattern of pair-elements expressing correspondences between two element-sets, useful during construction before the relating Span is built. Wrapping a Bundle in a Span gives the correspondence a Frame-level identity and asserts which two Frames are related; standing alone, the Bundle just lists the pairings. Both are valid; `BundleOps` works either way.
-
-### Within-module vs. cross-module: the operation split
-
-The two typed views divide the operation space along the module boundary.
-
-**Frame operations stay within a module.** `find`, `containers`, `siblings`, `framePara` all operate over a single Frame's contents and never leave it — because the Frame never leaves itself (self-containment). When you hold a Frame, the moves available to you are within-module moves.
-
-**Span operations cross between modules.** Following a correspondence from one Frame into another is a Span operation, because the connecting tissue (the Bundle) is Span-level data. When you hold a Span, you can additionally traverse across the boundary.
-
-Refinement is the canonical cross-module operation: given a Portal in one Frame, find the element(s) it corresponds to in the other. It is a composition over Span and Bundle access, not a primitive:
-
-```haskell
--- Follow a Span's Bundle from a Portal to its correspondents.
--- Each pair-element is a relationship-shaped Pattern (src)-->(tgt);
--- we match on tgt and return src (or vice versa, per direction).
-refine :: Span -> ScopedIdentity -> [Pattern Subject]
-```
-
-A user who wants to go from a neighborhood-Portal to the people it summarizes does not drill into the Portal — the Portal is atomic and has nothing inside (self-containment). They take the Span, identify the Portal by its Frame and local identity, find the pair-element whose corresponding scoped endpoint matches, and follow it to the other endpoint in the lower Frame. The crossing is explicit, typed, unambiguous when both Frames reuse a local symbol, and external — the property-graph discipline applied to modules.
-
-### Composing Frames, Bundles, and Spans
-
-The primitives — `frame`, `bundle`, `span`, `spanBundled`, the Frame-to-Frame transforms — compose by ordinary function composition. Workflows that combine selection, transformation, summarization, and correspondence-recording are not primitives; they are compositions.
-
-The summarization workflow (sub-Patterns of a lower Frame summarized as Portals in a higher Frame, with the correspondence recorded) is one such composition:
-
-```haskell
-let selected    = find predicate lowerFrame          -- [Pattern Subject]
-    portals     = map summarize selected             -- caller's summarize :: Pattern Subject -> Pattern Subject
-    higherFrame = frame higherSubject portals
-    pairs       = zip selected portals
-    bdl         = bundle bundleSubject pairs
-    result      = spanBundled spanSubject lowerFrame higherFrame bdl
-in  result
-```
-
-The Portals in `higherFrame` are atomic — `summarize` produces fresh Subjects, not nested copies of the selected sub-Patterns. So `higherFrame` is self-contained (Reading 1), and the correspondence back to the sources lives entirely in `bdl`, inside the resulting Span. Each step is independently useful and uses only the framework's primitives. Variations are equally valid:
-
-  - **Filter without summarizing**: pair each selected sub-Pattern with itself (or a relabeled copy) in the Bundle; the Bundle records "same entity, viewed from the new Frame."
-  - **Relate two existing Frames**: skip selection and summarization; `bundle` from a pair-list, then `spanBundled`.
-  - **Construct a Frame without recording correspondences**: just `frame` from a transformed element list; no Span, no Bundle.
-  - **Construct a Bundle without a Span**: for a local computation that doesn't need the Frame-level relationship asserted.
-  - **Summarize without building a Frame**: compute summary Subjects and use them elsewhere.
-
-The framework provides the primitives; the workflows are caller compositions. Higher layers (such as Crossfold, the application built on pattern-hs) can name and package whichever workflows recur in their domain.
-
-A note on injectivity: when `summarize` produces the same Subject for two different sub-Patterns, the resulting Bundle has two pair-elements pointing to the same Portal — which the caller may or may not consider correct. The framework records what the caller produced; the caller decides what's coherent. The concern is visibly the caller's (the zip and summarization are in caller code), not hidden in a primitive.
-
-### Frame-to-Frame transforms
-
-Transforms produce new Frames from old. They are construction-time operations, not view-like: the resulting Frame is a real Pattern Subject with the transformed elements materialized. Set operations compare local identities only when both inputs represent the same Frame namespace. Combining differently scoped Frames requires an explicit import/rebase into a chosen destination namespace; otherwise equal local symbols are unrelated and must not collapse.
-
-```haskell
--- General filtering: keep elements matching the predicate. The Frame-producing
--- counterpart of `find` — same predicate shape, different return.
-filtered :: (Pattern Subject -> Bool) -> Frame -> Frame
-
--- Element-set composition
-intersect :: Frame -> Frame -> Either FrameScopeError Frame
-union     :: Frame -> Frame -> Either FrameScopeError Frame
-
--- Element-wise rewriting (projections, external interfaces, etc.)
-rewriteElements :: (Pattern Subject -> Pattern Subject) -> Frame -> Frame
-```
-
-These are ordinary functions and compose by ordinary composition:
-
-```haskell
-result = filtered (\p -> hasLabel "Mechanical" p
-                      && propertySatisfies "version" isCurrent p)
-                  airplaneFrame
-```
-
-The substrate provides the general operations; specialized variants (by-label, by-property, by-kind filtering; label-rewriting, property-bijection) are caller compositions using predicate and function helpers. No combinator algebra is required at the type level; the functions compose because functions compose.
-
-Because filtering is construction-time and Frames wrap real Patterns, an optimizer can fuse pipeline stages to avoid materializing intermediates — a performance concern, not a correctness one, and not something the framework must provide primitively.
-
-### Reconciliation at I/O boundaries
-
-Reconciliation is a Frame-to-Frame operation invoked at boundaries:
-
-```haskell
-data ReconciliationMode = OneToOne | Additive | Subsumed
-
-reconcile
-  :: ReconciliationMode
-  -> ReconciliationPolicy   -- how to resolve property/label conflicts
-  -> Frame                  -- existing
-  -> Frame                  -- incoming
-  -> Either FrameReconcileError Frame
-```
-
-`ReconciliationPolicy` specifies how to resolve conflicts when two Subjects share an identity but differ in labels or properties; basic policies (`preferIncoming`, `preferExisting`, `union`, `error`) are provided, and consumers can write custom ones.
-
-Because reconciliation happens only at boundaries, internal operations may assume their Frames are already reconciled. This is what lets `find` and by-identity compositions over it stay simple: they need not defensively reconcile, since all Patterns in a Frame are assumed reconciled when the Frame was constructed or last received from I/O. (A Frame that caches an identity index builds it at construction over already-reconciled content, so the cache stays consistent.)
-
-Reconciliation is namespace-aware. Equal local symbols in different Frames are not duplicate identities. Reconciliation within one logical Frame compares local identities; an operation that absorbs a differently scoped Frame must explicitly choose the destination namespace, after which ordinary conflict policy applies. This makes accidental cross-file merging impossible while still allowing deliberate import at an I/O boundary.
-
-### Inter-Frame topology
-
-The recursive self-similarity lives at the substrate level. A graph of Frames is a Pattern Subject whose elements are Frames and Spans — either by value (as full sub-Patterns) or by reference (atomic Patterns whose Subjects identify Frames or Spans elsewhere).
-
-By value:
-
-```
-[workbook | fra, frb, frc, [spanAB | fra, frb, bundleAB], [spanBC | frb, frc, bundleBC]]
-```
-
-By reference:
-
-```
-[workbook |
-  [:FrameRef { identity: "mechanical-frame" }],
-  [:FrameRef { identity: "electrical-frame" }],
-  [:SpanRef  { identity: "mech-elec-shared-housing" }]
-]
-```
-
-Either is a Pattern Subject; wrap it as a Frame to navigate it as a module. Lifting again — a Pattern whose elements identify Workbooks — is the same move with no new vocabulary. The typed views are lenses you apply at whatever level you want module-navigation or cross-module-traversal powers; the composition underneath is always plain Pattern Subject, which is why the recursion has no ceiling and needs no parallel machinery for "a Pattern of Frames" versus "a Pattern of anything else."
-
-Resolving a reference-form Frame or Span to its Pattern requires an external lookup (`Map Symbol (Pattern Subject)`), a consumer concern. Member references across that boundary use scoped identities rather than local symbols. The by-value form needs no resolution (the natural in-memory form); the by-reference form is the natural serialization-and-storage form.
-
-### Multi-document ingestion and persistence
-
-The Frame boundary resolves RFC-011's scoped-identity prerequisite. An ingestion pipeline:
-
-1. assigns each source document a stable, non-anonymous Frame identity;
-2. assigns identities to anonymous Subjects locally within that document when identity-bearing operations require them;
-3. preserves every explicit and generated local Subject symbol inside the Frame; and
-4. carries `(frame identity, local identity)` whenever a member is referenced outside it.
-
-Consequently, separately parsed documents may both contain `alice` or generate `#1` without collision. RFC-011's relational key `(frame_id, id)` is the persistence form of this rule; stores do not invent a second identity model. Re-ingesting the same stable Frame identity is an update to that namespace and invokes reconciliation. Ingesting a different Frame identity, even with identical local symbols, creates distinct entities.
-
-### Integration with `Pattern.Graph` and `Pattern.PatternGraph`
-
-The graph-interpretation machinery — `GraphLens`, `PatternGraph`, `GraphQuery`, `Pattern.Graph.Algorithms` — operates on `Pattern Subject`. A Frame unwraps to a Pattern Subject (`framePattern`), so all of it applies to a Frame's content directly. A Span likewise unwraps (`spanPattern`) and is interpretable as a graph in its own right: a relationship-shaped Pattern whose endpoints are the related Frames and whose optional third element is a Bundle. The natural reading is "a Span is a relationship at the Frame level," but the graph interpretation is available for free.
-
-### Relationship to `ScopeQuery`
-
-The library's existing `ScopeQuery` typeclass provided an interface for scope-aware navigation. Its responsibilities are absorbed by `FrameOps`: the scope-defining role is filled by a Frame (a self-contained Pattern Subject), the navigation-operations role by `FrameOps` methods. `ScopeQuery` may be retained as a public name aliasing the same operations for backward compatibility; new code targets `FrameOps`. The first-class scope-as-value pattern is provided by Frame itself — a Frame is a value — so no separate scope-dictionary type is needed.
+The Frame registry is keyed by `LocalAddress`, not by `Subject.identity`. This permits
+separately ingested Frames to contain the same named symbols without collision while
+preserving anonymous structural vocabulary.
+
+Frame identity must be stable across versions of the same logical Frame and unique among
+Frames held by one collection. A Frame's identifying Subject supplies its Frame identity;
+the identity cannot change during the Frame's lifetime, although its labels and properties
+remain reconcilable metadata. An import boundary supplies the Frame Subject, optionally
+derived from a stable source key; Frame and FrameSpace do not infer file paths, generate
+hidden global identities, or rewrite source member identities.
+
+This supplies the namespace half of RFC-011 Open Question 3 (scoped identity namespaces):
+`FrameIdentity` is the namespace, and `ScopedAddress = FrameIdentity x LocalAddress` is the
+qualified key RFC-011's `frame_row(frame_id, id, ...)` persists. It does not supply the
+whole of RFC-011's answer. RFC-012 grounds the same Frame-as-namespace primitive but goes
+further — weak-entity identity for anonymous members, promotion, and a declared or
+store-assigned `namespace` header for a Frame lacking a stable source key — and is the RFC
+that actually closes RFC-011 Open Question 3 for anonymous content. This RFC establishes
+the Frame identity a scoped address is built from; RFC-012 specifies how that identity is
+assigned and how anonymous members acquire one when promoted.
+
+### Defining and reference occurrences
+
+Frame admission preserves the distinction between a defining Pattern occurrence and a local
+reference occurrence. A defining occurrence introduces or reconciles one registry entry; a
+reference occurrence names a prospective registry entry and resolves to a fuller definition
+with the same local identity when one exists, or is promoted to a content-free defining
+entry otherwise. An admission batch collects all occurrences before resolving them,
+permitting forward references and indirect cycles.
+
+An anonymous defining occurrence retains its anonymous Subject and receives a positional
+`LocalAddress`, assigned at admission, not derived from any containing occurrence. It
+cannot be targeted by a named reference, a Span pair endpoint, or a stable external key
+until a later, separately designed promotion operation assigns it a `LocalIdentity` — a
+concern shared with RFC-012, not decided here.
+
+A defining occurrence must not directly reference its own local address; direct
+self-reference is rejected at admission. References among distinct registry entries may
+form indirect cycles, which are valid registry topology.
+
+Content admitted without a syntactic definition/reference tag (a raw `Pattern Subject`)
+recovers the distinction from content instead: identity alone is a reference candidate; any
+labels, properties, or elements make it a definition. Two definitions sharing an identity
+are a content conflict, deferred to the selected reconciliation policy rather than treated
+as an admission error — this raw-import path is a compatibility fallback, more permissive
+than the canonical admission format's stricter default. A full Pattern in one Frame and an
+atomic Pattern in another Frame are not a Frame-internal reference; a Span pair records
+their relationship.
+
+### Frame registry and closure
+
+A new Frame starts with its identifying Subject and no registry entries. Admission
+recursively turns each defining occurrence into one independently addressable Frame entry.
+Duplicate named local identities reconcile under the selected policy; two fuller
+definitions whose content that policy cannot reconcile are errors. Frame admission has no
+nested identity namespaces: every defining occurrence at every input depth becomes an entry
+in the same registry, while ordered local-address links express its containment
+relationships.
+
+Each registry entry is a `PatternRow` (see Glossary); `FrameRegistry`, keyed by
+`LocalAddress`, is the canonical membership domain and its address links are the canonical
+containment structure. This is canonical, not merely an optimization over some other
+ordered shape, precisely because a cycle has no single canonical ordered presentation: a
+fully expanded presentation that recursively embeds every target value cannot be finite
+when the registry contains a cycle, and duplicates shared members when it does not.
+
+A Frame can still produce many semantically equivalent `Pattern Subject` presentations —
+each defining every registry entry once and using atomic local references for further
+occurrences, Gram's finite recursive-graph form. Such a presentation and the Frame registry
+are logically equivalent when they resolve to the same member Subjects and ordered local
+references, though not necessarily the same recursive value shape.
+
+Frame updates are pure and invariant-preserving: admitting one or a batch of top-level
+occurrences (resolving forward references across the batch), or removing a registry entry.
+Removal succeeds only when no other entry refers to its address — named or positional
+alike, since both are now stable, Frame-scoped addresses. A caller must first detach a
+containment link before removing an entry nothing else references.
+
+A Frame update preserves local registry closure and produces a candidate replacement Frame.
+FrameSpace's Frame-update operation is the cross-Frame commit boundary (see FrameSpace
+integrity contract below): a Frame may be locally valid while being ineligible to replace
+its registered version in a FrameSpace.
+
+### Span, Bundle, and ownership
+
+One Frame may exist with no Span and may participate in many Spans. A Span must preserve
+pair validity as Frame membership changes, but a Frame must not carry back-references to
+its Spans — the two therefore need a higher-level integrity owner whenever their lifecycles
+are coordinated. FrameSpace is that owner: an immutable collection of Frames keyed by Frame
+identity and Spans keyed by Span identity, providing atomic replacement operations that
+check a changed Frame against all incident Span Bundles before returning the next
+FrameSpace.
+
+A Span is incident to a Frame when that Frame's identity equals the Span's left or right
+Frame identity. A Span canonically stores its left and right Frame identities, not Frame
+snapshots, and is admitted only when both identities resolve in its FrameSpace; Bundle pair
+validation then uses the current endpoint Frames. One Frame can therefore participate in
+many Spans without copied state or divergent snapshots.
+
+A Frame's closure invariant is a closed predicate, decidable from the Frame value alone — a
+Frame stands alone before it is registered anywhere. A Span's pair-endpoint invariant is
+open: undecidable without a `FrameIdentity -> Frame` lookup, which only a FrameSpace
+supplies. A Span is better understood as a claim about two Frames it does not possess,
+confirmed only relative to a FrameSpace, than as a value with standalone validity the way a
+Frame has one. This is also a cardinality argument independent of decidability: Frame-to-
+Span is many-to-many, while ownership can only express one-to-many, so a Span owning its
+Frames by value would either forbid a Frame from joining a second Span, or embed a
+per-Span copy with no shared coordinator to keep synchronized when the source Frame updates.
+
+Because of this asymmetry, only the FrameSpace-confirmed form is named `Span`; holding a
+`Span` value is itself evidence that its pairs already resolved. A `SpanDraft` — an
+identity, left and right Frame identity, and an unvalidated Bundle of candidate pairs — is
+the distinct, freely constructible input to admitting or updating a Span.
+
+### ClosedSpan
+
+A Span's pair-endpoint invariant only appears open because `Span` stores Frame identities
+rather than Frame values. Given the two actual Frame values a Span relates, pair-endpoint
+resolution is a purely local check against their own registries, needing nothing from a
+broader FrameSpace. `ClosedSpan` makes that explicit: a Span-shaped value built directly
+from two Frame values and a Bundle of candidate pairs, validated against those two Frames
+alone, and independently valid outside any FrameSpace the same way a Frame already is.
+
+A confirmed `Span` can be closed against a FrameSpace as a convenience — resolve its two
+Frame identities, then validate as a `ClosedSpan` — but this can fail even though the `Span`
+was already confirmed: a `Span` proves validity only against the FrameSpace generation that
+confirmed it, and a later generation may have dropped a pair (`AutoDrop`) or rebound one, so
+closing revalidates against whichever FrameSpace it is actually given.
+
+`Span` and `ClosedSpan` serve different, non-overlapping roles. `Span` answers "what does
+this relationship mean right now," re-resolved against whatever FrameSpace it is given each
+time, so it can never go stale because it never freezes anything. `ClosedSpan` answers "what
+did this relationship mean at the moment it was closed" — a permanently valid, self-
+contained record, useful for serialization or export, unable by construction to observe a
+later Frame update.
+
+### Correlating Frames by shared local identity
+
+Two independently ingested Frames may reuse the same named local identity for what is, in
+the source domain, the same real-world thing — coincidence, not correlation, under the
+Frame model's own namespacing rule. A convenience constructor may turn that coincidence into
+an explicit correlation without changing the rule: for each named local identity occurring
+in both Frames, it proposes one candidate pair relating them. It produces candidates only —
+a caller must assign each one its own `PairLocalIdentity` before a Span or ClosedSpan will
+accept it, since matching symbols are a construction hint, never an automatic merge. This is
+one convenience constructor among several ways to populate a Bundle, not the general case;
+manual pairing remains necessary whenever a correspondence holds between differently named
+members.
+
+### FrameSpace integrity contract
+
+FrameSpace's atomic integrity responsibilities, stated behaviorally. Concrete function
+signatures, error constructors, and index representation are ADR-level.
+
+| Operation | Contract |
+|---|---|
+| Add a Frame | Requires a new Frame identity and a locally valid Frame. |
+| Update a Frame | Applies a pure local edit, validates the replacement, finds every incident Span, and consults each affected pair's owning Span's `PairDispositionPolicy`. An edit removing a member addressed by a `Veto` pair fails, identifying the affected pair addresses; an edit affecting only `AutoDrop` pairs succeeds, and those pairs are dropped from their Bundle. Never returns a partially updated FrameSpace. |
+| Remove a Frame | Fails unconditionally while any incident Span exists — `AutoDrop`-ping a pair cannot repair a Span whose endpoint Frame identity no longer resolves at all. |
+| Add / update a Span | Takes a `SpanDraft`, not a `Span`; on success, stores a confirmed `Span` once its pairs resolve against the current FrameSpace. Requires both endpoint Frames and every Bundle pair endpoint to resolve in its designated Frame. Neither operation returns a `Span` directly — the caller retrieves it by lookup against the returned FrameSpace. |
+| Rebind a pair | Explicitly replaces one pair's ordered endpoint references, after validating them in the Span's existing left and right Frames. |
+| Remove a Span | Removes its relationship entries without changing its endpoint Frames. |
+| Look up a Frame or Span | Returns the current value for an identity, or nothing. |
+
+This boundary does not provide cascades, automatic pair rewriting, observers, transactions,
+storage backends, or version histories. Those extensions may build on the same atomic pure
+replacement model.
+
+### Bundle pair Patterns
+
+A Bundle is a Span-owned, ordered collection of `Pair`s (see Glossary). A pair's Subject
+must have a non-anonymous identity, unique within its Span — a pair may be anonymous during
+construction, but Span admission rejects it until the caller supplies a
+`PairLocalIdentity`; silent identity generation would make a repeated import produce a new
+relationship entry instead of a reconcilable revision of the existing one.
+
+A pair's first element identifies a member of the Span's first Frame and its second element
+identifies a member of its second Frame; both must resolve in their respective endpoint
+Frame. Each endpoint is a named local reference — non-anonymous, with no labels,
+properties, or nested elements of its own; a content-free Pattern in this position is
+always a reference, never a member definition. The positional order is canonical, but Span
+has no core direction field: ordered endpoints are structural positions, not a semantic
+arrow. Whether a Span is directed, symmetric, functional, or under some other relationship
+law is determined by its Subject's labels and properties, or a higher-level domain
+validator — the core exposes counterpart traversal from either endpoint Frame.
+
+The ordered endpoint pair identifies what a relationship entry relates; its `PairAddress`
+identifies the relationship entry itself, so a Bundle may contain multiple pairs with the
+same endpoints when they have different identities or provenance. An optional Bundle
+uniqueness constraint limiting a Span to one pair per ordered endpoint pair is left open
+(Open Question 2); endpoint uniqueness is not the default identity rule.
+
+Pair reconciliation preserves exactly-two-endpoint cardinality: two versions with the same
+`PairAddress` and the same ordered endpoints reconcile their root Subject's labels and
+properties under the selected policy; two versions with the same `PairAddress` but
+different endpoints fail with an endpoint conflict. Changing a pair's endpoints requires an
+explicit rebind operation rather than generic element merging.
+
+### Pair disposition policy
+
+A pair's Subject may carry data relevant to how important that specific correlation is — a
+`Derived` label, a confidence score, a provenance property — but that data has no defined
+behavior on its own. `PairDispositionPolicy` (see Glossary) maps it to what FrameSpace does
+when the pair's endpoint is threatened by a Frame edit; it is declared once per Span, not
+per pair, because pairs sharing one Span typically share one coherent provenance and
+confidence model.
+
+`AlwaysVeto` — every pair protects its endpoints, an edit that would dangle one always fails
+— is the default when a Span declares no policy, preserving the behavior exercised
+throughout the Worked Exercise below. `AlwaysAutoDrop` is its opposite: no pair blocks a
+Frame edit, and a pair left dangling by one is dropped. `CustomDisposition` covers graduated
+policies between those extremes, mirroring how `Pattern.Reconcile` supplies named policies
+alongside custom ones.
+
+A Span carries its `PairDispositionPolicy`; `ClosedSpan` carries it too, inertly, so a
+`ClosedSpan` re-admitted into a fresh FrameSpace does not silently revert to the default.
+The policy governs a member-level edit inside a Frame, not the disappearance of an entire
+endpoint Frame — removing a Frame still fails unconditionally while any incident Span
+exists (see FrameSpace integrity contract); cascade-removing Spans when an endpoint Frame is
+removed is a separate, undesigned capability.
+
+Named policies (`AlwaysVeto`, `AlwaysAutoDrop`) are serializable; `CustomDisposition` wraps
+an opaque function and is not. A `ClosedSpan` built with a named policy round-trips through
+export and re-admission intact; one built with `CustomDisposition` is re-admission-only,
+its policy resupplied by the caller, since no serializable identifier for an arbitrary
+disposition function exists yet. A serializable policy-identifier scheme, if needed, is
+ADR-level.
+
+### Reconciliation
+
+Frame-level reconciliation operates only between versions of the same Frame identity. It
+registers incoming Patterns into the destination registry and delegates content conflicts,
+reference completion, and recursive element merge choices to `Pattern.Reconcile`; Frame
+code adds namespace checks, registry construction, and integrity errors, without
+duplicating Subject merge policy. Frame reconciliation has two modes: `Replace` validates
+the incoming Frame and replaces the existing registry of the same Frame identity — existing
+members omitted from the incoming Frame do not survive, and may be removed only when no
+local reference or incident Bundle pair addresses them. `Additive` admits incoming
+definitions into the existing registry, adds missing members, reconciles matching named
+identities under the selected policy, and retains existing members omitted from the
+incoming batch. FrameSpace validates incident Span endpoints after either mode.
+
+Frame identity and named member identities remain stable after admission; reconciliation
+may change a member's labels, properties, and ordered local references, but never renames
+that member or its Frame. Positional addresses are as stable as named ones once assigned;
+anonymous members still cannot serve as Span pair endpoints or stable external keys — not
+because their address is unstable, but because a pair endpoint needs an author-chosen,
+domain-meaningful identity, which an anonymous ordinal is not.
+
+Containment attachment is a distinct, third operation, not a reconciliation mode:
+`Attach` admits definitions into the destination Frame namespace, then adds the selected
+incoming root addresses to a target member's ordered element sequence, rejecting direct
+self-reference, unresolved references, and identity conflicts. Content from a different
+Frame must first be imported or rebased into the destination namespace; coincident local
+identities never trigger cross-Frame merging. Import copies selected source roots and their
+complete transitive local-reference closure into a destination Frame without changing the
+source, preserving each named local identity when unoccupied and rejecting collisions by
+default; an explicit import plan may map a colliding source identity onto an existing
+destination identity, an explicit request to merge those members whose content conflicts
+the selected policy then resolves. Anonymous members receive fresh Frame-scoped ordinals in
+the destination as their containment is rebuilt.
+
+Reconciliation, import, and attachment operate on distinct axes: reconciliation resolves
+temporal versions of one Frame identity; import copies content across Frame namespaces
+through an explicit address map while preserving the source; attachment changes containment
+among content already in the destination namespace. Because attachment's input references
+use only named local identities, it cannot create a cross-Frame reference — cross-Frame
+relationships require a Span pair.
+
+Reconciliation is itself a boundary operation: a FrameSpace applies it to an existing Frame
+before checking the affected Span Bundles. Ordinary reconciliation cannot change an
+address — it preserves existing addresses, adds new ones, or fails before producing an
+invalid FrameSpace. A future explicit readdress operation, rewriting all local references
+and incident Bundle pair endpoints atomically, is outside the initial model (Open Question
+3).
+
+### Deferred Pattern conversion
+
+Conversion between a Frame registry and `Pattern Subject` is not part of the initial
+Frame/Span implementation; Frame is not a wrapper, so no lossless conversion pair is
+exposed. A later materialization is correct when it is *topologically isomorphic* to the
+Frame registry: a shape-preserving correspondence anchored on named identities, respecting
+Subject content and ordered containment edges — not structural equality to one chosen
+nested `Pattern Subject` shape. Anonymous members' ordinals are labels of one expression of
+that shape, not part of it; a faithful round-trip may reassign them, which is safe
+precisely because pair endpoints are always named, never positional. The future conversion
+design must choose a canonical Gram presentation if one is required, root and definition
+placement, shared-member rendering, direct self-reference behavior, and return shape (Open
+Question 4).
+
+### Category-theoretic guidance
+
+Frame, Span, and FrameSpace provide syntax and structure in which stronger semantics can
+later be expressed. The initial container model does not claim that every Span is an
+adjunction or that a Frame collection is a topos, presheaf, or sheaf. The useful guidance is
+directional:
+
+- A Frame can become an object in a category of referentially closed Frame snapshots.
+  Integrity-preserving transformations can become morphisms.
+- A Span can become a relation, correspondence, or categorical span once its endpoint maps
+  and laws are defined.
+- An adjunction is a separate capability requiring functors, unit, counit, and the
+  associated naturality laws.
+- Presheaf and sheaf interpretations require a base category of Frames, restriction maps,
+  and, for sheaves, a coverage and gluing law.
+
+These concepts should guide extension points and naming without imposing unimplemented
+axioms on the initial container API.
 
 ### What this RFC does not include
 
-  - **Pattern-equivalence and RepresentationMap.** RepresentationMap remains a roadmap item; the Frame+Span model makes it straightforward to land later (a Frame-to-Frame transform whose correspondence is recorded as a Span), but no concrete proposal is included here.
+  - **Within-Frame query and navigation.** `find`, `containers`, `siblings`, and a Frame
+    paramorphism have no registry-model successors yet (Open Question 6).
 
-  - **Specific cache designs for the views.** That a Frame *may* cache an identity index (and a Span a pair-index) is part of the rationale for distinct framework types, but the concrete cache representation, when it is built, and its invalidation story are deferred until there is a workload to design against. A view with no cache is the baseline.
+  - **Pattern materialization.** Conversion from a Frame registry back to `Pattern Subject`
+    is deferred (Open Question 4); until it exists, a managed Frame cannot use
+    `Pattern.Graph`, `PatternGraph`, `GraphQuery`, or `Pattern.Graph.Algorithms`.
 
-  - **Persistent / lazy / database-backed Frames.** Per the principle that the substrate is in-memory, lazy or unmaterialized scopes are a database concern, handled at a layer above pattern-hs.
+  - **Explicit readdressing.** Atomically renaming a Frame or member and rewriting every
+    dependent reference is deferred (Open Question 3).
 
-  - **Concrete `ReconciliationPolicy` values beyond the basic four.** Domain-specific policies are consumer concerns.
+  - **Cascade deletion and repair beyond `PairDispositionPolicy`.** Repair ownership for a
+    vetoed member deletion, and cascade-removal of Spans when an endpoint Frame is removed,
+    remain open (Open Question 1).
 
-  - **Shape validation for Spans and Bundles.** The 2-or-3-element Span shape and the Bundle's pair-element structure are interpretive conventions, not enforced invariants, pending a broader `gram-schema-conventions` effort.
+  - **Bundle endpoint uniqueness.** Whether a Span may hold more than one pair for the same
+    ordered endpoint pair is left unconstrained by default (Open Question 2).
 
-  - **A globally unique rewrite of every Subject symbol.** This RFC scopes existing symbols contextually; it does not prefix, hash, or otherwise mutate local identities to manufacture process-wide uniqueness.
+  - **A serializable identifier scheme for `CustomDisposition`.** Named policies serialize;
+    arbitrary disposition functions do not, pending a concrete need.
+
+  - **Persistent / lazy / database-backed Frames.** Per the principle that the substrate is
+    in-memory, lazy or unmaterialized registries are a database concern, handled at a layer
+    above pattern-hs.
+
+  - **A globally unique rewrite of every Subject symbol.** This RFC scopes existing symbols
+    contextually via `ScopedAddress`; it does not prefix, hash, or otherwise mutate local
+    identities to manufacture process-wide uniqueness.
 
 ## Open Questions
 
-1. **Pair-element Subject: anonymous, deterministic, or caller-supplied. — Resolved.** Leave identity to the caller, with constructor variants for anonymous and named pair-elements. The named form is available when a pair carries properties or must be addressable; the framework does not derive identity from endpoints.
-
-2. **Span direction. — Resolved.** Pair-elements use the directed form. For symmetric Spans, direction is informational; callers may record symmetry as a property convention.
-
-3. **Cache-bearing vs. bare views. — Resolved at the public interface.** Frame and Span each have one public type; optional acceleration is an internal detail and the unindexed view is the baseline. The concrete representation remains an implementation decision because a literal single-field `newtype` cannot itself carry optional cache state.
-
-4. **`FrameOps` instance for bare `Pattern Subject`. — Resolved.** Offer bare-Pattern navigation for convenience, accepting that self-containment is a usage property rather than a type-enforced invariant. Scoped identity still requires an actual Frame because a bare Pattern does not independently establish an external namespace boundary.
-
-5. **Span and Bundle typeclass scope. — Resolved.** Keep the classes narrow; provide composition and inversion as ordinary functions rather than methods.
-
-6. **Reconciliation across Spans.** When two Frames are reconciled, Spans referencing their elements may need their Bundles updated (pair-elements pointing at old elements re-pointed at merged ones). Treated here as a separate concern run at the same boundary, with its own policy. A concrete proposal awaits use cases.
-
-7. **By-value vs. by-reference inter-Frame conventions.** Both encodings are valid Patterns. A standardized `FrameRef` / `SpanRef` label convention (for the by-reference form) would let generic Workbook-walkers be written; leaving it open is more substrate-faithful. Probably standardize, but not yet. Whichever representation is chosen, member references carry scoped identity.
-
-8. **Scoped identity namespaces. — Resolved.** Frame is the namespace. `Subject.identity` is local to a Frame; the external identity is `(frame identity, local identity)`. Frame identity is assigned explicitly and stably at ingestion, anonymous local Subjects receive per-Frame identities when required, and local symbols are not globally rewritten. This resolves RFC-011 Open Question 3 and supplies its `(frame_id, id)` storage key.
+1. **Cascade deletion and repair ownership.** The initial model rejects deletion of a member
+   addressed by a local reference; whether FrameSpace, callers, or a higher-level service
+   repairs those references remains open pending concrete removal workflows. The
+   incident-Bundle-pair half is resolved by `PairDispositionPolicy`: `AutoDrop` pairs are
+   repaired by FrameSpace itself; `Veto` pairs still block the edit.
+2. **Bundle endpoint uniqueness.** A Bundle may optionally limit entries to one PairAddress
+   per ordered endpoint pair. Resolve the constraint's opt-in surface and conflict policy
+   after evaluating whether ordinary workflows need parallel relationship entries.
+3. **Explicit readdressing.** Renaming a Frame or member must atomically rewrite local and
+   incident pair addresses. Resolve scope, authorization, and policy when an
+   identity-migration use case exists.
+4. **Pattern materialization.** A future conversion must choose canonical Gram definition
+   placement, shared-member rendering, direct self-reference handling, and return shape.
+   Resolve it with a reference-preserving export/import use case. Until then, managed
+   Frames cannot use `Pattern.Graph`, `PatternGraph`, `GraphQuery`, or
+   `Pattern.Graph.Algorithms` through a `Pattern Subject` materialization. A candidate worth
+   evaluating alongside Open Question 6: factor `PatternRow` and `Pattern`'s own node shape
+   as one base functor (`Node v a = Node v [a]`, with `Pattern v = Fix (Node v)` and
+   `PatternRow v = Node v LocalAddress`), so materialization becomes knot-tying a lazy,
+   possibly-cyclic `Pattern v` from the registry — a genuinely cyclic value is constructible
+   under laziness, with no special cyclic-Pattern type needed. This does not by itself make
+   ordinary Pattern traversal (`Foldable`/`Traversable`) safe to run on the result; see Open
+   Question 6.
+5. **Incident-Span discovery cost.** Updating a Frame validates every incident Span Bundle,
+   so its cost grows with a Frame's Span fan-out. Resolve the index strategy after a
+   representative multi-Span workload establishes the required performance profile.
+6. **Within-Frame query and navigation.** This RFC's original `find`, `containers`,
+   `siblings`, and `framePara` have no registry-model successors yet. This gates
+   implementation planning, not merely implementation: `ScopeQuery` (`Pattern.Core`) has
+   live generic consumers — `RepresentationMap`, `Graph.Transform`, `Pattern` — so the
+   redesign must decide whether it is retained, adapted, or replaced, and must preserve or
+   explicitly revise each operation's documented behavior. Traversal order, cycle and
+   shared-membership handling, and ambient-context semantics over `FrameRegistry` are the
+   ADR's to specify against that contract. Public lookup and counterpart operations return
+   a typed error on an unresolved endpoint, never a silent skip. This is paired with Open
+   Question 4, not sequenced after it: if `PatternRow` and Pattern's node share one base
+   functor (Open Question 4's candidate), the same generic, memoized/visited-set-aware
+   recursion scheme could be written once against that functor and interpreted two ways —
+   ordinary structural recursion over an in-memory `Pattern` (where memoization is inert),
+   and cycle-terminating traversal directly over `FrameRegistry` via `LocalAddress` lookup
+   (where memoization is what makes a cyclic Frame like the aircraft/maintenance exercise
+   terminate at all). That would make `find`/`containers`/`siblings`/`framePara`'s successors
+   one interpretation of a shared algorithm rather than a bespoke design, independent of
+   whether Pattern materialization (Open Question 4) is also pursued.
+7. **Correlate-by-identity ambiguity.** A shared-identity correlation constructor needs a
+   policy for a named identity occurring as a candidate correspondence more than once, or
+   for a candidate that conflicts with an existing pair's endpoints. Resolve the conflict
+   policy and PairLocalIdentity assignment convention once a concrete correlation workflow
+   exists.
 
 ## Alternatives
 
-**Frame and Span as type synonyms for Pattern Subject.** `type Frame = Pattern Subject` would make every Pattern Subject automatically a Frame, with the name purely documentary. Rejected because distinct types are the point: they let Frame and Span carry distinct operations (within-module vs. cross-module) and distinct optimizations (identity index, pair-index) that a shared type cannot. The synonym version cannot distinguish a module from an arbitrary Pattern or own derived state. The wrapper cost is small and unwrapping is lossless.
+**Frame and Span as typed views (cache-bearing `newtype`s) over `Pattern Subject`.** This
+RFC's original position: a Frame wraps a self-contained Pattern, encapsulation is a property
+of construction, and cross-Frame correspondence lives in a Span whose elements are the two
+Frames by value. Rejected because a recursively embedded wrapper has no finite fully-
+expanded presentation under a reference cycle, and duplicates shared members when it does
+not — exactly the shape the aircraft/maintenance exercise's indirect cycle requires. It also
+gives Frame no place to hold one authoritative, independently addressable entry per member;
+every update to a shared member requires updating every embedded copy.
 
-**Frame and Span as conventions only, with no type at all.** An earlier instinct kept "no new types" as a hard constraint, expressing Frame and Span purely as label conventions over Pattern Subject. Rejected on the same grounds: the constraint was a proxy for "don't extend the substrate," which typed views over Pattern Subject already honor. Refusing to define framework types bought nothing and forfeited the capability and optimization that distinct types enable.
+**Keep the recursively embedded wrapper Frame and add cycle detection.** Rejected because
+cycle detection controls traversal but does not provide one canonical member definition,
+referential-integrity checks for updates, or a stable normalized representation for the
+row-based persistence model in RFC-011.
 
-**Span as a record type rather than a newtype over a relationship-shaped Pattern.** `data Span = Span { spanSubject :: Subject, leftFrame :: Frame, rightFrame :: Frame, bundle :: Maybe Bundle }` would make the parts explicit fields. Rejected because it forfeits the recursive self-similarity at the substrate level: a Pattern of Spans would need `[Span]` machinery distinct from `[Pattern Subject]`, and "a Span is just a relationship-shaped Pattern" would stop being true. The newtype-over-Pattern approach keeps the underlying value composable as a plain Pattern (via `spanPattern`) while still offering typed Span operations.
+**Coordinate Frame and Span updates with observers.** Rejected because observers receive a
+Frame change after its local operation has produced it; they do not make the Frame update
+and the Bundle repair one atomic pure replacement.
 
-**Encapsulation enforced by Frame's traversal instances.** An earlier framing had Frame's `Foldable`/`Traversable` instances actively stop descent at the module boundary ("treat elements as atomic"). Rejected as solving a non-problem: under Reading 1, a Frame's elements do not reach outside the Frame, so there is nothing to stop. Encapsulation is a property of how Frames are built (atomic Portals, correspondences in Bundles), not a behavior the instances impose. Frame's instances are the ordinary Pattern ones.
+**Give each Frame back-references to its incident Spans.** Rejected because Frame mutation
+would then require cross-Frame relationship knowledge inside the Frame. A FrameSpace can own
+Frames and Spans, validate their relationship entries together, and leave each Frame
+independently useful outside that aggregate.
 
-**Cross-Frame edges stored in the Frames.** Letting a Frame's elements reference elements of other Frames directly (an adjacency-style cross-reference) would put cross-module edges inside modules. Rejected because it violates the externality principle that motivates the whole design: a Frame would then know its neighbors, exactly the property graphs refuse. Edges live in Spans (via Bundles), external to both Frames, so a Frame never knows it is spanned and crossing a boundary is always an explicit Span operation.
+**Give each Span ownership of its two Frames by value.** Rejected on two independent
+grounds. Ownership is exclusive containment: a Frame owned by one Span cannot also be owned
+by a second, directly contradicting one Frame participating in many Spans. Relaxing
+exclusivity to let the same Frame be embedded by value in several Spans reintroduces the
+divergent-snapshot problem the Observer alternative was also rejected for. A Span that
+stores Frame identities and resolves them through FrameSpace satisfies the required
+many-to-many relationship the same way RFC-011's `bundle_pair` join table does at the schema
+layer, rather than embedding Frames inside a `frame_row`.
 
-**Portal as a label added to participating Subjects.** Tempting for fast discovery (filter by label). Rejected because it embeds knowledge of the pairing into the Pattern, violating externality. Discovery is by Bundle traversal; consumers needing speed build an index.
+**Globally rewriting Subject identities during ingestion.** Prefixing every local symbol
+with a file path, UUID, or Frame name would also avoid cross-file clashes. Rejected because
+it changes the substrate value, breaks lossless local reference, leaks storage concerns into
+gram and Subject semantics, and makes stable local references dependent on an external
+naming scheme. Contextual `(frame identity, local address)` qualification preserves source
+identities while providing the same disambiguation wherever it is actually needed.
 
-**`find` privileging identity (a dedicated `identityLookup`).** Rejected because identity is one Subject field among three; privileging it puts the substrate in the position of having opinions about which fields are navigable. `find` takes any predicate; by-identity lookup is one composition. Index-backed Frames make the common by-identity case fast without a dedicated method.
+## Worked Exercise: Aircraft and Maintenance
 
-**Globally rewriting Subject identities during ingestion.** Prefixing every local symbol with a file path, UUID, or Frame name would also avoid cross-file clashes. Rejected because it changes the substrate value, breaks lossless wrap/unwrap, leaks storage concerns into gram and Subject semantics, and makes stable local references dependent on an external naming scheme. Contextual `(frame identity, local identity)` qualification preserves source identities while providing the same disambiguation wherever it is actually needed.
+The following exercise tests the managed-container model. It uses two Frames in one
+FrameSpace and covers local closure, cross-Frame pair validation, reconciliation,
+import/rebase, and anonymous-member addressing.
 
-**A bundled `constructHigherFrame` primitive.** A single operation doing selection + summarization + Frame-building + Span-construction was considered and rejected as overly prescriptive: it bundled separable, independently useful steps and implied summarization is the canonical reason to build a Frame. The steps compose from smaller primitives; the workflow, if it recurs, belongs in a higher layer (Crossfold), not the substrate framework.
+1. Admit an `aircraft-17` Frame with members `engine`, `fuel-system`, `fuel-pump`, and
+   `diagnostic-procedure`. Its local references form the indirect cycle `engine ->
+   fuel-system -> fuel-pump -> diagnostic-procedure -> engine`. Frame admission accepts the
+   cycle, gives every member one canonical local address, and creates no recursive copies.
+2. Admit a separate `maintenance-17` Frame with members `inspect-engine` and
+   `inspect-fuel`. The FrameSpace distinguishes any equal local symbols in its two Frames
+   through their Frame identities.
+3. Admit an `aircraft-maintenance` Span whose Bundle contains:
 
-**Adjunction-shaped Spans.** An adjunction is a canonical, structure-respecting, dual-direction correspondence. Tempting as a constraint making Spans canonical-by-structure. Rejected because adjunctions require categorical structure on Patterns not yet defined; committing now would force that structure to fit the framing rather than the framework's needs. A Span in the everyday sense (a mediating structure relating two sides) is the right framing for now, with adjunctions available as a future refinement if Patterns gain enough categorical structure.
+   ```text
+   [pair-engine:Summarizes { confidence: 0.92 } | engine, inspect-engine]
+   [pair-fuel:Summarizes { source: "manual" } | fuel-system, inspect-fuel]
+   ```
+
+   Pair endpoints resolve through the Span's canonical left/right Frame ordering; pair
+   roots are addressable under `aircraft-maintenance`; counterpart traversal works from
+   either endpoint Frame.
+4. Attempt to remove `fuel-system` from `aircraft-17`. Frame removal initially fails
+   because `engine` references it. After detaching that local reference, replacement in
+   FrameSpace still fails because `pair-fuel` addresses `(aircraft-17, fuel-system)`.
+   Removing or explicitly rebinding `pair-fuel` permits the Frame update.
+5. Re-ingest a revised `fuel-pump` definition into `aircraft-17` using `Additive`, adding
+   labels `Pump` and `Critical` and `inspectionIntervalDays: 30`. `Pattern.Reconcile`
+   applies the selected metadata policy, `(aircraft-17, fuel-pump)` remains unchanged, and
+   existing Span pairs remain valid.
+6. Import the subgraph reachable from `engine` into a `repair-plan-17` Frame. The import
+   copies the complete local-reference closure. A collision with an existing
+   `repair-plan-17.engine` fails by default; an explicit import map may deliberately map
+   the source `engine` to that destination identity and invoke the selected reconciliation
+   policy. `Attach` then adds the imported root address to a selected repair-plan member.
+7. Exercise the collision-remapped attachment explicitly. Start with
+   `repair-plan-17.work-order` and an existing `repair-plan-17.engine`; map
+   `aircraft-17.engine` to `repair-plan-17.engine` and map its remaining closure members to
+   unused repair-plan identities. After the selected merge policy reconciles the two
+   `engine` definitions, `Attach work-order [engine]` adds the mapped root address to the
+   work order. The operation fails without the explicit collision map and returns one
+   locally closed repair-plan Frame when the map and merge succeed.
+8. Admit an anonymous `[:Note { text: "temporary patch, revisit" }]` into `aircraft-17` as
+   an element of `fuel-pump`. It receives its own Frame-scoped ordinal, distinct from
+   `fuel-pump`'s own address. Attaching that same ordinal as an element of
+   `diagnostic-procedure` too gives the note two containers — valid, since nothing in the
+   note's own address ties it to either one. Attempting to use the note's ordinal as a
+   Bundle pair endpoint in `aircraft-maintenance` fails: pair endpoints require a named,
+   author-chosen identity, which an anonymous ordinal is not.
+
+### Acceptance criteria and demo
+
+The exercise is the acceptance surface. Demonstrated by
+[SPIKE-001](../../spikes/SPIKE-001-frame-registry/SPIKE.md): scoped-address collision
+handling across two Frames (step 2) and FrameSpace rejection of a Frame update that
+invalidates an incident pair (step 4). [SPIKE-002](
+../../spikes/SPIKE-002-frame-document-diversity/SPIKE.md) additionally validated Frame
+admission and closure — ordinal addressing, forward references, and referential
+integrity — against real, independently authored Gram documents rather than only the
+hand-designed exercise above. Two criteria remain undemonstrated pending Open Question 6:
+within-Frame navigation staying inside the Frame, and counterpart traversal returning only
+paired members. `AutoDrop` repair (§Pair disposition policy) is specified but not yet
+exercised.
+
+Runnable demos:
+
+```text
+cabal build all
+cabal exec -- runghc -ilibs/pattern/src -ilibs/subject/src -ilibs/gram/src \
+  design/spikes/SPIKE-001-frame-registry/scripts/Main.hs
+cabal exec -- runghc -ilibs/pattern/src -ilibs/subject/src -ilibs/gram/src \
+  design/spikes/SPIKE-002-frame-document-diversity/scripts/Main.hs
+```
+
+SPIKE-001 records 17 PASS assertions against three hand-designed fixtures; SPIKE-002
+records 8 PASS assertions against five independently authored documents.
 
 ## ADRs
 
 - [ADR-001: Frame and Span Implementation Model](../adr/ADR-001-frame-span-implementation.md)
+  — superseded by this RFC's managed-container model; it assumes cache-bearing wrappers and
+  a Pattern-shaped Bundle. A replacement ADR, covering the Haskell registry representation,
+  error types, FrameSpace ownership API, and the `Pattern.Reconcile` adapter, is not yet
+  written.

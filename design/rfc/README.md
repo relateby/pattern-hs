@@ -25,7 +25,7 @@ Design, Open Questions, Alternatives.
 
 | RFC | Title | Status | Key Modules | ADRs |
 |-----|-------|--------|-------------|------|
-| [RFC-001](RFC-001-frames-and-spans.md) | Frames and Spans | draft | `Pattern.Core`, `Pattern.RepresentationMap` | [ADR-001](../adr/ADR-001-frame-span-implementation.md) |
+| [RFC-001](RFC-001-frames-and-spans.md) | Frame and Span — Managed Registry Containers | draft | `Pattern.Core`, `Pattern.Reconcile` | ~~[ADR-001](../adr/ADR-001-frame-span-implementation.md)~~ (superseded; replacement not yet written) |
 
 ### Graph Interface Layer (Draft — Design)
 
