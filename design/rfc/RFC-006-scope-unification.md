@@ -4,7 +4,7 @@
 **Date:** 2026-03-17
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** `proposals/scope-unification-proposal.md` (removed; content consolidated here)
+**Supersedes:** `design/scope-unification-proposal.md` (removed; content consolidated here)
 **Depends on:** RFC-005 (GraphQuery)
 **Followed by:** RFC-007 (RepresentationMap)
 **Related modules:** `Pattern.Core`, `Pattern.Graph.Transform`

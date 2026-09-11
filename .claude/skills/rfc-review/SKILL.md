@@ -9,8 +9,8 @@ description: Review a draft RFC for scope, clarity, and contributor-readiness. U
 Use this skill to evaluate a draft RFC against a consistent set of quality criteria before it is opened for comment. Works for self-review by the author, maintainer review during a PR, or peer feedback from a collaborator. Produces specific, actionable suggested revisions — not a checklist of observations.
 
 ## Workflow
-1. Read the RFC in `proposals/rfc/`.
-2. Read `proposals/rfc/README.md` to confirm structural compliance.
+1. Read the RFC in `design/rfc/`.
+2. Read `design/rfc/README.md` to confirm structural compliance.
 3. Evaluate the RFC against each criterion below.
 4. For each criterion that fails or is weak, draft a specific suggested revision — quote the problematic text and propose replacement text or a concrete addition.
 5. Summarize findings: what is strong, what needs revision, and what is blocking vs. advisory.

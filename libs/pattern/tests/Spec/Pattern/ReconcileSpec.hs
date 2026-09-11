@@ -212,6 +212,56 @@ spec = do
             Right other -> expectationFailure $ "Unexpected structure: " ++ show other
             Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
 
+      describe "CustomMerge Policy" $ do
+        it "overrides the default merge behavior with a caller-supplied function" $ do
+          -- Prefer whichever Subject has more labels — not expressible by any
+          -- named ReconciliationPolicy.
+          let alice1 = Subject (Symbol "alice") (Set.fromList ["Person"]) Map.empty
+              alice2 = Subject (Symbol "alice") (Set.fromList ["Person", "User", "Admin"]) Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+              preferMoreLabels a b
+                | Set.size (Subj.labels a) >= Set.size (Subj.labels b) = a
+                | otherwise = b
+
+          case reconcile (CustomMerge UnionElements preferMoreLabels) pattern of
+            Right (Pattern _ [Pattern subj _]) ->
+              Subj.labels subj `shouldBe` Set.fromList ["Person", "User", "Admin"]
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "composes with each ElementMergeStrategy the same way Merge does" $ do
+          let child1 = Subject (Symbol "child") (Set.singleton "A") Map.empty
+              child2 = Subject (Symbol "child") (Set.singleton "B") Map.empty
+              alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root
+                [ Pattern alice1 [Pattern child1 []]
+                , Pattern alice2 [Pattern child2 []]
+                ]
+              keepFirst a _ = a
+
+          case reconcile (CustomMerge UnionElements keepFirst) pattern of
+            Right (Pattern _ [Pattern _ elems]) ->
+              length elems `shouldBe` 1  -- deduplicated by identity, same as Merge UnionElements
+            Right other -> expectationFailure $ "Unexpected structure: " ++ show other
+            Left err -> expectationFailure $ "Reconciliation failed: " ++ show err
+
+        it "rejects a callback that changes the occurrence group's identity" $ do
+          let alice1 = Subject (Symbol "alice") Set.empty Map.empty
+              alice2 = Subject (Symbol "alice") Set.empty Map.empty
+              root = Subject (Symbol "root") Set.empty Map.empty
+              pattern = Pattern root [Pattern alice1 [], Pattern alice2 []]
+              -- Deliberately wrong: returns a value identified as "root" for
+              -- an "alice" occurrence group.
+              renameToRoot _ _ = root
+
+          case reconcile (CustomMerge UnionElements renameToRoot) pattern of
+            Left err -> errorConflicts err `shouldSatisfy` (not . null)
+            Right other -> expectationFailure $
+              "Expected identity-preservation failure, got: " ++ show other
+
       describe "Element Merge Strategies" $ do
         it "UnionElements deduplicates elements by identity" $ do
           let child1 = Subject (Symbol "child") (Set.singleton "A") Map.empty

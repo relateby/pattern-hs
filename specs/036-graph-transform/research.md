@@ -1,7 +1,7 @@
 # Research & Technical Decisions: Graph Transform
 
 ## Overview
-This document records key design decisions regarding `GraphView`, structural folding algorithms, and composition semantics. The context and requirements derive directly from `proposals/graph-transform.md` (now consolidated into `proposals/rfc/RFC-008-graph-transform.md`) and `specs/036-graph-transform/spec.md`.
+This document records key design decisions regarding `GraphView`, structural folding algorithms, and composition semantics. The context and requirements derive directly from `design/graph-transform.md` (now consolidated into `design/rfc/RFC-008-graph-transform.md`) and `specs/036-graph-transform/spec.md`.
 
 ### Decision 1: Record-of-Functions vs. Typeclasses for Transformations
 - **Decision**: Implemented as record-of-functions combined with `{-# INLINE #-}` pragmas instead of heavy typeclasses.

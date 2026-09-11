@@ -56,6 +56,10 @@
 -- * @'Merge' elementStrategy valueStrategy@ - Combine all occurrences using configurable
 --   strategies for structure (elements) and content (value).
 --
+-- * @'CustomMerge' elementStrategy mergeFn@ - Combine all occurrences using a
+--   configurable strategy for structure (elements), and an arbitrary function for
+--   resolving the content (value) conflict.
+--
 -- * 'Strict' - Fail with detailed error if any duplicates have different content.
 --   Useful for validation and debugging.
 
@@ -136,8 +140,12 @@ class Refinable v where
 -- comparing 'identity' values), a reconciliation policy determines how to
 -- combine or choose between the duplicate occurrences.
 --
--- The type parameter @s@ is the value-specific merge strategy (e.g., 'SubjectMergeStrategy').
-data ReconciliationPolicy s
+-- The type parameter @v@ is the pattern's value type (needed for 'CustomMerge''s
+-- raw merge function); @s@ is the value-specific merge strategy (e.g., 'SubjectMergeStrategy').
+--
+-- This type has no 'Eq'\/'Show'\/'Generic' instances, since 'CustomMerge' carries a
+-- function.
+data ReconciliationPolicy v s
   = LastWriteWins
   -- ^ Keep the last occurrence of each identity.
   -- Useful for streaming updates where the most recent value is authoritative.
@@ -146,9 +154,12 @@ data ReconciliationPolicy s
   -- Useful when initial definitions are authoritative and later ones are ignored.
   | Merge ElementMergeStrategy s
   -- ^ Combine all occurrences using specified strategies for elements and values.
+  | CustomMerge ElementMergeStrategy (v -> v -> v)
+  -- ^ Combine all occurrences using the given element strategy, resolving the
+  -- value conflict with a caller-supplied function for domain-specific logic
+  -- (e.g. "prefer whichever Subject has more labels").
   | Strict
   -- ^ Fail if any duplicate identities have different content.
-  deriving (Eq, Show, Generic)
 
 -- | Strategy for merging the children (elements) of a pattern.
 data ElementMergeStrategy
@@ -237,21 +248,21 @@ data ReconcileReport i = ReconcileReport
 -- -----------------------------------------------------------------------------
 
 {-# INLINABLE reconcile #-}
-reconcile 
+reconcile
   :: (HasIdentity v i, Mergeable v, Refinable v, Eq v)
-  => ReconciliationPolicy (MergeStrategy v) 
-  -> Pattern v 
+  => ReconciliationPolicy v (MergeStrategy v)
+  -> Pattern v
   -> Either (ReconcileError i v) (Pattern v)
 reconcile policy pattern =
   case policy of
     Strict -> reconcileStrict pattern
-    _ -> Right $ reconcileNonStrict policy pattern
+    _ -> reconcileNonStrict policy pattern
 
 {-# INLINABLE reconcileWithReport #-}
-reconcileWithReport 
+reconcileWithReport
   :: (HasIdentity v i, Mergeable v, Refinable v, Eq v)
-  => ReconciliationPolicy (MergeStrategy v) 
-  -> Pattern v 
+  => ReconciliationPolicy v (MergeStrategy v)
+  -> Pattern v
   -> (Either (ReconcileError i v) (Pattern v), ReconcileReport i)
 reconcileWithReport policy pattern =
   let occurrenceMap = collectByIdentity pattern
@@ -271,6 +282,7 @@ reconcileWithReport policy pattern =
   in (result, report)
   where
     isMergePolicy (Merge _ _) = True
+    isMergePolicy (CustomMerge _ _) = True
     isMergePolicy _ = False
 
     countReferences occurrences =
@@ -285,42 +297,81 @@ reconcileWithReport policy pattern =
 -- Internal Implementation
 -- -----------------------------------------------------------------------------
 
-reconcileNonStrict 
+reconcileNonStrict
   :: (HasIdentity v i, Mergeable v, Refinable v)
-  => ReconciliationPolicy (MergeStrategy v) 
-  -> Pattern v 
+  => ReconciliationPolicy v (MergeStrategy v)
   -> Pattern v
-reconcileNonStrict policy pattern =
+  -> Either (ReconcileError i v) (Pattern v)
+reconcileNonStrict policy pattern = do
   let occurrenceMap = collectByIdentity pattern
-      canonicalMap = Map.map (reconcileOccurrences policy) occurrenceMap
-  in fst $ rebuildPattern Set.empty canonicalMap pattern
+  canonicalMap <- traverse (reconcileOccurrences policy) occurrenceMap
+  Right $ fst $ rebuildPattern Set.empty canonicalMap pattern
 
-reconcileOccurrences 
+-- | Reconcile one identity's group of occurrences to a single canonical
+-- Pattern. 'LastWriteWins', 'FirstWriteWins', and 'Merge' always succeed:
+-- each preserves the group's identity structurally (by construction for the
+-- first two, and by the 'Mergeable' instance's contract for 'Merge', which
+-- never touches the identity field). 'CustomMerge' calls an arbitrary
+-- caller-supplied function with no such guarantee, so its result is checked
+-- against the group's own identity before being accepted.
+reconcileOccurrences
   :: (HasIdentity v i, Mergeable v)
-  => ReconciliationPolicy (MergeStrategy v) 
-  -> [(Pattern v, Path)] 
-  -> Pattern v
+  => ReconciliationPolicy v (MergeStrategy v)
+  -> [(Pattern v, Path)]
+  -> Either (ReconcileError i v) (Pattern v)
 reconcileOccurrences LastWriteWins occurrences =
   case map fst occurrences of
     [] -> error "reconcileOccurrences: empty occurrences"
-    patterns -> 
+    patterns ->
       let v = value (last patterns)
           allElements = mergeElements UnionElements (map elements patterns)
-      in Pattern v allElements
+      in Right (Pattern v allElements)
 reconcileOccurrences FirstWriteWins occurrences =
   case map fst occurrences of
     [] -> error "reconcileOccurrences: empty occurrences"
     patterns@(p:_) ->
       let v = value p
           allElements = mergeElements UnionElements (map elements patterns)
-      in Pattern v allElements
+      in Right (Pattern v allElements)
 reconcileOccurrences (Merge elemStrat valStrat) occurrences =
+  Right (mergeOccurrencesWith elemStrat (merge valStrat) occurrences)
+reconcileOccurrences (CustomMerge elemStrat customMerge) occurrences =
+  case map fst occurrences of
+    [] -> error "reconcileOccurrences: empty occurrences"
+    (p : _) ->
+      let expectedId = identity (value p)
+          merged = mergeOccurrencesWith elemStrat customMerge occurrences
+      in if identity (value merged) == expectedId
+           then Right merged
+           else Left ReconcileError
+                  { errorMessage = "CustomMerge callback returned a value with a "
+                      ++ "different identity than the occurrence group it merged"
+                  , errorConflicts =
+                      [ Conflict
+                          { conflictId = expectedId
+                          , conflictExisting = value p
+                          , conflictIncoming = value merged
+                          , conflictLocations = map snd occurrences
+                          }
+                      ]
+                  }
+reconcileOccurrences Strict _ = error "Strict policy handled separately"
+
+-- | Shared body for 'Merge' and 'CustomMerge': fold all occurrences' values
+-- through the given value-merge function, and merge their element lists
+-- using the given element strategy.
+mergeOccurrencesWith
+  :: (HasIdentity v i, Mergeable v)
+  => ElementMergeStrategy
+  -> (v -> v -> v)
+  -> [(Pattern v, Path)]
+  -> Pattern v
+mergeOccurrencesWith elemStrat mergeVal occurrences =
   let patterns = map fst occurrences
       vals = map value patterns
-      mergedVal = foldl1 (merge valStrat) vals
+      mergedVal = foldl1 mergeVal vals
       mergedElements = mergeElements elemStrat (map elements patterns)
   in Pattern mergedVal mergedElements
-reconcileOccurrences Strict _ = error "Strict policy handled separately"
 
 mergeElements 
   :: (HasIdentity v i, Mergeable v) 

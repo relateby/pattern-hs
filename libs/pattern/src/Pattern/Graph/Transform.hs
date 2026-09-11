@@ -78,7 +78,7 @@ unfoldGraph
   :: ( GraphValue v, Eq v
      , Reconcile.Mergeable v, Reconcile.HasIdentity v (Id v), Reconcile.Refinable v )
   => GraphClassifier extra v
-  -> Reconcile.ReconciliationPolicy (Reconcile.MergeStrategy v)
+  -> Reconcile.ReconciliationPolicy v (Reconcile.MergeStrategy v)
   -> (a -> [Pattern v])
   -> [a]
   -> PatternGraph extra v

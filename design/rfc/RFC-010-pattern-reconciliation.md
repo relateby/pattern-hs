@@ -4,7 +4,7 @@
 **Date:** 2026-01-15
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** `proposals/pattern-reconciliation.md` (removed; content consolidated here)
+**Supersedes:** `design/pattern-reconciliation.md` (removed; content consolidated here)
 **Related modules:** `Pattern.Core`, `Pattern.Reconcile`, `Subject.Core`
 
 ## Summary
@@ -52,11 +52,18 @@ generic core.
 ### Core Types
 
 ```haskell
-data ReconciliationPolicy
-  = LastWriteWins       -- later occurrence overwrites earlier
-  | FirstWriteWins      -- first occurrence is kept, later ignored
-  | Merge MergeStrategy -- merge content from all occurrences
-  | Strict              -- fail on any duplicate with different content
+data ReconciliationPolicy v s
+  = LastWriteWins           -- later occurrence overwrites earlier
+  | FirstWriteWins          -- first occurrence is kept, later ignored
+  | Merge ElementMerge s    -- merge content from all occurrences via a named strategy
+  | CustomMerge ElementMerge (v -> v -> v)
+                            -- merge content via a caller-supplied function, for
+                            -- domain-specific conflict resolution the named
+                            -- strategies can't express (e.g. "prefer whichever
+                            -- Subject has more labels"). Added 2026-09; the four
+                            -- original policies had no escape hatch for logic
+                            -- outside their fixed strategies.
+  | Strict                  -- fail on any duplicate with different content
 
 data MergeStrategy = MergeStrategy
   { labelMerge    :: LabelMerge
@@ -71,6 +78,17 @@ data ElementMerge  = ReplaceElements | AppendElements | UnionElements
 defaultMergeStrategy :: MergeStrategy
 defaultMergeStrategy = MergeStrategy UnionLabels ShallowMerge UnionElements
 ```
+
+**Amendment, 2026-09 (post-acceptance):** `CustomMerge` was added after RFC-001's design
+work exposed the gap directly — Frame admission needed the same kind of domain-specific
+conflict resolution `PairDispositionPolicy`'s `CustomDisposition` case already provides for
+Bundle pairs, and there was no principled reason `ReconciliationPolicy`'s four named
+policies should be less extensible than a design built on top of them. The implemented
+type is generic over the pattern's value type (`ReconciliationPolicy v s`, not
+`Subject`-specific `ReconciliationPolicy`) — a generalization this RFC's own Open Question 3
+raised but called premature; `CustomMerge` needed that generality to exist at all
+(a caller-supplied `v -> v -> v` has no meaning without a `v` to name), so it landed as
+part of this amendment rather than waiting for a second concrete value type to justify it.
 
 ### Error and Report Types
 
@@ -101,12 +119,12 @@ data ReconcileReport = ReconcileReport
 
 ```haskell
 reconcile
-  :: ReconciliationPolicy
+  :: ReconciliationPolicy Subject MergeStrategy
   -> Pattern Subject
   -> Either ReconcileError (Pattern Subject)
 
 reconcileWithReport
-  :: ReconciliationPolicy
+  :: ReconciliationPolicy Subject MergeStrategy
   -> Pattern Subject
   -> (Either ReconcileError (Pattern Subject), ReconcileReport)
 

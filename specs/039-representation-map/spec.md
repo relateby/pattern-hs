@@ -3,7 +3,7 @@
 **Feature Branch**: `039-representation-map`
 **Created**: 2026-03-17
 **Status**: Draft
-**Input**: User description: "representation-map as described above and detailed in proposals/representation-map-proposal.md" (now consolidated into [proposals/rfc/RFC-007-representation-map.md](../../proposals/rfc/RFC-007-representation-map.md))
+**Input**: User description: "representation-map as described above and detailed in design/representation-map-proposal.md" (now consolidated into [design/rfc/RFC-007-representation-map.md](../../design/rfc/RFC-007-representation-map.md))
 
 ## User Scenarios & Testing *(mandatory)*
 

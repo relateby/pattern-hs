@@ -2,10 +2,11 @@
 
 **Status:** draft
 **Date:** 2026-06-18
+**Updated:** 2026-09-07
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
 **Depends on:** RFC-001 (Frames and Spans), RFC-007 (RepresentationMap, PatternKind), RFC-004 (GraphClassifier kinds)
-**Prerequisite:** scoped identity namespaces — a future RFC (or RFC-010 extension) gating implementation; see Open Question 3
+**Prerequisite:** RFC-001 scoped identity namespaces (Frame as namespace); see Open Question 3
 **Followed by:** Rust/TypeScript ports (`pattern-rs`) → downstream adoption (`aie-matrix`)
 **Related modules:** `Pattern.Core`, `Pattern.RepresentationMap`, `Pattern.Frame`, `Pattern.Span`, `Pattern.Codec` (new), `Gram.JSON`, `Gram.Schema`
 
@@ -243,6 +244,13 @@ pattern-hs," on the principle that the substrate is in-memory. **RFC-011 is that
 `Store` and `Codec` live in the persistence layer, the substrate gains nothing, and the
 in-memory by-value form remains canonical — storage is its by-reference projection.
 
+RFC-001's managed-container rewrite (2026-09) makes Frame a registry, not a `Pattern
+Subject` value, and explicitly defers Frame-to-Pattern materialization (RFC-001 Open
+Question 4). "The in-memory by-value form" below therefore names a form that does not yet
+have a designed conversion from a Frame registry; this schema, `frameKind`/`spanKind`
+(§ Target kinds), and the `byReference` `RepresentationMap` all assume it exists. That
+dependency is unresolved here — it resolves when RFC-001 Open Question 4 does.
+
 This is the relational/columnar realization of RFC-001's **by-reference storage form**,
 which RFC-001 (§ Inter-Frame topology) names as "the natural serialization-and-storage
 form." Its faithfulness is not an accident of schema design — it is the **externality
@@ -256,15 +264,16 @@ discipline** of Frames and Spans serialized directly:
   table*).
 
 "Every table is a label, every join table is a relationship" thus stops being an imposed
-convention and becomes the direct image of RFC-001's principle 2. ("Two-table" here means two
+convention and becomes the direct image of RFC-001's Principle 3 ("a Frame does not carry
+back-references to its Spans"). ("Two-table" here means two
 *kinds* of table — node and edge — realized physically as `frame`/`frame_row` for the node
 side and `span`/`bundle_pair` for the edge side.)
 
 | RFC-001 (in-memory, by-value) | RFC-011 (by-reference storage) |
 |---|---|
-| Frame (self-contained module) | a `frame_row` row-set under one `frame_id` |
-| Frame element (Pattern / Portal) | a row: Subject columns + ordered child-FK array |
-| Self-containment (Reading 1) | element FKs reference **only same-frame rows** |
+| Frame (referentially closed registry) | a `frame_row` row-set under one `frame_id` |
+| Frame member (`PatternRow`) | a row: Subject columns + ordered child-FK array |
+| Referential closure | element FKs reference **only same-frame rows** |
 | Span (relates two Frames) + its Bundle | one `span` row (Span/Bundle Subjects on the row) |
 | Bundle pair-element (cross-Frame edge) | one `bundle_pair` row: `(span_id, src_ref, tgt_ref, …)` |
 | Externality (edges live in the Span) | edges live in `bundle_pair`, never in `frame_row` |
@@ -274,6 +283,11 @@ transport-specific (`array<…>` is `text[]` in Postgres, `LIST` in DuckDB/Arrow
 `jsonb` or a columnar struct). Subject identity is **frame-scoped** (the same identity may
 recur across Frames), so `frame_row`'s key is composite `(frame_id, id)` — which is what
 forces endpoint FKs to carry a frame id:
+
+`id` is a physical column spanning RFC-001's `LocalAddress = Named LocalIdentity |
+Positional ElementOrdinal`: named and positional members share the same `frame_row` key
+domain, distinguished by a tag or value-range convention left to the codec, not by two
+columns.
 
 ```
 -- frame-table : within-module structure, self-contained, faithful
@@ -292,8 +306,11 @@ span(span_id, subject_id, labels array<text>, properties json, frame_a, frame_b,
                                           -- attribute, NOT an FK (there is no bundle table)
 
 -- bundle_pair : the Bundle's pair-elements — one row per inter-frame relationship (the edge table)
-bundle_pair(span_id, src_frame, src_ref, tgt_frame, tgt_ref, pair_subject_id?,
+bundle_pair(span_id, src_frame, src_ref, tgt_frame, tgt_ref, pair_subject_id,
             labels array<text>, properties json)
+  PRIMARY KEY (span_id, pair_subject_id)  -- RFC-001's PairAddress = (SpanIdentity, PairLocalIdentity);
+                                          -- pair_subject_id is NOT NULL — RFC-001 requires every
+                                          -- admitted pair to carry a non-anonymous PairLocalIdentity
   FOREIGN KEY (span_id)            REFERENCES span(span_id)              -- cascade-on-delete
   FOREIGN KEY (span_id, src_frame) REFERENCES span(span_id, frame_a)    -- src_frame = the span's frame_a
   FOREIGN KEY (span_id, tgt_frame) REFERENCES span(span_id, frame_b)    -- tgt_frame = the span's frame_b
@@ -323,12 +340,16 @@ endpoint FKs to "exists somewhere," losing frame-pair correctness; see Alternati
   `bundle_id`. This makes each span self-contained — Frame self-containment applied to the
   edge table — so `ON DELETE CASCADE` works, endpoint FKs are declarable (a bound span has
   a single valid frame pair), and concurrent writers do not contend on shared edge rows.
-- **`bundle_id` is a non-enforced attribute** (a column, not an FK — it points at no table),
-  retained so the in-memory *shared* Bundle form (RFC-001 allows Bundle sharing) can be
-  reconstituted on read *on explicit request* when two spans carry identical pairs under the
-  same id — not automatically, and without the database ever depending on it (Open Question 4).
-  A third (`bundle`) table would be needed only to reintroduce the rejected shared-bundle
-  semantics; see Alternatives.
+- **`bundle_id` is a non-enforced attribute** (a column, not an FK — it points at no table).
+  RFC-001's managed-container model makes a Bundle Span-owned and not an independently
+  shareable entity — sharing is not something this schema reintroduces. `bundle_id` exists
+  only as a storage-layer deduplication convenience: identical `bundle_pair` sets under one
+  id *may* be reconstituted into one in-memory value on read, *on explicit request* — never
+  automatically, and never something the database depends on (Open Question 4). This is a
+  read-time convenience, not a live shared mutable Bundle; each span's pairs remain
+  materialized independently in `bundle_pair`, consistent with Span ownership. A third
+  (`bundle`) table would be needed only to make sharing a stored, enforced relationship; see
+  Alternatives.
 - **Escape hatch** for a genuinely large, shared correspondence: promote the Bundle to a
   first-class stored entity (it is a `Pattern Subject`, so it gets its own `frame_row`s)
   with an explicit, managed lifecycle. Opt-in, eyes-open sharing — not the implicit default
@@ -345,7 +366,7 @@ byReference = RepresentationMap
   , repMapDomain      = anyPattern
   , repMapCodomain    = frameSpanRefKind
   , repMapConventions = [ "Frames stored once; Spans reference Frames by identity"
-                        , "cross-Frame edges externalized as bundle_pair rows (RFC-001 principle 2)" ]
+                        , "cross-Frame edges externalized as bundle_pair rows (RFC-001 Principle 3)" ]
   , repMapForward     = toByReference
   , repMapInverse     = resolveByReference
   , repMapRoundTrip   = byReferenceRoundTrip  -- strict on anyPattern with identified subjects
@@ -419,9 +440,13 @@ the canonical form held in Frame/Span storage, round-trip is simply not claimed.
 
 ### Target kinds (grounding)
 
-- `frameKind` / `spanKind` — from RFC-001: a Frame is a self-contained `Pattern Subject`;
-  a Span is a relationship-shaped `Pattern Subject` (2–3 elements). `frameSpanRefKind` is the
-  by-reference composite (Frames once + Spans referencing them).
+- `frameKind` / `spanKind` — classify the by-value form this schema serializes: a Frame's
+  materialized `Pattern Subject` presentation, and a Span's relationship-shaped one (2–3
+  elements). `frameSpanRefKind` is the by-reference composite (Frames once + Spans
+  referencing them). RFC-001's managed-container model does not yet define how a Frame
+  registry materializes to that `Pattern Subject` form (RFC-001 Open Question 4); until it
+  does, `frameKind` names a predicate over a value this schema's source has no designed way
+  to produce.
 - `graphKind` — RFC-004's graph classification (`GNode`/`GRelationship`/`GWalk`/`GAnnotation`).
 - `anyPattern` — the document model (≈ lattice top).
 - `relationalKind` — the native relational model. Its predicate is non-trivial because
@@ -490,16 +515,12 @@ decode resolves store keys back to subject identities, not the reverse. **Upsert
 resolved by **RFC-010 reconciliation** — persistence get/put *is* the I/O boundary at which
 RFC-010 says reconciliation runs.
 
-This commits the local rule but leaves a larger problem open and **upstream**: scoped
-identity namespaces. Ingesting multiple `.gram` files clashes identities, because each file
-carries its own id-space (anonymous `#1`/`#2`, or human-chosen ids that collide across files).
-Resolving how id-spaces are scoped, qualified, or rewritten on ingest is a cross-cutting
-identity concern — it touches parsing, RFC-010 reconciliation, Frame boundaries, and this
-layer's upsert/dedup — and is **bigger than this RFC and a prerequisite for it.** Downstream
-(`aie-matrix`) is already hitting it. The Frame/Span schema's frame-scoped key `(frame_id, id)`
-— Frame as namespace — is this RFC's local manifestation of that scoping; the prerequisite must
-formalize how those frame namespaces are assigned so cross-file ingestion is clash-free. It
-warrants its own RFC (or an RFC-010 extension), settled before RFC-011 implementation (see
+RFC-001 owns the upstream scoped-identity rule: Frame is the namespace,
+`Subject.identity` is local within it, and a member's external identity is
+`(frame identity, local identity)`. Ingesting multiple `.gram` files is clash-free when each
+source receives a stable Frame identity, even if files independently contain `#1` or the same
+human-chosen id. The Frame/Span schema's frame-scoped key `(frame_id, id)` is the persistence
+form of that rule; this layer consumes it rather than defining another identity model (see
 Open Question 3).
 
 ### Relationship to Gram.Schema
@@ -528,8 +549,8 @@ Observable, regardless of file/package layout:
 ### Implementation Sequence
 
 Steps 1–2 (faithful encode/decode and round-trip) need no identity scoping and can proceed
-immediately. **Upsert and seed-then-own, however, are gated on the scoped-identity-namespace
-prerequisite** (Open Question 3) — do not build identity-keyed upsert until that is settled.
+immediately. Upsert and seed-then-own depend on RFC-001's scoped-identity contract and must key
+members by `(frame identity, local identity)`, never by a bare local symbol (Open Question 3).
 
 **Step 1 — Codec, Store, faithful document baseline.** Define `Codec`, `DecodeError`,
 `Store`, `saveVia`/`loadVia`; implement `documentCodec` over `Gram.JSON`; Hedgehog
@@ -558,10 +579,9 @@ cursors (Zippers) are a later, separate addition (Open Question 7).
 
 ## Open Questions
 
-All seven are dispositioned below. The only live *external* dependency is #3 (scoped identity
-namespaces), a prerequisite gating implementation; #5 and #6 are deliberate deferrals. RFC-011
-may be **accepted as a design** independently of #3, but its identity-dependent implementation
-(upsert, seed-then-own) is gated on that prerequisite landing first.
+All seven are dispositioned below. Scoped identity (#3) is owned by RFC-001; #5 and #6 are
+deliberate deferrals. RFC-011's identity-dependent implementation (upsert, seed-then-own)
+therefore depends on the RFC-001 Frame contract landing first.
 
 1. **`relationalKind` expressibility, and faithful RDBMS ingestion. — Resolved.** Two
    concerns were conflated here, and separating them resolves both:
@@ -582,15 +602,14 @@ may be **accepted as a design** independently of #3, but its identity-dependent 
    multi-statement atomic writes (`persistMany`, `withTransaction`) are orchestration *over* a
    `Store` — transport-specific and orthogonal to encoding — so they live above the boundary,
    keeping `Store` instances trivial and the scope tidy (see § Transport is a separate concern).
-3. **Identity and upsert. — Decided in principle; blocked on a prerequisite.** Identity is
+3. **Identity and upsert. — Resolved by RFC-001's prerequisite.** Identity is
    owned by `Subject.identity`, not the store; `StoreKey` is a subordinate physical locator;
    upsert keys on identity; write-time conflicts are RFC-010 reconciliation at the I/O boundary
-   (see § Identity is owned by `Subject.identity`). What remains open is **bigger than this RFC
-   and a prerequisite for it:** scoped identity namespaces for clash-free ingestion of multiple
-   `.gram` files (each carrying its own id-space). That is a cross-cutting identity concern
-   (parsing, RFC-010, Frame boundaries, persistence) that RFC-011 depends on; it warrants its
-   own RFC (or an RFC-010 extension) and should be settled before RFC-011 implementation.
-   Downstream (`aie-matrix`) is already hitting it.
+   (see § Identity is owned by `Subject.identity`). RFC-001 defines Frame as the namespace:
+   upsert keys are `(frame identity, local address)` — RFC-001's `ScopedAddress` — stable Frame
+   identity distinguishes independently ingested documents, and equal local symbols (or
+   positional ordinals) in different Frames do not collide. RFC-001 grounds the namespace;
+   RFC-012 completes anonymous-member identity within it (RFC-001 §Identity and addresses).
 4. **Shared-Bundle reconstruction. — Resolved: explicit.** On read, decode produces the
    materialized (per-span) Bundle as stored; identical `bundle_pair` sets under one `bundle_id`
    are *not* automatically coalesced into a shared in-memory Bundle. Reconstituting sharing is
@@ -644,13 +663,15 @@ enforcement of the externality invariant (an endpoint must live in the span's `f
 Carrying the two frame columns is cheap and makes that invariant declarative. A global key
 remains available to a transport that prefers it, at that cost.
 
-**Shared Bundles persisted by reference (`bundle_id` grouping).** Tempting for storage dedup
-and faithful to RFC-001's in-memory sharing. Rejected as the *default* at scale: a shared
+**Shared Bundles persisted by reference (`bundle_id` grouping).** Tempting for storage dedup.
+Rejected as the *default* at scale, and RFC-001's managed-container model no longer treats a
+Bundle as independently shareable in memory either — a Bundle is Span-owned. A shared
 Bundle has no single owning Span, so `ON DELETE CASCADE` cannot apply (forcing app-level
 refcount/GC), endpoint foreign keys become undeclarable (no single valid frame pair), and
-concurrent writers contend on shared edge rows. Storage materializes per span; sharing is
-preserved as an *opt-in* read-time reconstruction (`bundle_id` as a non-enforced attribute;
-Open Question 4) and an explicit promote-to-entity escape hatch.
+concurrent writers contend on shared edge rows. Storage materializes per span; deduplication
+is preserved only as an *opt-in* read-time reconstruction (`bundle_id` as a non-enforced
+attribute; Open Question 4) and an explicit promote-to-entity escape hatch — never a live
+shared mutable Bundle.
 
 **An existing Haskell persistence library as the whole answer** (`persistent`, `beam`,
 `esqueleto`, `hasql`). Rejected as a *replacement* for these devices: they map *records* to

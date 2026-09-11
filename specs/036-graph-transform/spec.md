@@ -3,7 +3,7 @@
 **Feature Branch**: `036-graph-transform`  
 **Created**: 2026-02-21  
 **Status**: Draft  
-**Input**: User description: "graph-transform to add GraphView, Construction, Transformation, and Context-Aware Mapping as described in the proposal @proposals/graph-transform.md" (now consolidated into [proposals/rfc/RFC-008-graph-transform.md](../../proposals/rfc/RFC-008-graph-transform.md))
+**Input**: User description: "graph-transform to add GraphView, Construction, Transformation, and Context-Aware Mapping as described in the proposal @design/graph-transform.md" (now consolidated into [design/rfc/RFC-008-graph-transform.md](../../design/rfc/RFC-008-graph-transform.md))
 
 ## User Scenarios & Testing *(mandatory)*
 

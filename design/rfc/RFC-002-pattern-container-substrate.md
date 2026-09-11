@@ -4,7 +4,7 @@
 **Date:** 2025-11-01
 **Authors:** @akollegger
 **Repository:** [github.com/relateby/pattern-hs](https://github.com/relateby/pattern-hs)
-**Supersedes:** `proposals/rfc/DESIGN.md` (deferred sketches migrated into Appendix B), `proposals/rfc/pattern-category.md` (categorical detail migrated into Appendix A)
+**Supersedes:** `design/rfc/DESIGN.md` (deferred sketches migrated into Appendix B), `design/rfc/pattern-category.md` (categorical detail migrated into Appendix A)
 **Related modules:** `Pattern.Core`, `Pattern.Graph.GraphLens`, `Pattern.PatternGraph`
 
 ## Summary
@@ -269,7 +269,7 @@ Post-hoc interpretation via views is more flexible without being more complex.
 
 ## Appendix A: Categorical Foundations
 
-> Migrated from the former `proposals/rfc/pattern-category.md`. The body's
+> Migrated from the former `design/rfc/pattern-category.md`. The body's
 > "Category-Theoretic Perspective" summarizes this material; the detail below — the value
 > magma ladder, the layered `CategoryLens` implementation, a worked morphism-equivalence
 > example, and downstream applications — is preserved here for reference. None of it is
@@ -378,7 +378,7 @@ multi-hop patterns. The Pattern structure naturally represents these schema-leve
 
 ## Appendix B: Deferred Design Sketches
 
-> Migrated from the former `proposals/rfc/DESIGN.md`. These flesh out the Open Questions
+> Migrated from the former `design/rfc/DESIGN.md`. These flesh out the Open Questions
 > above with the original concrete sketches. None are implemented; the signatures are
 > illustrative and the names are provisional.
 
