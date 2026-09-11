@@ -851,22 +851,44 @@ unmeasured.
 
 ## Proposed Next Steps
 
-1. Exercise the model above against representative source documents before fixing the
-   implementation-level API in an ADR.
-2. Replace the view/wrapper vocabulary and Pattern-shaped Span/Bundle representation in
-   RFC-001 with the managed-container model, retaining behavioral contracts and named
-   public concepts — a small contract table — and moving signatures, error constructors,
-   and index lifecycle to the ADR.
-3. Check RFC-011 for terminology alignment after the RFC-001 rewrite, including
-   `ScopedAddress` and PairAddress versus `src_frame`/`src_ref` and `tgt_frame`/`tgt_ref`,
-   and confirm that any by-reference serialization form names the Span-ownership
-   boundary, so a Bundle is never independently shared mutable state.
-4. Align RFC-012's anonymous-identity model with this note: replace its parent-relative
-   `(nearest named ancestor, ordinal)` weak-entity paths with flat Frame-scoped ordinals,
-   which directly resolve its Open Question 1 (ordinal fragility under reordering), and
-   restate its acceptance criterion 5 so round-trip faithfulness means topological
-   isomorphism of the containment shape, not reproduction of any particular positional id.
-5. Mark ADR-001 superseded or rewrite it against the resulting RFC; it currently assumes
-   cache-bearing wrappers and a Pattern-shaped Bundle.
-6. Create a new ADR for the Haskell registry representation, error types, FrameSpace
-   ownership API, and the `Pattern.Reconcile` adapter.
+1. ✅ **Done.** Exercised the model against representative source documents.
+   [SPIKE-001](../../spikes/SPIKE-001-frame-registry/SPIKE.md) validated the hand-designed
+   aircraft/maintenance workflow (17 PASS assertions). [SPIKE-002](
+   ../../spikes/SPIKE-002-frame-document-diversity/SPIKE.md) additionally validated Frame
+   admission and closure against five real, independently authored Gram documents — none
+   written with this model in mind — catching and correcting a wrong parser entry point
+   (`fromGramWithIds` vs. `fromGram`) along the way (8 PASS assertions).
+2. ✅ **Done.** Replaced the view/wrapper vocabulary and Pattern-shaped Span/Bundle
+   representation in [RFC-001](../RFC-001-frames-and-spans.md) with the managed-container
+   model: retitled, Glossary/Motivation/Design rebuilt around Frame/Span/FrameSpace/
+   ClosedSpan/PatternRow, FrameSpace's operations stated as a behavioral contract table
+   rather than signatures, and the Worked Exercise plus Acceptance criteria carried over
+   and updated to cite both spikes. A follow-up `/rfc-review` pass caught and fixed a
+   structural regression (non-goals content promoted to a top-level section against this
+   RFC's own precedent) and an orphaned `Resolves: RFC-011 OQ3` frontmatter claim, now
+   split explicitly between RFC-001 (grounds the namespace) and RFC-012 (completes
+   anonymous-member identity within it).
+3. ✅ **Done.** Checked RFC-011 for terminology alignment after the RFC-001 rewrite.
+   Fixed: retired vocabulary (`Portal`, `Reading 1`, stale principle numbering) still cited
+   by name; `bundle_pair` had no `PRIMARY KEY` and a nullable `pair_subject_id`, contradicting
+   RFC-001's mandatory `PairLocalIdentity`, now `PRIMARY KEY (span_id, pair_subject_id)` /
+   `NOT NULL`; the Bundle-sharing rationale cited "RFC-001 allows Bundle sharing," which the
+   managed-container model no longer does — corrected to a storage-only dedup convenience,
+   never a live shared Bundle. Flagged, not fixed: `frameKind`/`spanKind` and "the in-memory
+   by-value form remains canonical" assume a Frame-to-`Pattern Subject` materialization RFC-001
+   defers (Open Question 4) — noted as an open dependency in RFC-011 rather than redesigned now.
+4. ✅ **Done.** Aligned [RFC-012](../RFC-012-scoped-identity.md)'s anonymous-identity model
+   with this note: replaced its parent-relative `(nearest named ancestor, ordinal)`
+   weak-entity paths with RFC-001's flat, Frame-scoped ordinals — fully resolving its former
+   Open Question 1 (ordinal fragility) rather than merely bounding it, and restating
+   acceptance criterion 5 around topological isomorphism instead of reproducing a positional
+   id. A follow-up `/rfc-review` pass caught two remaining passages still describing
+   anonymous ordinals as parser-assigned (`#1`/`#2`) — the `fromGramWithIds` model SPIKE-002
+   discredited — and corrected them to match RFC-001's `fromGram`-preserves-anonymity,
+   admission-assigns-the-ordinal position.
+5. **Open.** Mark ADR-001 superseded or rewrite it against the resulting RFC. RFC-001's own
+   ADRs section already notes it as superseded, but `design/adr/ADR-001-frame-span-implementation.md`
+   itself still carries `status: proposed` and its original cache-bearing-wrapper content —
+   the ADR file has not yet been updated to match.
+6. **Open.** Create a new ADR for the Haskell registry representation, error types,
+   FrameSpace ownership API, and the `Pattern.Reconcile` adapter.
