@@ -34,3 +34,7 @@ Thumbs.db
 *.tmp
 
 .kilo
+
+# Spike worktrees — nested git worktrees for disposable spike investigations
+design/spikes/*/worktree/
+
