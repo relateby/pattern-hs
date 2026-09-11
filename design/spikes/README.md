@@ -7,3 +7,4 @@ back into their parent RFC once the investigation concludes.
 | Spike | Title | Status | RFCs |
 |-------|-------|--------|------|
 | [SPIKE-001](SPIKE-001-frame-registry/SPIKE.md) | Frame Registry Model | done | RFC-001 |
+| [SPIKE-002](SPIKE-002-frame-document-diversity/SPIKE.md) | Frame Admission Against Found Documents | done | RFC-001 |
